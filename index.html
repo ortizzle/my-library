@@ -347,8 +347,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
   </div>
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
-    <div class="nav-tab active" data-view="library" onclick="showView('library')">My Library</div>
-    <div class="nav-tab" data-view="lists" onclick="showView('lists')">Lists</div>
+    <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
+    <div class="nav-tab active" data-view="lists" onclick="showView('lists')">Lists</div>
     <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
     <div class="nav-tab" data-view="stats" onclick="showView('stats')">Stats &amp; Streak</div>
     <div class="nav-tab" data-view="keepsake" onclick="showView('keepsake')">Keepsake</div>
@@ -359,7 +359,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <main>
 
 <!-- LIBRARY -->
-<div class="view active" id="view-library">
+<div class="view" id="view-library">
   <div class="sec-head">
     <h2 class="sec-title">My Library</h2>
     <button class="btn btn-primary" onclick="openAddModal()">＋ Add Book</button>
@@ -392,7 +392,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <!-- LISTS -->
-<div class="view" id="view-lists">
+<div class="view active" id="view-lists">
   <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
   <div class="lists-grid" id="listsGrid"></div>
 </div>
@@ -912,6 +912,7 @@ function bookCard(b){
     ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
     <div class="card-actions">
       ${showProg?`<button class="btn btn-sage btn-sm" onclick="openProgModal('${b.id}')">📖 Progress</button>`:''}
+      ${b.status==='reading'?`<button class="btn btn-primary btn-sm" onclick="markDone('${b.id}')">✓ Done</button>`:''}
       ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
       <button class="btn btn-teal btn-sm" onclick="openEditModal('${b.id}')">${hasJournal?'📓 Journal':'Edit'}</button>
       <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
@@ -1193,6 +1194,24 @@ function deleteBook(id){
   delete coversDB[id];save(SK.covers,coversDB);
   delete journalDB[id];save(SK.journal,journalDB);
   renderLibrary();toast('Removed.','ok');
+}
+
+function markDone(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  b.status='read';
+  b.date=new Date().toISOString().split('T')[0];
+  // mark progress as 100% if we have a total
+  const prog=progressDB[id];
+  if(prog&&prog.length){
+    const last=prog[prog.length-1];
+    if(last.total){
+      prog.push({date:b.date,type:last.type,cur:last.total,total:last.total,note:'Finished!'});
+      save(SK.prog,progressDB);
+    }
+  }
+  save(SK.books,books);
+  renderLibrary();renderLists();updateHdrStreak();
+  toast(`"${b.title}" marked as finished! 🎉`,'ok');
 }
 
 // ══════════════════════════════════════════
@@ -1560,7 +1579,7 @@ async function generateQs(b){
 Questions should span themes, character, craft, and personal resonance. Include one about the author's style. Feel warm and conversational.
 Return ONLY a JSON array of 7 strings with no markdown or preamble.`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`API ${res.status}`);}
     const data=await res.json();
     const qs=JSON.parse(data.content.map(c=>c.text||'').join('').trim().replace(/```json|```/g,'').trim());
@@ -1697,7 +1716,7 @@ function toast(msg,type='ok'){const wrap=document.getElementById('toastWrap');co
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',()=>{
   runMigration();
-  renderLibrary();updateHdrStreak();
+  renderLists();renderLibrary();updateHdrStreak();
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeM('progModal');}});
 });
 </script>
