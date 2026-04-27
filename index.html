@@ -125,8 +125,14 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .list-card-head{padding:.8rem 1.02rem;display:flex;align-items:center;justify-content:space-between}
 .list-card-head h3{font-family:'Playfair Display',serif;font-size:.96rem;font-weight:600}
 .list-count{font-family:'IM Fell English SC',serif;font-size:.66rem;letter-spacing:.08em;color:var(--ink-faint)}
-.lh-reading{background:linear-gradient(135deg,#fff8e8,#fffaea);border-bottom:2px solid var(--amber)}
+.lh-reading{background:linear-gradient(135deg,#1e4d30,#2a6040);border-bottom:3px solid #4caf78;color:#e8f5ed}
+.lh-reading h3{color:#e8f5ed!important}
+.lh-reading .list-count{color:rgba(232,245,237,.65)!important}
 .lh-tbr{background:linear-gradient(135deg,#fce8f0,#fdf0f8);border-bottom:2px solid var(--rose)}
+.lh-month{background:linear-gradient(135deg,#eaf4f0,#f0faf6);border-bottom:2px solid var(--sage)}
+.reading-row{border-bottom:1px dotted rgba(232,245,237,.25)}
+.reading-row:last-child{border-bottom:none}
+.reading-panel{animation:slideDown .22s ease}
 .lh-fav{background:linear-gradient(135deg,#fef6d8,#fefaea);border-bottom:2px solid var(--gold)}
 .lh-dnf{background:linear-gradient(135deg,#eaeef8,#f0f4fc);border-bottom:2px solid var(--navy)}
 .lh-article{background:linear-gradient(135deg,#e4f0ee,#eef8f5);border-bottom:2px solid var(--teal)}
@@ -321,6 +327,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .toast.ok{border-left:3px solid var(--gold)}.toast.err{border-left:3px solid var(--burg-lt)}
 @keyframes ti{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toa{from{opacity:1}to{opacity:0}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
 /* MIGRATION BANNER */
 .migration-banner{background:linear-gradient(135deg,var(--gold-lt),var(--gold));color:var(--ink);padding:.6rem 1.2rem;text-align:center;font-size:.8rem;font-family:'Lora',serif;position:relative;z-index:10}
@@ -534,7 +541,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <option value="dnf">Did Not Finish (DNF)</option>
       </select>
     </div>
-    <div class="fg"><label>Date Finished / Added</label><input type="date" id="bDate"></div>
+    <div class="fg"><label id="dateFinishedLabel">Date Finished</label><input type="date" id="bDate"></div>
   </div>
 
   <!-- ARTICLE-SPECIFIC -->
@@ -549,7 +556,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <!-- START DATE -->
   <div class="row2" id="startDateRow" style="display:none">
     <div class="fg">
-      <label>Start Date <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
+      <label>Date Started <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
       <input type="date" id="bStartDate">
       <label class="inline-check"><input type="checkbox" id="chkYearOnly" onchange="toggleYearOnly()"> I only know the year</label>
     </div>
@@ -1014,6 +1021,13 @@ function handleStatusChange(){
   const s=document.getElementById('bStatus').value;
   document.getElementById('startDateRow').style.display=['reading','read','dnf'].includes(s)?'grid':'none';
   document.getElementById('progressSection').style.display=(s==='reading'&&curItemType==='book')?'block':'none';
+  const lbl=document.getElementById('dateFinishedLabel');
+  if(lbl){
+    if(s==='read') lbl.textContent='Date Finished';
+    else if(s==='reading') lbl.textContent='Date Started (if known)';
+    else if(s==='dnf') lbl.textContent='Date Stopped';
+    else lbl.textContent='Date Added';
+  }
 }
 
 function toggleYearOnly(){
@@ -1207,18 +1221,55 @@ function markDone(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   b.status='read';
   b.date=new Date().toISOString().split('T')[0];
-  // mark progress as 100% if we have a total
   const prog=progressDB[id];
   if(prog&&prog.length){
     const last=prog[prog.length-1];
-    if(last.total){
-      prog.push({date:b.date,type:last.type,cur:last.total,total:last.total,note:'Finished!'});
-      save(SK.prog,progressDB);
-    }
+    if(last.total){prog.push({date:b.date,type:last.type,cur:last.total,total:last.total,note:'Finished!'});save(SK.prog,progressDB);}
   }
   save(SK.books,books);
   renderLibrary();renderLists();updateHdrStreak();
   toast(`"${b.title}" marked as finished! 🎉`,'ok');
+}
+
+function toggleReadingPanel(id){
+  const panel=document.getElementById('rp-'+id);
+  if(!panel)return;
+  const isOpen=panel.style.display!=='none';
+  // close all others first
+  document.querySelectorAll('.reading-panel').forEach(p=>p.style.display='none');
+  if(!isOpen) panel.style.display='block';
+}
+
+function logProgressInline(id,type){
+  const today=new Date().toISOString().split('T')[0];
+  if(!progressDB[id])progressDB[id]=[];
+  let cur,total;
+  if(type==='audio'){
+    cur=+document.getElementById('rp-amin-'+id).value||0;
+    total=+document.getElementById('rp-atotal-'+id).value||0;
+  }else{
+    cur=+document.getElementById('rp-page-'+id).value||0;
+    total=+document.getElementById('rp-total-'+id).value||0;
+  }
+  if(!cur&&!total){toast('Enter a page or minute count.','err');return;}
+  progressDB[id].push({date:today,type,cur,total,note:''});
+  save(SK.prog,progressDB);
+  logDay(today);updateHdrStreak();
+  renderLists();
+  toast('Progress logged!','ok');
+}
+
+function logJournalInline(id){
+  const ta=document.getElementById('rp-journal-'+id);
+  const text=ta?ta.value.trim():'';
+  if(!text){toast('Write something first.','err');return;}
+  if(!journalDB[id])journalDB[id]=[];
+  journalDB[id].push({date:new Date().toISOString().split('T')[0],text});
+  save(SK.journal,journalDB);
+  logDay(new Date().toISOString().split('T')[0]);
+  updateHdrStreak();
+  ta.value='';
+  toast('Journal note saved!','ok');
 }
 
 // ══════════════════════════════════════════
@@ -1340,13 +1391,20 @@ function renderLists(){
   const dnfL=books.filter(b=>b.status==='dnf'||(b.lists||[]).includes('dnf_list'));
   const articles=books.filter(b=>b.itemType==='article');
 
+  // Read This Month
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const readThisMonth=books.filter(b=>b.status==='read'&&b.date&&b.date.startsWith(thisMonth));
+
   const rowCover=b=>{const url=coversDB[b.id];return url?`<img class="list-row-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="list-row-cover-ph">📗</div>`;};
 
-  const makeList=(head,headCls,items,emptyMsg)=>{
+  // Standard list maker (click → edit)
+  const makeList=(head,headCls,items,emptyMsg,clickFn)=>{
     const rows=items.length?items.map(b=>{
       const prog=progressDB[b.id];const last=prog&&prog.length?prog[prog.length-1]:null;
       const progTxt=last&&last.total?`${Math.round((last.cur/last.total)*100)}%`:'';
-      return `<div class="list-row" onclick="openEditModal('${b.id}')">
+      const onclick=clickFn?clickFn(b):`openEditModal('${b.id}')`;
+      return `<div class="list-row" onclick="${onclick}">
         ${rowCover(b)}
         <div class="list-row-info">
           <div class="list-row-title">${esc(b.title)}</div>
@@ -1362,8 +1420,71 @@ function renderLists(){
     return `<div class="list-card"><div class="list-card-head ${headCls}"><h3>${head}</h3><span class="list-count">${items.length} item${items.length!==1?'s':''}</span></div><div class="list-rows">${rows}</div></div>`;
   };
 
+  // Currently Reading uses inline progress+journal panel instead of modal
+  const readingRows=readingBks.length?readingBks.map(b=>{
+    const prog=progressDB[b.id];const last=prog&&prog.length?prog[prog.length-1]:null;
+    const progTxt=last&&last.total?`${Math.round((last.cur/last.total)*100)}%`:'';
+    const pct=last&&last.total?Math.min(100,Math.round((last.cur/last.total)*100)):0;
+    const lbl=last?last.type==='audio'?`${last.cur}/${last.total} min`:`p.${last.cur}/${last.total}`:'';
+    return `<div class="reading-row">
+      <div class="list-row" style="cursor:pointer" onclick="toggleReadingPanel('${b.id}')">
+        ${rowCover(b)}
+        <div class="list-row-info">
+          <div class="list-row-title" style="color:var(--ink)">${esc(b.title)}</div>
+          <div class="list-row-author">${esc(b.author)}</div>
+          ${progTxt?`<div class="prog-bar" style="margin-top:.22rem"><div class="prog-fill" style="width:${progTxt}"></div></div>`:''}
+        </div>
+        <div class="list-row-right">
+          ${progTxt?`<span class="list-row-prog" style="color:#4caf78">${progTxt}</span>`:'<span style="font-size:.68rem;color:rgba(232,245,237,.5)">tap to update</span>'}
+          <span style="font-size:.72rem;color:rgba(232,245,237,.5);margin-top:.1rem">▾</span>
+        </div>
+      </div>
+      <div class="reading-panel" id="rp-${b.id}" style="display:none">
+        <div style="padding:.75rem 1rem;background:var(--cream);border-top:1px solid var(--parchment-dark)">
+          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
+          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.6rem">
+            <div style="flex:1;min-width:90px">
+              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Current Page</label>
+              <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="${last&&last.type!=='audio'?last.total:'e.g. 142'}" min="0" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
+            <div style="flex:1;min-width:90px">
+              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Total Pages</label>
+              <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
+            <button class="btn btn-sage btn-sm" onclick="logProgressInline('${b.id}','pages')">Log</button>
+          </div>
+          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">AUDIO (MINUTES)</div>
+          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.75rem">
+            <div style="flex:1;min-width:90px">
+              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Current Min</label>
+              <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
+            <div style="flex:1;min-width:90px">
+              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Total Min</label>
+              <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
+            <button class="btn btn-sage btn-sm" onclick="logProgressInline('${b.id}','audio')">Log</button>
+          </div>
+          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">JOURNAL NOTE</div>
+          <div style="display:flex;gap:.5rem;align-items:flex-start">
+            <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="flex:1;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:58px;line-height:1.5"></textarea>
+            <button class="btn btn-teal btn-sm" style="flex-shrink:0" onclick="logJournalInline('${b.id}')">Save</button>
+          </div>
+          <div style="display:flex;gap:.4rem;margin-top:.65rem;padding-top:.55rem;border-top:1px dotted var(--parchment-dark)">
+            <button class="btn btn-primary btn-sm" onclick="markDone('${b.id}')">✓ Mark Done</button>
+            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join(''):`<div style="padding:1rem;font-size:.78rem;color:rgba(232,245,237,.55);font-style:italic">No books currently reading.</div>`;
+
+  const readingCard=`<div class="list-card"><div class="list-card-head lh-reading"><h3>● Currently Reading</h3><span class="list-count">${readingBks.length} book${readingBks.length!==1?'s':''}</span></div><div class="list-rows" style="max-height:none">${readingRows}</div></div>`;
+
+  const monthName=now.toLocaleDateString('en-US',{month:'long'});
   document.getElementById('listsGrid').innerHTML=
-    makeList('● Currently Reading','lh-reading',readingBks,'No books currently reading.')+
+    readingCard+
+    makeList(`📅 Read in ${monthName}`,'lh-month',readThisMonth,`No books finished in ${monthName} yet.`)+
     makeList('🌿 To Be Read','lh-tbr',tbr,'No books on your TBR yet.')+
     makeList('⭐ Favorites','lh-fav',fav,'No favorites yet.')+
     makeList('📕 Did Not Finish','lh-dnf',dnfL,'No DNF books.')+
