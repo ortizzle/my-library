@@ -541,7 +541,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <option value="dnf">Did Not Finish (DNF)</option>
       </select>
     </div>
-    <div class="fg"><label id="dateFinishedLabel">Date Finished</label><input type="date" id="bDate"></div>
   </div>
 
   <!-- ARTICLE-SPECIFIC -->
@@ -553,17 +552,21 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div class="fg"><label>Article URL</label><input type="url" id="bArticleUrl" placeholder="https://…"></div>
   </div>
 
-  <!-- START DATE -->
-  <div class="row2" id="startDateRow" style="display:none">
+  <!-- DATES — shown/hidden and labelled by status -->
+  <div id="datesSection" class="row2" style="display:none">
     <div class="fg">
-      <label>Date Started <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
+      <label id="dateStartedLabel">Date Started <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
       <input type="date" id="bStartDate">
-      <label class="inline-check"><input type="checkbox" id="chkYearOnly" onchange="toggleYearOnly()"> I only know the year</label>
+      <label class="inline-check" id="yearOnlyCheck"><input type="checkbox" id="chkYearOnly" onchange="toggleYearOnly()"> I only know the year</label>
     </div>
-    <div class="fg" id="yearOnlyWrap" style="display:none">
-      <label>Year Read</label>
-      <input type="number" id="bYearOnly" placeholder="e.g. 2021" min="1900" max="2099">
+    <div class="fg" id="dateFinishedWrap">
+      <label id="dateFinishedLabel">Date Finished</label>
+      <input type="date" id="bDate">
     </div>
+  </div>
+  <div class="fg" id="yearOnlyWrap" style="display:none">
+    <label>Year Read / Started</label>
+    <input type="number" id="bYearOnly" placeholder="e.g. 2021" min="1900" max="2099">
   </div>
 
   <!-- LISTS -->
@@ -1006,9 +1009,8 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurMin','progTotalMin','bStartDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurMin','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
-  document.getElementById('bDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('chkYearOnly').checked=false;
   setIsbnStatus('Enter an ISBN to auto-fill, or fill in manually below.','');
   setCoverPreview(null);toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(0);setProgType('pages',null);handleStatusChange();
@@ -1019,15 +1021,31 @@ function ovc(e,id){if(e.target===e.currentTarget)closeM(id);}
 
 function handleStatusChange(){
   const s=document.getElementById('bStatus').value;
-  document.getElementById('startDateRow').style.display=['reading','read','dnf'].includes(s)?'grid':'none';
-  document.getElementById('progressSection').style.display=(s==='reading'&&curItemType==='book')?'block':'none';
-  const lbl=document.getElementById('dateFinishedLabel');
-  if(lbl){
-    if(s==='read') lbl.textContent='Date Finished';
-    else if(s==='reading') lbl.textContent='Date Started (if known)';
-    else if(s==='dnf') lbl.textContent='Date Stopped';
-    else lbl.textContent='Date Added';
+  const datesSection=document.getElementById('datesSection');
+  const dateFinishedWrap=document.getElementById('dateFinishedWrap');
+  const dateStartedLabel=document.getElementById('dateStartedLabel');
+  const dateFinishedLabel=document.getElementById('dateFinishedLabel');
+  const yearOnlyCheck=document.getElementById('yearOnlyCheck');
+
+  if(s==='reading'){
+    datesSection.style.display='grid';
+    dateFinishedWrap.style.display='none';
+    if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+  } else if(s==='read'){
+    datesSection.style.display='grid';
+    if(dateFinishedLabel) dateFinishedLabel.textContent='Date Finished';
+    if(dateFinishedWrap) dateFinishedWrap.style.display='block';
+    if(yearOnlyCheck) yearOnlyCheck.style.display='flex';
+  } else if(s==='dnf'){
+    datesSection.style.display='grid';
+    if(dateFinishedLabel) dateFinishedLabel.textContent='Date Stopped';
+    if(dateFinishedWrap) dateFinishedWrap.style.display='block';
+    if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+  } else {
+    // unread — no dates needed
+    if(datesSection) datesSection.style.display='none';
   }
+  document.getElementById('progressSection').style.display=(s==='reading'&&curItemType==='book')?'block':'none';
 }
 
 function toggleYearOnly(){
@@ -1240,36 +1258,45 @@ function toggleReadingPanel(id){
   if(!isOpen) panel.style.display='block';
 }
 
-function logProgressInline(id,type){
+function logProgressAndJournalInline(id){
   const today=new Date().toISOString().split('T')[0];
-  if(!progressDB[id])progressDB[id]=[];
-  let cur,total;
-  if(type==='audio'){
-    cur=+document.getElementById('rp-amin-'+id).value||0;
-    total=+document.getElementById('rp-atotal-'+id).value||0;
-  }else{
-    cur=+document.getElementById('rp-page-'+id).value||0;
-    total=+document.getElementById('rp-total-'+id).value||0;
-  }
-  if(!cur&&!total){toast('Enter a page or minute count.','err');return;}
-  progressDB[id].push({date:today,type,cur,total,note:''});
-  save(SK.prog,progressDB);
-  logDay(today);updateHdrStreak();
-  renderLists();
-  toast('Progress logged!','ok');
-}
+  let saved=false;
 
-function logJournalInline(id){
+  // Pages progress
+  const page=+document.getElementById('rp-page-'+id).value||0;
+  const total=+document.getElementById('rp-total-'+id).value||0;
+  if(page||total){
+    if(!progressDB[id])progressDB[id]=[];
+    progressDB[id].push({date:today,type:'pages',cur:page,total,note:''});
+    saved=true;
+  }
+
+  // Audio progress (only if audio fields filled and pages not filled)
+  const amin=+document.getElementById('rp-amin-'+id).value||0;
+  const atotal=+document.getElementById('rp-atotal-'+id).value||0;
+  if((amin||atotal)&&!page&&!total){
+    if(!progressDB[id])progressDB[id]=[];
+    progressDB[id].push({date:today,type:'audio',cur:amin,total:atotal,note:''});
+    saved=true;
+  }
+
+  if(saved) save(SK.prog,progressDB);
+
+  // Journal
   const ta=document.getElementById('rp-journal-'+id);
   const text=ta?ta.value.trim():'';
-  if(!text){toast('Write something first.','err');return;}
-  if(!journalDB[id])journalDB[id]=[];
-  journalDB[id].push({date:new Date().toISOString().split('T')[0],text});
-  save(SK.journal,journalDB);
-  logDay(new Date().toISOString().split('T')[0]);
-  updateHdrStreak();
-  ta.value='';
-  toast('Journal note saved!','ok');
+  if(text){
+    if(!journalDB[id])journalDB[id]=[];
+    journalDB[id].push({date:today,text});
+    save(SK.journal,journalDB);
+    if(ta)ta.value='';
+    saved=true;
+  }
+
+  if(!saved){toast('Fill in a page number or write a note first.','err');return;}
+  logDay(today);updateHdrStreak();
+  renderLists();
+  toast('Saved!','ok');
 }
 
 // ══════════════════════════════════════════
@@ -1441,39 +1468,46 @@ function renderLists(){
       </div>
       <div class="reading-panel" id="rp-${b.id}" style="display:none">
         <div style="padding:.75rem 1rem;background:var(--cream);border-top:1px solid var(--parchment-dark)">
+
           <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
-          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.6rem">
-            <div style="flex:1;min-width:90px">
-              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Current Page</label>
-              <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="${last&&last.type!=='audio'?last.total:'e.g. 142'}" min="0" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
+            <div style="flex:1;min-width:80px">
+              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
+              <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
             </div>
-            <div style="flex:1;min-width:90px">
-              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Total Pages</label>
-              <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            <div style="flex:1;min-width:80px">
+              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
+              <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
             </div>
-            <button class="btn btn-sage btn-sm" onclick="logProgressInline('${b.id}','pages')">Log</button>
+            <div style="flex:1;min-width:80px">
+              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
+              <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
+            <div style="flex:1;min-width:80px">
+              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
+              <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+            </div>
           </div>
-          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">AUDIO (MINUTES)</div>
-          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.75rem">
-            <div style="flex:1;min-width:90px">
-              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Current Min</label>
-              <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-            <div style="flex:1;min-width:90px">
-              <label style="display:block;font-size:.68rem;color:var(--ink-faint);margin-bottom:.2rem">Total Min</label>
-              <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.35rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-            <button class="btn btn-sage btn-sm" onclick="logProgressInline('${b.id}','audio')">Log</button>
-          </div>
-          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">JOURNAL NOTE</div>
-          <div style="display:flex;gap:.5rem;align-items:flex-start">
-            <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="flex:1;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:58px;line-height:1.5"></textarea>
-            <button class="btn btn-teal btn-sm" style="flex-shrink:0" onclick="logJournalInline('${b.id}')">Save</button>
-          </div>
-          <div style="display:flex;gap:.4rem;margin-top:.65rem;padding-top:.55rem;border-top:1px dotted var(--parchment-dark)">
+
+          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
+          <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
+
+          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}')">💾 Save</button>
             <button class="btn btn-primary btn-sm" onclick="markDone('${b.id}')">✓ Mark Done</button>
             <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
           </div>
+
+          ${(journalDB[b.id]||[]).length?`
+          <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px dotted var(--parchment-dark)">
+            <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">RECENT JOURNAL ENTRIES</div>
+            ${[...(journalDB[b.id]||[])].reverse().slice(0,3).map(e=>`
+              <div style="margin-bottom:.4rem;padding:.4rem .55rem;background:var(--parchment);border-radius:5px;border-left:2px solid var(--teal)">
+                <div style="font-size:.65rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.15rem">${fmtDate(e.date)}</div>
+                <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${esc(e.text)}</div>
+              </div>`).join('')}
+            ${(journalDB[b.id]||[]).length>3?`<div style="font-size:.7rem;color:var(--ink-faint);font-style:italic">+ ${(journalDB[b.id]||[]).length-3} more in Full Edit</div>`:''}
+          </div>`:''}
         </div>
       </div>
     </div>`;
