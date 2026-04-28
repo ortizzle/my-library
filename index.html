@@ -929,7 +929,6 @@ function bookCard(b){
     ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
     <div class="card-actions">
       ${showProg?`<button class="btn btn-sage btn-sm" onclick="openProgModal('${b.id}')">📖 Progress</button>`:''}
-      ${b.status==='reading'?`<button class="btn btn-primary btn-sm" onclick="markDone('${b.id}')">✓ Done</button>`:''}
       ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
       <button class="btn btn-teal btn-sm" onclick="openEditModal('${b.id}')">${hasJournal?'📓 Journal':'Edit'}</button>
       <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
@@ -1293,7 +1292,14 @@ function logProgressAndJournalInline(id){
     saved=true;
   }
 
-  if(!saved){toast('Fill in a page number or write a note first.','err');return;}
+  // Finished checkbox
+  const doneChk=document.getElementById('rp-done-'+id);
+  if(doneChk&&doneChk.checked){
+    markDone(id); // handles its own save + toast
+    return;
+  }
+
+  if(!saved){toast('Fill in a page number, write a note, or check Finished.','err');return;}
   logDay(today);updateHdrStreak();
   renderLists();
   toast('Saved!','ok');
@@ -1492,10 +1498,14 @@ function renderLists(){
           <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
           <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
 
-          <div style="display:flex;gap:.4rem;flex-wrap:wrap;align-items:center">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);font-weight:500;user-select:none">
+                <input type="checkbox" id="rp-done-${b.id}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--sage)"> Finished this book
+              </label>
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
+            </div>
             <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}')">💾 Save</button>
-            <button class="btn btn-primary btn-sm" onclick="markDone('${b.id}')">✓ Mark Done</button>
-            <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
           </div>
 
           ${(journalDB[b.id]||[]).length?`
