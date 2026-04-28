@@ -1006,6 +1006,13 @@ function openEditModal(id){
   }
 
   toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(curRating);handleStatusChange();
+  // If book has a finish date, always show it regardless of current status
+  if(b.date&&document.getElementById('dateFinishedWrap')){
+    document.getElementById('dateFinishedWrap').style.display='block';
+    document.getElementById('datesSection').style.display='grid';
+    const lbl=document.getElementById('dateFinishedLabel');
+    if(lbl&&b.status==='reading') lbl.textContent='Date Finished';
+  }
   document.getElementById('loanHistorySection').style.display='block';
   document.getElementById('journalSection').style.display='block';
   document.getElementById('loanAddForm').style.display='none';
@@ -1029,27 +1036,25 @@ function handleStatusChange(){
   const s=document.getElementById('bStatus').value;
   const datesSection=document.getElementById('datesSection');
   const dateFinishedWrap=document.getElementById('dateFinishedWrap');
-  const dateStartedLabel=document.getElementById('dateStartedLabel');
   const dateFinishedLabel=document.getElementById('dateFinishedLabel');
   const yearOnlyCheck=document.getElementById('yearOnlyCheck');
 
-  if(s==='reading'){
-    datesSection.style.display='grid';
-    dateFinishedWrap.style.display='none';
-    if(yearOnlyCheck) yearOnlyCheck.style.display='none';
-  } else if(s==='read'){
-    datesSection.style.display='grid';
-    if(dateFinishedLabel) dateFinishedLabel.textContent='Date Finished';
-    if(dateFinishedWrap) dateFinishedWrap.style.display='block';
-    if(yearOnlyCheck) yearOnlyCheck.style.display='flex';
-  } else if(s==='dnf'){
-    datesSection.style.display='grid';
-    if(dateFinishedLabel) dateFinishedLabel.textContent='Date Stopped';
-    if(dateFinishedWrap) dateFinishedWrap.style.display='block';
-    if(yearOnlyCheck) yearOnlyCheck.style.display='none';
-  } else {
-    // unread — no dates needed
+  if(s==='unread'){
     if(datesSection) datesSection.style.display='none';
+  } else {
+    datesSection.style.display='grid';
+    if(s==='reading'){
+      if(dateFinishedWrap) dateFinishedWrap.style.display='none';
+      if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+    } else if(s==='read'){
+      if(dateFinishedLabel) dateFinishedLabel.textContent='Date Finished';
+      if(dateFinishedWrap) dateFinishedWrap.style.display='block';
+      if(yearOnlyCheck) yearOnlyCheck.style.display='flex';
+    } else if(s==='dnf'){
+      if(dateFinishedLabel) dateFinishedLabel.textContent='Date Stopped';
+      if(dateFinishedWrap) dateFinishedWrap.style.display='block';
+      if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+    }
   }
   document.getElementById('progressSection').style.display=(s==='reading'&&curItemType==='book')?'block':'none';
 }
