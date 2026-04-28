@@ -130,7 +130,11 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .lh-reading .list-count{color:rgba(232,245,237,.65)!important}
 .lh-tbr{background:linear-gradient(135deg,#fce8f0,#fdf0f8);border-bottom:2px solid var(--rose)}
 .lh-month{background:linear-gradient(135deg,#eaf4f0,#f0faf6);border-bottom:2px solid var(--sage)}
-.reading-row{border-bottom:1px dotted rgba(232,245,237,.25)}
+.book-card-wrap{display:contents}
+.lib-panel{animation:slideDown .22s ease}
+.books-grid .book-card-wrap{display:flex;flex-direction:column}
+.books-grid .book-card{border-radius:var(--r);margin-bottom:0}
+.books-grid .book-card-wrap .lib-panel{border-radius:0 0 var(--r) var(--r);overflow:hidden;box-shadow:0 5px 16px var(--shadow)}
 .reading-row:last-child{border-bottom:none}
 .reading-panel{animation:slideDown .22s ease}
 .lh-fav{background:linear-gradient(135deg,#fef6d8,#fefaea);border-bottom:2px solid var(--gold)}
@@ -912,27 +916,30 @@ function bookCard(b){
   const loanLine=al?`<div class="loan-line">📤 With ${esc(al.to)}${al.date?' · '+fmtDate(al.date):''}</div>`:'';
   const showProg=b.status==='reading'&&b.itemType!=='article';
   const hasJournal=(journalDB[b.id]||[]).length>0;
-  return `<div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}">
-    ${coverHtml}
-    <div style="display:flex;justify-content:space-between;gap:.25rem;flex-wrap:wrap">
-      <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
-      <div class="badge-row">${fmtBadges(b)}</div>
+  return `<div class="book-card-wrap">
+    <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0" id="bc-${b.id}">
+      ${coverHtml}
+      <div style="display:flex;justify-content:space-between;gap:.25rem;flex-wrap:wrap">
+        <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
+        <div class="badge-row">${fmtBadges(b)}</div>
+      </div>
+      <div class="book-title">${esc(b.title)}</div>
+      <div class="book-author">${esc(b.author)}${b.publication?` <span style="color:var(--ink-faint)">· ${esc(b.publication)}</span>`:''}</div>
+      ${b.genre?`<div><span class="book-genre">${esc(b.genre)}</span></div>`:''}
+      ${b.itemType!=='article'?`<div class="star-ro">${stars}</div>`:''}
+      ${progressBar(b)}
+      ${b.notes?`<div class="book-review">${esc(b.notes)}</div>`:''}
+      ${dateDisplay(b)}
+      ${loanLine}
+      ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
+      <div class="card-actions">
+        ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
+        ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
+        <button class="btn btn-teal btn-sm" onclick="openEditModal('${b.id}')">${hasJournal?'📓 Journal':'Edit'}</button>
+        <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
+      </div>
     </div>
-    <div class="book-title">${esc(b.title)}</div>
-    <div class="book-author">${esc(b.author)}${b.publication?` <span style="color:var(--ink-faint)">· ${esc(b.publication)}</span>`:''}</div>
-    ${b.genre?`<div><span class="book-genre">${esc(b.genre)}</span></div>`:''}
-    ${b.itemType!=='article'?`<div class="star-ro">${stars}</div>`:''}
-    ${progressBar(b)}
-    ${b.notes?`<div class="book-review">${esc(b.notes)}</div>`:''}
-    ${dateDisplay(b)}
-    ${loanLine}
-    ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
-    <div class="card-actions">
-      ${showProg?`<button class="btn btn-sage btn-sm" onclick="openProgModal('${b.id}')">📖 Progress</button>`:''}
-      ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
-      <button class="btn btn-teal btn-sm" onclick="openEditModal('${b.id}')">${hasJournal?'📓 Journal':'Edit'}</button>
-      <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
-    </div>
+    ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b)}</div>`:''}
   </div>`;
 }
 
@@ -1234,6 +1241,72 @@ function deleteBook(id){
   renderLibrary();toast('Removed.','ok');
 }
 
+// Shared panel HTML used by both Library cards and Lists
+function buildProgressPanel(b){
+  const prog=progressDB[b.id]||[];
+  const last=prog[prog.length-1]||null;
+  const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
+  return `<div style="padding:.75rem 1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r)">
+    <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
+      <div style="flex:1;min-width:80px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
+        <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+      </div>
+      <div style="flex:1;min-width:80px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
+        <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+      </div>
+      <div style="flex:1;min-width:80px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
+        <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+      </div>
+      <div style="flex:1;min-width:80px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
+        <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+      </div>
+    </div>
+    <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
+    <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
+      <div style="display:flex;align-items:center;gap:.75rem">
+        <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);font-weight:500;user-select:none">
+          <input type="checkbox" id="rp-done-${b.id}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--sage)"> Finished this book
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
+      </div>
+      <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}')">💾 Save</button>
+    </div>
+    ${recentJournal.length?`
+    <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px dotted var(--parchment-dark)">
+      <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">RECENT JOURNAL ENTRIES</div>
+      ${recentJournal.map(e=>`
+        <div style="margin-bottom:.4rem;padding:.4rem .55rem;background:var(--parchment);border-radius:5px;border-left:2px solid var(--teal)">
+          <div style="font-size:.65rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.15rem">${fmtDate(e.date)}</div>
+          <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${esc(e.text)}</div>
+        </div>`).join('')}
+      ${(journalDB[b.id]||[]).length>3?`<div style="font-size:.7rem;color:var(--ink-faint);font-style:italic">+ ${(journalDB[b.id]||[]).length-3} more in Full Edit</div>`:''}
+    </div>`:''}
+  </div>`;
+}
+
+function toggleLibraryPanel(id){
+  const panel=document.getElementById('lp-'+id);
+  if(!panel)return;
+  const isOpen=panel.style.display!=='none';
+  // close all other library panels
+  document.querySelectorAll('.lib-panel').forEach(p=>p.style.display='none');
+  document.querySelectorAll('.book-card-wrap .book-card').forEach(c=>{
+    c.style.borderRadius=`var(--r)`;
+  });
+  if(!isOpen){
+    panel.style.display='block';
+    // square off bottom corners of the card above
+    const card=document.getElementById('bc-'+id);
+    if(card) card.style.borderRadius=`var(--r) var(--r) 0 0`;
+  }
+}
+
 function markDone(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   b.status='read';
@@ -1252,8 +1325,9 @@ function toggleReadingPanel(id){
   const panel=document.getElementById('rp-'+id);
   if(!panel)return;
   const isOpen=panel.style.display!=='none';
-  // close all others first
   document.querySelectorAll('.reading-panel').forEach(p=>p.style.display='none');
+  document.querySelectorAll('.lib-panel').forEach(p=>p.style.display='none');
+  document.querySelectorAll('.book-card-wrap .book-card').forEach(c=>{c.style.borderRadius='var(--r)';});
   if(!isOpen) panel.style.display='block';
 }
 
@@ -1473,52 +1547,7 @@ function renderLists(){
         </div>
       </div>
       <div class="reading-panel" id="rp-${b.id}" style="display:none">
-        <div style="padding:.75rem 1rem;background:var(--cream);border-top:1px solid var(--parchment-dark)">
-
-          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
-          <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
-            <div style="flex:1;min-width:80px">
-              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-              <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-            <div style="flex:1;min-width:80px">
-              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
-              <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-            <div style="flex:1;min-width:80px">
-              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-              <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-            <div style="flex:1;min-width:80px">
-              <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
-              <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
-            </div>
-          </div>
-
-          <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
-          <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
-
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
-            <div style="display:flex;align-items:center;gap:.75rem">
-              <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);font-weight:500;user-select:none">
-                <input type="checkbox" id="rp-done-${b.id}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--sage)"> Finished this book
-              </label>
-              <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
-            </div>
-            <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}')">💾 Save</button>
-          </div>
-
-          ${(journalDB[b.id]||[]).length?`
-          <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px dotted var(--parchment-dark)">
-            <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">RECENT JOURNAL ENTRIES</div>
-            ${[...(journalDB[b.id]||[])].reverse().slice(0,3).map(e=>`
-              <div style="margin-bottom:.4rem;padding:.4rem .55rem;background:var(--parchment);border-radius:5px;border-left:2px solid var(--teal)">
-                <div style="font-size:.65rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.15rem">${fmtDate(e.date)}</div>
-                <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${esc(e.text)}</div>
-              </div>`).join('')}
-            ${(journalDB[b.id]||[]).length>3?`<div style="font-size:.7rem;color:var(--ink-faint);font-style:italic">+ ${(journalDB[b.id]||[]).length-3} more in Full Edit</div>`:''}
-          </div>`:''}
-        </div>
+        ${buildProgressPanel(b)}
       </div>
     </div>`;
   }).join(''):`<div style="padding:1rem;font-size:.78rem;color:rgba(232,245,237,.55);font-style:italic">No books currently reading.</div>`;
