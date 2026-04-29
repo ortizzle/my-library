@@ -939,7 +939,7 @@ function bookCard(b){
         <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
       </div>
     </div>
-    ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b)}</div>`:''}
+    ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b,'lp')}</div>`:''}
   </div>`;
 }
 
@@ -1247,40 +1247,41 @@ function deleteBook(id){
 }
 
 // Shared panel HTML used by both Library cards and Lists
-function buildProgressPanel(b){
+function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
   const last=prog[prog.length-1]||null;
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
+  const p=prefix+'-';
   return `<div style="padding:.75rem 1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r)">
     <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="rp-page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
-        <input type="number" id="rp-total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-        <input type="number" id="rp-amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
-        <input type="number" id="rp-atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
     </div>
     <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
-    <textarea id="rp-journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
+    <textarea id="${p}journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
       <div style="display:flex;align-items:center;gap:.75rem">
         <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);font-weight:500;user-select:none">
-          <input type="checkbox" id="rp-done-${b.id}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--sage)"> Finished this book
+          <input type="checkbox" id="${p}done-${b.id}" style="width:15px;height:15px;cursor:pointer;accent-color:var(--sage)"> Finished this book
         </label>
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Full Edit</button>
       </div>
-      <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}')">💾 Save</button>
+      <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}','${prefix}')">💾 Save</button>
     </div>
     ${recentJournal.length?`
     <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px dotted var(--parchment-dark)">
@@ -1336,13 +1337,14 @@ function toggleReadingPanel(id){
   if(!isOpen) panel.style.display='block';
 }
 
-function logProgressAndJournalInline(id){
+function logProgressAndJournalInline(id, prefix='rp'){
   const today=new Date().toISOString().split('T')[0];
+  const p=prefix+'-';
   let saved=false;
 
   // Pages progress
-  const page=+document.getElementById('rp-page-'+id).value||0;
-  const total=+document.getElementById('rp-total-'+id).value||0;
+  const page=+document.getElementById(p+'page-'+id).value||0;
+  const total=+document.getElementById(p+'total-'+id).value||0;
   if(page||total){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:today,type:'pages',cur:page,total,note:''});
@@ -1350,8 +1352,8 @@ function logProgressAndJournalInline(id){
   }
 
   // Audio progress (only if audio fields filled and pages not filled)
-  const amin=+document.getElementById('rp-amin-'+id).value||0;
-  const atotal=+document.getElementById('rp-atotal-'+id).value||0;
+  const amin=+document.getElementById(p+'amin-'+id).value||0;
+  const atotal=+document.getElementById(p+'atotal-'+id).value||0;
   if((amin||atotal)&&!page&&!total){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:today,type:'audio',cur:amin,total:atotal,note:''});
@@ -1361,7 +1363,7 @@ function logProgressAndJournalInline(id){
   if(saved) save(SK.prog,progressDB);
 
   // Journal
-  const ta=document.getElementById('rp-journal-'+id);
+  const ta=document.getElementById(p+'journal-'+id);
   const text=ta?ta.value.trim():'';
   if(text){
     if(!journalDB[id])journalDB[id]=[];
@@ -1372,15 +1374,15 @@ function logProgressAndJournalInline(id){
   }
 
   // Finished checkbox
-  const doneChk=document.getElementById('rp-done-'+id);
+  const doneChk=document.getElementById(p+'done-'+id);
   if(doneChk&&doneChk.checked){
-    markDone(id); // handles its own save + toast
+    markDone(id);
     return;
   }
 
   if(!saved){toast('Fill in a page number, write a note, or check Finished.','err');return;}
   logDay(today);updateHdrStreak();
-  renderLists();
+  renderLists();renderLibrary();
   toast('Saved!','ok');
 }
 
@@ -1552,7 +1554,7 @@ function renderLists(){
         </div>
       </div>
       <div class="reading-panel" id="rp-${b.id}" style="display:none">
-        ${buildProgressPanel(b)}
+        ${buildProgressPanel(b,'rp')}
       </div>
     </div>`;
   }).join(''):`<div style="padding:1rem;font-size:.78rem;color:rgba(232,245,237,.55);font-style:italic">No books currently reading.</div>`;
