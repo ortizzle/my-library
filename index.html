@@ -887,12 +887,29 @@ function fmtBadges(b){
   return(b.formats||[]).map(f=>m[f]?`<span class="badge b-fmt">${m[f]}</span>`:'').join('');
 }
 
+function bestProgress(id){
+  // Returns the entry with the highest percentage across all logged entries
+  const prog=progressDB[id]||[];
+  let best=null, bestPct=-1;
+  for(const e of prog){
+    if(!e.total) continue;
+    const pct=Math.min(100,(e.cur/e.total)*100);
+    if(pct>bestPct){bestPct=pct;best=e;}
+  }
+  return best;
+}
+
 function progressBar(b){
-  const prog=progressDB[b.id];
-  if(b.status!=='reading'||!prog||!prog.length) return '';
-  const last=prog[prog.length-1];if(!last.total) return '';
-  const pct=Math.min(100,Math.round((last.cur/last.total)*100));
-  const lbl=last.type==='audio'?`${last.cur}/${last.total} min`:`p.${last.cur}/${last.total}`;
+  if(b.status!=='reading') return '';
+  const best=bestProgress(b.id);
+  // Even if no numbers logged, show a "reading" indicator if there are any entries
+  const prog=progressDB[b.id]||[];
+  if(!best){
+    if(prog.length) return `<div class="prog-wrap"><div class="prog-label"><span style="font-style:italic">Reading — no page count logged</span></div></div>`;
+    return '';
+  }
+  const pct=Math.min(100,Math.round((best.cur/best.total)*100));
+  const lbl=best.type==='audio'?`${best.cur}/${best.total} min`:`p.${best.cur}/${best.total}`;
   return `<div class="prog-wrap"><div class="prog-label"><span>${lbl}</span><strong>${pct}%</strong></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
 }
 
@@ -1098,12 +1115,14 @@ function addJournalEntry(){
   const text=document.getElementById('journalNewEntry').value.trim();
   if(!text){toast('Write something first.','err');return;}
   if(!editId)return;
+  const now=new Date();
+  const time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
   if(!journalDB[editId])journalDB[editId]=[];
-  journalDB[editId].push({date:new Date().toISOString().split('T')[0],text});
+  journalDB[editId].push({date:now.toISOString().split('T')[0],time,text});
   save(SK.journal,journalDB);
   document.getElementById('journalNewEntry').value='';
   renderJournalEntries(editId);
-  logDay(new Date().toISOString().split('T')[0]);
+  logDay(now.toISOString().split('T')[0]);
   updateHdrStreak();
   toast('Journal note saved!','ok');
 }
@@ -1120,7 +1139,7 @@ function renderJournalEntries(bookId){
     const idx=entries.length-1-ri;
     return `<div class="journal-entry">
       <div class="journal-entry-head">
-        <span class="journal-entry-date">${fmtDate(e.date)}</span>
+        <span class="journal-entry-date">${fmtDate(e.date)}${e.time?` · ${e.time}`:''}</span>
         <button class="journal-entry-del" onclick="deleteJournalEntry('${bookId}',${idx})">✕</button>
       </div>
       <div class="journal-entry-text">${esc(e.text)}</div>
@@ -1249,31 +1268,46 @@ function deleteBook(id){
 // Shared panel HTML used by both Library cards and Lists
 function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
-  const last=prog[prog.length-1]||null;
+  const best=bestProgress(b.id);
+  const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
+  // Pre-fill with last entry of each type
+  const lastPage=prog.slice().reverse().find(e=>e.type!=='audio')||null;
+  const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
   const p=prefix+'-';
   return `<div style="padding:.75rem 1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r)">
+
+    ${bestPct!==null?`<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;padding:.4rem .6rem;background:var(--parchment);border-radius:6px">
+      <div style="flex:1"><div class="prog-bar" style="height:6px"><div class="prog-fill" style="width:${bestPct}%"></div></div></div>
+      <strong style="font-size:.78rem;color:var(--amber);font-family:'Lora',serif;white-space:nowrap">${bestPct}% best</strong>
+    </div>`:''}
+
     <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="${p}page-${b.id}" value="${last&&last.type!=='audio'?last.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
-        <input type="number" id="${p}total-${b.id}" value="${last&&last.type!=='audio'?last.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}total-${b.id}" value="${lastPage?lastPage.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-        <input type="number" id="${p}amin-${b.id}" value="${last&&last.type==='audio'?last.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
-        <input type="number" id="${p}atotal-${b.id}" value="${last&&last.type==='audio'?last.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}atotal-${b.id}" value="${lastAudio?lastAudio.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
       </div>
     </div>
-    <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem;margin-top:.6rem">JOURNAL NOTE</div>
+    <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
+      <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Just mark that I read today (no page count)
+    </label>
+
+    <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem">JOURNAL NOTE</div>
     <textarea id="${p}journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
+
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem">
       <div style="display:flex;align-items:center;gap:.75rem">
         <label style="display:flex;align-items:center;gap:.45rem;cursor:pointer;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);font-weight:500;user-select:none">
@@ -1283,12 +1317,13 @@ function buildProgressPanel(b, prefix='rp'){
       </div>
       <button class="btn btn-sage btn-sm" onclick="logProgressAndJournalInline('${b.id}','${prefix}')">💾 Save</button>
     </div>
+
     ${recentJournal.length?`
     <div style="margin-top:.75rem;padding-top:.6rem;border-top:1px dotted var(--parchment-dark)">
       <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">RECENT JOURNAL ENTRIES</div>
       ${recentJournal.map(e=>`
         <div style="margin-bottom:.4rem;padding:.4rem .55rem;background:var(--parchment);border-radius:5px;border-left:2px solid var(--teal)">
-          <div style="font-size:.65rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.15rem">${fmtDate(e.date)}</div>
+          <div style="font-size:.63rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.12rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
           <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${esc(e.text)}</div>
         </div>`).join('')}
       ${(journalDB[b.id]||[]).length>3?`<div style="font-size:.7rem;color:var(--ink-faint);font-style:italic">+ ${(journalDB[b.id]||[]).length-3} more in Full Edit</div>`:''}
@@ -1339,8 +1374,18 @@ function toggleReadingPanel(id){
 
 function logProgressAndJournalInline(id, prefix='rp'){
   const today=new Date().toISOString().split('T')[0];
+  const now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
   const p=prefix+'-';
   let saved=false;
+
+  // "Just mark today" — log a no-count entry
+  const noCount=document.getElementById(p+'nocount-'+id);
+  if(noCount&&noCount.checked){
+    if(!progressDB[id])progressDB[id]=[];
+    progressDB[id].push({date:today,type:'nocount',cur:0,total:0,note:'Read today'});
+    save(SK.prog,progressDB);
+    saved=true;
+  }
 
   // Pages progress
   const page=+document.getElementById(p+'page-'+id).value||0;
@@ -1348,6 +1393,7 @@ function logProgressAndJournalInline(id, prefix='rp'){
   if(page||total){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:today,type:'pages',cur:page,total,note:''});
+    save(SK.prog,progressDB);
     saved=true;
   }
 
@@ -1357,17 +1403,16 @@ function logProgressAndJournalInline(id, prefix='rp'){
   if((amin||atotal)&&!page&&!total){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:today,type:'audio',cur:amin,total:atotal,note:''});
+    save(SK.prog,progressDB);
     saved=true;
   }
 
-  if(saved) save(SK.prog,progressDB);
-
-  // Journal
+  // Journal — with timestamp
   const ta=document.getElementById(p+'journal-'+id);
   const text=ta?ta.value.trim():'';
   if(text){
     if(!journalDB[id])journalDB[id]=[];
-    journalDB[id].push({date:today,text});
+    journalDB[id].push({date:today,time:now,text});
     save(SK.journal,journalDB);
     if(ta)ta.value='';
     saved=true;
@@ -1380,7 +1425,7 @@ function logProgressAndJournalInline(id, prefix='rp'){
     return;
   }
 
-  if(!saved){toast('Fill in a page number, write a note, or check Finished.','err');return;}
+  if(!saved){toast('Fill in a page, check "read today", write a note, or check Finished.','err');return;}
   logDay(today);updateHdrStreak();
   renderLists();renderLibrary();
   toast('Saved!','ok');
