@@ -186,6 +186,22 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .pace-table tr:last-child td{border-bottom:none}
 
 /* JOURNAL */
+/* JOURNAL VIEW */
+.journal-book-section{margin-bottom:2rem}
+.journal-book-header{display:flex;align-items:center;gap:.85rem;padding:.85rem 1.1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r) var(--r) 0 0;border-bottom:2px solid var(--teal);cursor:pointer;transition:background .15s}
+.journal-book-header:hover{background:var(--parchment)}
+.journal-book-header-cover{width:36px;height:50px;border-radius:3px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.18);background:var(--parchment-dark)}
+.journal-book-header-cover-ph{width:36px;height:50px;border-radius:3px;background:var(--parchment-dark);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.journal-book-meta{font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.07em;color:var(--ink-faint)}
+.journal-book-actions{margin-left:auto;display:flex;align-items:center;gap:.45rem;flex-shrink:0}
+.journal-entries-wrap{background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r);overflow:hidden}
+.journal-entry-view{padding:.85rem 1.1rem;border-bottom:1px dotted var(--parchment-dark);display:flex;gap:.85rem}
+.journal-entry-view:last-child{border-bottom:none}
+.journal-entry-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);flex-shrink:0;margin-top:.35rem}
+.journal-entry-body{flex:1;min-width:0}
+.journal-entry-stamp{font-family:'IM Fell English SC',serif;font-size:.63rem;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.3rem}
+.journal-entry-text-view{font-size:.85rem;color:var(--ink);line-height:1.65}
+
 .journal-section{background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:.82rem .92rem;margin-bottom:.88rem}
 .journal-section h4{font-family:'Playfair Display',serif;font-size:.88rem;color:var(--ink-light);margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between}
 .journal-entry{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:6px;padding:.55rem .7rem;margin-bottom:.38rem}
@@ -367,6 +383,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
     <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
     <div class="nav-tab active" data-view="lists" onclick="showView('lists')">Lists</div>
+    <div class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</div>
     <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
     <div class="nav-tab" data-view="stats" onclick="showView('stats')">Stats &amp; Streak</div>
     <div class="nav-tab" data-view="keepsake" onclick="showView('keepsake')">Keepsake</div>
@@ -413,6 +430,15 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view active" id="view-lists">
   <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
   <div class="lists-grid" id="listsGrid"></div>
+</div>
+
+<!-- JOURNAL -->
+<div class="view" id="view-journal">
+  <div class="sec-head">
+    <h2 class="sec-title">📓 Reading Journal</h2>
+    <button class="btn btn-secondary" onclick="printJournal()">🖨 Print Journal</button>
+  </div>
+  <div id="journalViewContent"></div>
 </div>
 
 <!-- LOANED OUT -->
@@ -815,6 +841,7 @@ function showView(n){
   if(n==='keepsake') renderKeepsake();
   if(n==='loaned')   renderLoaned();
   if(n==='lists')    renderLists();
+  if(n==='journal')  renderJournalView();
   if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
 }
 
@@ -952,7 +979,8 @@ function bookCard(b){
       <div class="card-actions">
         ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
         ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
-        <button class="btn btn-teal btn-sm" onclick="openEditModal('${b.id}')">${hasJournal?'📓 Journal':'Edit'}</button>
+        <button class="btn btn-teal btn-sm" onclick="showView('journal');scrollToBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
+        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
         <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
       </div>
     </div>
@@ -1858,6 +1886,157 @@ function toggleFavQ(idx,qText){
 // ══════════════════════════════════════════
 // KEEPSAKE
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// JOURNAL VIEW
+// ══════════════════════════════════════════
+function scrollToBookJournal(id){
+  requestAnimationFrame(()=>{
+    renderJournalView();
+    requestAnimationFrame(()=>{
+      const el=document.getElementById('jsection-'+id);
+      if(el) el.closest('.journal-book-section').scrollIntoView({behavior:'smooth',block:'start'});
+    });
+  });
+}
+
+function renderJournalView(){
+  const container=document.getElementById('journalViewContent');
+
+  // Collect books that have journal entries, sorted by most recent entry
+  const booksWithJournal=books
+    .filter(b=>(journalDB[b.id]||[]).length>0)
+    .sort((a,b)=>{
+      const aLast=(journalDB[a.id]||[]).slice(-1)[0];
+      const bLast=(journalDB[b.id]||[]).slice(-1)[0];
+      const aStr=(aLast?.date||'')+' '+(aLast?.time||'');
+      const bStr=(bLast?.date||'')+' '+(bLast?.time||'');
+      return bStr.localeCompare(aStr);
+    });
+
+  if(!booksWithJournal.length){
+    container.innerHTML=`<div class="empty">
+      <span class="icon">📓</span>
+      <h3>Your journal is empty</h3>
+      <p>Add notes while reading a book — tap 📖 Progress on any currently reading book to write your first entry.</p>
+    </div>`;
+    return;
+  }
+
+  const totalEntries=booksWithJournal.reduce((n,b)=>n+(journalDB[b.id]||[]).length,0);
+
+  container.innerHTML=`
+    <p style="font-size:.78rem;color:var(--ink-faint);font-style:italic;margin-bottom:1.25rem">
+      ${totalEntries} entr${totalEntries!==1?'ies':'y'} across ${booksWithJournal.length} book${booksWithJournal.length!==1?'s':''}
+    </p>
+    ${booksWithJournal.map(b=>journalBookSection(b)).join('')}`;
+}
+
+function journalBookSection(b){
+  const entries=(journalDB[b.id]||[]).slice().reverse(); // newest first
+  const coverUrl=coversDB[b.id];
+  const coverHtml=coverUrl
+    ?`<img class="journal-book-header-cover" src="${esc(coverUrl)}" alt="" onerror="this.style.display='none'">`
+    :`<div class="journal-book-header-cover-ph">📗</div>`;
+  const statusLabel={read:'Read',reading:'Reading',unread:'Unread',dnf:'DNF'}[b.status]||b.status;
+
+  const entriesHtml=entries.map(e=>`
+    <div class="journal-entry-view">
+      <div class="journal-entry-dot"></div>
+      <div class="journal-entry-body">
+        <div class="journal-entry-stamp">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
+        <div class="journal-entry-text-view">${esc(e.text).replace(/\n/g,'<br>')}</div>
+      </div>
+    </div>`).join('');
+
+  return `<div class="journal-book-section">
+    <div class="journal-book-header" onclick="toggleJournalSection('${b.id}')">
+      ${coverHtml}
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;line-height:1.25">${esc(b.title)}</div>
+        <div style="font-size:.77rem;color:var(--ink-light);font-style:italic">${esc(b.author)}</div>
+        <div class="journal-book-meta">${statusLabel} · ${entries.length} entr${entries.length!==1?'ies':'y'}</div>
+      </div>
+      <div class="journal-book-actions">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();copyBookJournal('${b.id}')" title="Copy to clipboard">📋 Copy</button>
+        <span style="font-size:.8rem;color:var(--ink-faint)" id="jchevron-${b.id}">▾</span>
+      </div>
+    </div>
+    <div class="journal-entries-wrap" id="jsection-${b.id}">
+      ${entriesHtml}
+    </div>
+  </div>`;
+}
+
+function toggleJournalSection(id){
+  const el=document.getElementById('jsection-'+id);
+  const chevron=document.getElementById('jchevron-'+id);
+  if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  if(chevron)chevron.textContent=open?'▸':'▾';
+}
+
+function copyBookJournal(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  const entries=(journalDB[id]||[]).slice().reverse();
+  if(!entries.length){toast('No journal entries for this book.','err');return;}
+  const lines=[
+    `Reading Journal — ${b.title}`,
+    `by ${b.author}`,
+    ``,
+    ...entries.map(e=>`${fmtDate(e.date)}${e.time?' · '+e.time:''}\n${e.text}`)
+  ].join('\n\n');
+  navigator.clipboard.writeText(lines)
+    .then(()=>toast('Copied to clipboard!','ok'))
+    .catch(()=>toast('Copy failed — try selecting text manually.','err'));
+}
+
+function printJournal(){
+  // Build a print-only window with just the journal
+  const booksWithJournal=books.filter(b=>(journalDB[b.id]||[]).length>0);
+  if(!booksWithJournal.length){toast('No journal entries to print.','err');return;}
+
+  const now=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const sections=booksWithJournal.map(b=>{
+    const entries=(journalDB[b.id]||[]).slice().reverse();
+    const coverUrl=coversDB[b.id];
+    return `
+      <div style="margin-bottom:2.5rem;page-break-inside:avoid">
+        <div style="display:flex;align-items:center;gap:.85rem;padding-bottom:.65rem;border-bottom:2px solid #2a6860;margin-bottom:.85rem">
+          ${coverUrl?`<img src="${coverUrl}" style="width:36px;height:50px;border-radius:3px;object-fit:cover;box-shadow:0 2px 6px rgba(0,0,0,.18)">`:''}
+          <div>
+            <div style="font-family:'Playfair Display',Georgia,serif;font-size:1.05rem;font-weight:600">${esc(b.title)}</div>
+            <div style="font-size:.8rem;color:#5a3e28;font-style:italic">${esc(b.author)}</div>
+            <div style="font-size:.65rem;color:#a08060;font-family:'IM Fell English SC',serif;letter-spacing:.07em;margin-top:.1rem">${entries.length} entr${entries.length!==1?'ies':'y'}</div>
+          </div>
+        </div>
+        ${entries.map(e=>`
+          <div style="margin-bottom:.85rem;padding-left:1rem;border-left:2px solid #4a6050">
+            <div style="font-size:.65rem;color:#a08060;font-family:'IM Fell English SC',serif;letter-spacing:.06em;margin-bottom:.22rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
+            <div style="font-size:.87rem;color:#1e140a;line-height:1.7;white-space:pre-wrap">${esc(e.text)}</div>
+          </div>`).join('')}
+      </div>`;
+  }).join('');
+
+  const win=window.open('','_blank','width=800,height=900');
+  win.document.write(`<!DOCTYPE html><html><head>
+    <title>Reading Journal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lora:ital,wght@0,400;1,400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:'Lora',Georgia,serif;color:#1e140a;background:#fff;padding:2.5rem 3rem;max-width:720px;margin:0 auto}
+      @media print{body{padding:1rem}}
+    </style>
+  </head><body>
+    <div style="text-align:center;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:2px solid #e5d4ae">
+      <h1 style="font-family:'Playfair Display',serif;font-size:1.9rem;font-style:italic;margin-bottom:.25rem">My Reading Journal</h1>
+      <div style="font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.15em;color:#a08060">${now}</div>
+    </div>
+    ${sections}
+    <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
 function renderKeepsake(){
   const now=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
   const{cur}=computeStreak();
