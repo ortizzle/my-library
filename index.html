@@ -1614,7 +1614,7 @@ function renderLists(){
       </div>
       <div style="flex:1;min-width:0">
         ${bks.length
-          ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}${overflow}${bks.length>0?`<span style="font-size:.73rem;color:var(--ink-light);align-self:center;font-style:italic;margin-left:.15rem">${bks.map(b=>esc(b.title)).join(', ')}</span>`:''}</div>`
+          ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}${overflow}</div>`
           : `<div style="font-size:.75rem;color:var(--ink-faint);font-style:italic;padding-top:.3rem">${isFuture?'—':'Nothing logged yet'}</div>`
         }
       </div>
