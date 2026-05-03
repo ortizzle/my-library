@@ -1334,6 +1334,12 @@ function buildProgressPanel(b, prefix='rp'){
       <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Just mark that I read today (no page count)
     </label>
 
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
+      <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);white-space:nowrap">SESSION DATE</div>
+      <input type="date" id="${p}date-${b.id}" value="${new Date().toISOString().split('T')[0]}" style="flex:1;max-width:160px;padding:.3rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none">
+      <span style="font-size:.7rem;color:var(--ink-faint);font-style:italic">Change to backdate</span>
+    </div>
+
     <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.35rem">JOURNAL NOTE</div>
     <textarea id="${p}journal-${b.id}" placeholder="What happened in today's reading session…" style="width:100%;padding:.38rem .55rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.8rem;background:var(--parchment);outline:none;resize:none;height:54px;line-height:1.5;margin-bottom:.5rem"></textarea>
 
@@ -1402,16 +1408,18 @@ function toggleReadingPanel(id){
 }
 
 function logProgressAndJournalInline(id, prefix='rp'){
-  const today=new Date().toISOString().split('T')[0];
-  const now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
   const p=prefix+'-';
+  const dateEl=document.getElementById(p+'date-'+id);
+  const today=new Date().toISOString().split('T')[0];
+  const sessionDate=dateEl&&dateEl.value?dateEl.value:today;
+  const now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
   let saved=false;
 
   // "Just mark today" — log a no-count entry
   const noCount=document.getElementById(p+'nocount-'+id);
   if(noCount&&noCount.checked){
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:today,type:'nocount',cur:0,total:0,note:'Read today'});
+    progressDB[id].push({date:sessionDate,type:'nocount',cur:0,total:0,note:'Read today'});
     save(SK.prog,progressDB);
     saved=true;
   }
@@ -1421,7 +1429,7 @@ function logProgressAndJournalInline(id, prefix='rp'){
   const total=+document.getElementById(p+'total-'+id).value||0;
   if(page||total){
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:today,type:'pages',cur:page,total,note:''});
+    progressDB[id].push({date:sessionDate,type:'pages',cur:page,total,note:''});
     save(SK.prog,progressDB);
     saved=true;
   }
@@ -1431,7 +1439,7 @@ function logProgressAndJournalInline(id, prefix='rp'){
   const atotal=+document.getElementById(p+'atotal-'+id).value||0;
   if((amin||atotal)&&!page&&!total){
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:today,type:'audio',cur:amin,total:atotal,note:''});
+    progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
     save(SK.prog,progressDB);
     saved=true;
   }
@@ -1441,7 +1449,7 @@ function logProgressAndJournalInline(id, prefix='rp'){
   const text=ta?ta.value.trim():'';
   if(text){
     if(!journalDB[id])journalDB[id]=[];
-    journalDB[id].push({date:today,time:now,text});
+    journalDB[id].push({date:sessionDate,time:now,text});
     save(SK.journal,journalDB);
     if(ta)ta.value='';
     saved=true;
@@ -1455,9 +1463,10 @@ function logProgressAndJournalInline(id, prefix='rp'){
   }
 
   if(!saved){toast('Fill in a page, check "read today", write a note, or check Finished.','err');return;}
-  logDay(today);updateHdrStreak();
+  logDay(sessionDate);updateHdrStreak();
   renderLists();renderLibrary();
-  toast('Saved!','ok');
+  const backdated=sessionDate!==today;
+  toast(backdated?`Saved for ${fmtDate(sessionDate)}!`:'Saved!','ok');
 }
 
 // ══════════════════════════════════════════
