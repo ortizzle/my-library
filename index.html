@@ -1299,11 +1299,16 @@ function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
   const best=bestProgress(b.id);
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
-  // Pre-fill with last entry of each type
-  const lastPage=prog.slice().reverse().find(e=>e.type!=='audio')||null;
+  // Pre-fill with last cur of each type, but sticky total = max ever entered
+  const lastPage=prog.slice().reverse().find(e=>e.type==='pages')||null;
   const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
+  const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
   const p=prefix+'-';
+  const totalStyle='width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.82rem;outline:none;';
+  const stickyStyle=totalStyle+'background:#f0ede6;color:var(--ink-faint);cursor:default;';
+  const editStyle=totalStyle+'background:var(--parchment);';
   return `<div style="padding:.75rem 1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r)">
 
     ${bestPct!==null?`<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;padding:.4rem .6rem;background:var(--parchment);border-radius:6px">
@@ -1315,19 +1320,19 @@ function buildProgressPanel(b, prefix='rp'){
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="${editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
-        <input type="number" id="${p}total-${b.id}" value="${lastPage?lastPage.total:''}" placeholder="e.g. 320" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <label style="display:block;font-size:.67rem;color:${stickyPageTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Pages${stickyPageTotal?` <span style="font-size:.6rem">(locked)</span>`:''}</label>
+        <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" ${stickyPageTotal?'readonly':''} style="${stickyPageTotal?stickyStyle:editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="${editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
-        <input type="number" id="${p}atotal-${b.id}" value="${lastAudio?lastAudio.total:''}" placeholder="e.g. 600" min="1" style="width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none">
+        <label style="display:block;font-size:.67rem;color:${stickyAudioTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Minutes${stickyAudioTotal?` <span style="font-size:.6rem">(locked)</span>`:''}</label>
+        <input type="number" id="${p}atotal-${b.id}" value="${stickyAudioTotal||''}" placeholder="e.g. 600" min="1" ${stickyAudioTotal?'readonly':''} style="${stickyAudioTotal?stickyStyle:editStyle}">
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
@@ -1415,6 +1420,11 @@ function logProgressAndJournalInline(id, prefix='rp'){
   const now=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
   let saved=false;
 
+  // Sticky totals — use whatever was ever entered, ignore blank reads
+  const prog=progressDB[id]||[];
+  const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
+
   // "Just mark today" — log a no-count entry
   const noCount=document.getElementById(p+'nocount-'+id);
   if(noCount&&noCount.checked){
@@ -1424,20 +1434,22 @@ function logProgressAndJournalInline(id, prefix='rp'){
     saved=true;
   }
 
-  // Pages progress
+  // Pages progress — use sticky total if field is readonly/blank
   const page=+document.getElementById(p+'page-'+id).value||0;
-  const total=+document.getElementById(p+'total-'+id).value||0;
-  if(page||total){
+  const totalRaw=+document.getElementById(p+'total-'+id).value||0;
+  const total=totalRaw||stickyPageTotal;
+  if(page){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:sessionDate,type:'pages',cur:page,total,note:''});
     save(SK.prog,progressDB);
     saved=true;
   }
 
-  // Audio progress (only if audio fields filled and pages not filled)
+  // Audio progress — independent of pages, use sticky total if blank
   const amin=+document.getElementById(p+'amin-'+id).value||0;
-  const atotal=+document.getElementById(p+'atotal-'+id).value||0;
-  if((amin||atotal)&&!page&&!total){
+  const atotalRaw=+document.getElementById(p+'atotal-'+id).value||0;
+  const atotal=atotalRaw||stickyAudioTotal;
+  if(amin){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
     save(SK.prog,progressDB);
@@ -1464,7 +1476,27 @@ function logProgressAndJournalInline(id, prefix='rp'){
 
   if(!saved){toast('Fill in a page, check "read today", write a note, or check Finished.','err');return;}
   logDay(sessionDate);updateHdrStreak();
-  renderLists();renderLibrary();
+
+  // Refresh panel in-place so it stays open — update progress bar on card and rebuild panel content
+  const b=books.find(x=>x.id===id);
+  if(b){
+    // Update the card's inline progress bar without rebuilding the whole grid
+    const cardEl=document.getElementById('bc-'+id);
+    if(cardEl){
+      const progWrap=cardEl.querySelector('.prog-wrap');
+      const newBar=progressBar(b);
+      if(progWrap&&newBar) progWrap.outerHTML=newBar;
+      else if(!progWrap&&newBar){
+        // Insert before card-actions
+        const actions=cardEl.querySelector('.card-actions');
+        if(actions) actions.insertAdjacentHTML('beforebegin',newBar);
+      }
+    }
+    // Rebuild just the panel content
+    const panelEl=document.getElementById(prefix==='lp'?'lp-'+id:'rp-'+id);
+    if(panelEl) panelEl.innerHTML=buildProgressPanel(b,prefix);
+  }
+
   const backdated=sessionDate!==today;
   toast(backdated?`Saved for ${fmtDate(sessionDate)}!`:'Saved!','ok');
 }
