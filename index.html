@@ -1295,6 +1295,17 @@ function deleteBook(id){
 }
 
 // Shared panel HTML used by both Library cards and Lists
+function unlockField(fieldId){
+  const el=document.getElementById(fieldId);
+  if(!el)return;
+  el.removeAttribute('readonly');
+  el.style.background='var(--parchment)';
+  el.style.color='var(--ink)';
+  el.style.cursor='auto';
+  el.focus();
+  el.select();
+}
+
 function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
   const best=bestProgress(b.id);
@@ -1323,7 +1334,7 @@ function buildProgressPanel(b, prefix='rp'){
         <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="${editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:${stickyPageTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Pages${stickyPageTotal?` <span style="font-size:.6rem">(locked)</span>`:''}</label>
+        <label style="display:block;font-size:.67rem;color:${stickyPageTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Pages${stickyPageTotal?` <button onclick="unlockField('${p}total-${b.id}')" style="background:none;border:none;cursor:pointer;font-size:.58rem;color:var(--teal);text-decoration:underline;padding:0;margin-left:.3rem;font-family:'Lora',serif">✏ edit</button>`:''}</label>
         <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" ${stickyPageTotal?'readonly':''} style="${stickyPageTotal?stickyStyle:editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
@@ -1331,7 +1342,7 @@ function buildProgressPanel(b, prefix='rp'){
         <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="${editStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:${stickyAudioTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Minutes${stickyAudioTotal?` <span style="font-size:.6rem">(locked)</span>`:''}</label>
+        <label style="display:block;font-size:.67rem;color:${stickyAudioTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Minutes${stickyAudioTotal?` <button onclick="unlockField('${p}atotal-${b.id}')" style="background:none;border:none;cursor:pointer;font-size:.58rem;color:var(--teal);text-decoration:underline;padding:0;margin-left:.3rem;font-family:'Lora',serif">✏ edit</button>`:''}</label>
         <input type="number" id="${p}atotal-${b.id}" value="${stickyAudioTotal||''}" placeholder="e.g. 600" min="1" ${stickyAudioTotal?'readonly':''} style="${stickyAudioTotal?stickyStyle:editStyle}">
       </div>
     </div>
