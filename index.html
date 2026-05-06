@@ -640,8 +640,24 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <div class="fg"><label>Total Pages</label><input type="number" id="progTotalPage" placeholder="300" min="1"></div>
       </div>
       <div id="ptAudio" class="prog-fields" style="display:none">
-        <div class="fg"><label>Current (mins)</label><input type="number" id="progCurMin" placeholder="0" min="0"></div>
-        <div class="fg"><label>Total (mins)</label><input type="number" id="progTotalMin" placeholder="600" min="1"></div>
+        <div class="fg">
+          <label>Current position</label>
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <input type="number" id="progCurH" placeholder="0" min="0" style="width:60px">
+            <span style="color:var(--ink-faint);font-size:.8rem">h</span>
+            <input type="number" id="progCurMin" placeholder="0" min="0" max="59" style="width:60px">
+            <span style="color:var(--ink-faint);font-size:.8rem">min</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Total length</label>
+          <div style="display:flex;gap:.4rem;align-items:center">
+            <input type="number" id="progTotalH" placeholder="0" min="0" style="width:60px">
+            <span style="color:var(--ink-faint);font-size:.8rem">h</span>
+            <input type="number" id="progTotalMin" placeholder="0" min="0" max="59" style="width:60px">
+            <span style="color:var(--ink-faint);font-size:.8rem">min</span>
+          </div>
+        </div>
       </div>
       <div id="progHistoryEdit" style="margin-top:.65rem"></div>
     </div>
@@ -938,7 +954,7 @@ function progressBar(b){
     return '';
   }
   const pct=Math.min(100,Math.round((best.cur/best.total)*100));
-  const lbl=best.type==='audio'?`${best.cur}/${best.total} min`:`p.${best.cur}/${best.total}`;
+  const lbl=best.type==='audio'?minsToHM(best.cur)+'/'+minsToHM(best.total):`p.${best.cur}/${best.total}`;
   return `<div class="prog-wrap"><div class="prog-label"><span>${lbl}</span><strong>${pct}%</strong></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
 }
 
@@ -1048,8 +1064,11 @@ function openEditModal(id){
   const prog=progressDB[id];
   if(prog&&prog.length){
     const last=prog[prog.length-1];
-    if(last.type==='audio'){setProgType('audio',null);document.getElementById('progCurMin').value=last.cur||'';document.getElementById('progTotalMin').value=last.total||'';}
-    else{setProgType('pages',null);document.getElementById('progCurPage').value=last.cur||'';document.getElementById('progTotalPage').value=last.total||'';}
+    if(last.type==='audio'){
+      setProgType('audio',null);
+      fillAudioInputs('progCurH','progCurMin',last.cur||0);
+      fillAudioInputs('progTotalH','progTotalMin',last.total||0);
+    } else{setProgType('pages',null);document.getElementById('progCurPage').value=last.cur||'';document.getElementById('progTotalPage').value=last.total||'';}
   }
 
   toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(curRating);handleStatusChange();
@@ -1069,7 +1088,7 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurMin','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
   document.getElementById('chkYearOnly').checked=false;
   setIsbnStatus('Enter an ISBN to auto-fill, or fill in manually below.','');
@@ -1258,8 +1277,8 @@ async function saveBook(){
 
   if(status==='reading'&&curItemType==='book'){
     const pt=document.querySelector('#progTypeTabs .prog-tab.active')?.dataset.pt||'pages';
-    const cur=pt==='audio'?+document.getElementById('progCurMin').value:+document.getElementById('progCurPage').value;
-    const total=pt==='audio'?+document.getElementById('progTotalMin').value:+document.getElementById('progTotalPage').value;
+    const cur=pt==='audio'?readAudioInputs('progCurH','progCurMin'):+document.getElementById('progCurPage').value;
+    const total=pt==='audio'?readAudioInputs('progTotalH','progTotalMin'):+document.getElementById('progTotalPage').value;
     const pid=editId||'__new__';
     if((cur||total)&&!(progressDB[pid]?.length)){if(!progressDB[pid])progressDB[pid]=[];progressDB[pid].push({date:new Date().toISOString().split('T')[0],type:pt,cur,total,note:''});}
   }
@@ -1296,6 +1315,27 @@ function deleteBook(id){
 }
 
 // Shared panel HTML used by both Library cards and Lists
+function toggleRemainingMode(id, prefix){
+  const p=prefix+'-';
+  const isRemaining=document.getElementById(p+'remaining-'+id)?.checked;
+  const lbl=document.getElementById(p+'apos-label-'+id);
+  if(lbl) lbl.textContent=isRemaining?'Time remaining':'Current position';
+  syncAudioPct(id,prefix);
+}
+
+function syncAudioPct(id, prefix){
+  const p=prefix+'-';
+  const isRemaining=document.getElementById(p+'remaining-'+id)?.checked||false;
+  const curMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
+  const totalMins=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
+  const el=document.getElementById(p+'audio-pct-'+id);
+  if(!el)return;
+  if(!totalMins){el.textContent='';return;}
+  const posMins=isRemaining?Math.max(0,totalMins-curMins):curMins;
+  const pct=Math.min(100,Math.round((posMins/totalMins)*100));
+  el.textContent=pct+'%';
+}
+
 function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
   const best=bestProgress(b.id);
@@ -1324,14 +1364,34 @@ function buildProgressPanel(b, prefix='rp'){
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
         <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" style="${iStyle}">
       </div>
-      <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="${iStyle}">
+    </div>
+
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.25rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
+      <div style="flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
+        <span style="font-size:.67rem;color:var(--ink-faint)">🎧 AUDIOBOOK</span>
+        <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.7rem;color:var(--ink-light);user-select:none">
+          <input type="checkbox" id="${p}remaining-${b.id}" onchange="toggleRemainingMode('${b.id}','${prefix}')" style="cursor:pointer;accent-color:var(--teal)"> Enter time remaining instead
+        </label>
       </div>
-      <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
-        <input type="number" id="${p}atotal-${b.id}" value="${stickyAudioTotal||''}" placeholder="e.g. 600" min="1" style="${iStyle}">
+      <div style="flex:1;min-width:100px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem" id="${p}apos-label-${b.id}">Current position</label>
+        <div style="display:flex;gap:.3rem">
+          <input type="number" id="${p}ah-${b.id}" value="${lastAudio?Math.floor(lastAudio.cur/60):''}" placeholder="0" min="0" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
+          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">h</span>
+          <input type="number" id="${p}am-${b.id}" value="${lastAudio?lastAudio.cur%60:''}" placeholder="0" min="0" max="59" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
+          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">min</span>
+        </div>
       </div>
+      <div style="flex:1;min-width:100px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Total length</label>
+        <div style="display:flex;gap:.3rem">
+          <input type="number" id="${p}ath-${b.id}" value="${stickyAudioTotal?Math.floor(stickyAudioTotal/60):''}" placeholder="0" min="0" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
+          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">h</span>
+          <input type="number" id="${p}atm-${b.id}" value="${stickyAudioTotal?stickyAudioTotal%60:''}" placeholder="0" min="0" max="59" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
+          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">min</span>
+        </div>
+      </div>
+      <div id="${p}audio-pct-${b.id}" style="font-size:.75rem;color:var(--amber);font-family:'Playfair Display',serif;font-weight:600;align-self:center;white-space:nowrap;min-width:36px"></div>
     </div>
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
       <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Just mark that I read today (no page count)
@@ -1443,11 +1503,14 @@ function logProgressAndJournalInline(id, prefix='rp'){
     saved=true;
   }
 
-  // Audio progress — independent of pages, use sticky total if blank
-  const amin=+document.getElementById(p+'amin-'+id).value||0;
-  const atotalRaw=+document.getElementById(p+'atotal-'+id).value||0;
-  const atotal=atotalRaw||stickyAudioTotal;
-  if(amin){
+  // Audio progress — h+m fields, independent of pages
+  const remainingMode=document.getElementById(p+'remaining-'+id)?.checked||false;
+  const aCurrentMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
+  const aTotalRaw=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
+  const atotal=aTotalRaw||stickyAudioTotal;
+  // If remaining mode: cur = total - remaining
+  const amin=remainingMode&&atotal?Math.max(0,atotal-aCurrentMins):aCurrentMins;
+  if(amin||aCurrentMins){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
     save(SK.prog,progressDB);
@@ -1574,7 +1637,7 @@ function updateProgBig(){
   if(!last||!last.total){document.getElementById('progBigPct').textContent='—';document.getElementById('progBigSub').textContent='No progress logged yet';return;}
   const pct=Math.min(100,Math.round((last.cur/last.total)*100));
   document.getElementById('progBigPct').textContent=pct+'%';
-  document.getElementById('progBigSub').textContent=last.type==='audio'?`${last.cur} of ${last.total} min`:`Page ${last.cur} of ${last.total}`;
+  document.getElementById('progBigSub').textContent=last.type==='audio'?`${minsToHM(last.cur)} of ${minsToHM(last.total)}`:`Page ${last.cur} of ${last.total}`;
 }
 
 function saveProgress(){
@@ -1596,7 +1659,7 @@ function renderProgHistory(bookId){
   if(!entries.length){el.innerHTML='';return;}
   el.innerHTML=`<h4>Recent Sessions</h4>`+entries.slice(0,8).map((e,i)=>{
     const actualIdx=(progressDB[bookId]||[]).length-1-i;
-    const lbl=e.type==='audio'?`${e.cur}/${e.total} min`:`p.${e.cur}/${e.total}`;
+    const lbl=e.type==='audio'?`${minsToHM(e.cur)} / ${minsToHM(e.total)}`:`p.${e.cur}/${e.total}`;
     const pct=e.total?Math.round((e.cur/e.total)*100):0;
     return `<div class="prog-entry">
       <span class="prog-entry-date">${fmtDate(e.date)}</span>
@@ -1617,7 +1680,7 @@ function renderProgHistoryEdit(bookId){
     <div style="font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em;margin-bottom:.38rem;margin-top:.1rem">Session History <span style="font-weight:400;font-style:italic;color:var(--ink-faint)">(tap a value to edit it)</span></div>
     ${[...entries].reverse().map((e,ri)=>{
       const idx=entries.length-1-ri;
-      const typeLabel=e.type==='audio'?'min':'p.';
+      const typeLabel=e.type==='audio'?'h:mm':'p.';
       return `<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.78rem">
         <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
           style="padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.74rem;background:var(--parchment);outline:none;width:118px">
@@ -1739,7 +1802,7 @@ function renderLists(){
     const prog=progressDB[b.id];const last=prog&&prog.length?prog[prog.length-1]:null;
     const progTxt=last&&last.total?`${Math.round((last.cur/last.total)*100)}%`:'';
     const pct=last&&last.total?Math.min(100,Math.round((last.cur/last.total)*100)):0;
-    const lbl=last?last.type==='audio'?`${last.cur}/${last.total} min`:`p.${last.cur}/${last.total}`:'';
+    const lbl=last?last.type==='audio'?`${minsToHM(last.cur)} / ${minsToHM(last.total)}`:`p.${last.cur}/${last.total}`:'';
     return `<div class="reading-row">
       <div class="list-row" style="cursor:pointer" onclick="toggleReadingPanel('${b.id}')">
         ${rowCover(b)}
@@ -2269,6 +2332,22 @@ function clearAll(){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
 function fmtDate(s){if(!s)return'';try{return new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return s;}}
 function toast(msg,type='ok'){const wrap=document.getElementById('toastWrap');const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;wrap.appendChild(el);setTimeout(()=>el.remove(),3000);}
+
+// Audio time helpers — all values stored as total minutes internally
+function minsToHM(mins){
+  if(!mins&&mins!==0)return'';
+  const h=Math.floor(mins/60),m=mins%60;
+  return h>0?`${h}h ${m}m`:`${m}m`;
+}
+function hmToMins(h,m){return(+h||0)*60+(+m||0);}
+// Read h+m inputs and return total minutes
+function readAudioInputs(hId,mId){return hmToMins(document.getElementById(hId)?.value||0,document.getElementById(mId)?.value||0);}
+// Populate h+m inputs from total minutes
+function fillAudioInputs(hId,mId,totalMins){
+  const h=Math.floor(totalMins/60),m=totalMins%60;
+  const hEl=document.getElementById(hId),mEl=document.getElementById(mId);
+  if(hEl)hEl.value=h||'';if(mEl)mEl.value=m||'';
+}
 
 // ══════════════════════════════════════════
 // INIT
