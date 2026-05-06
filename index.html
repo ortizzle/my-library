@@ -643,6 +643,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <div class="fg"><label>Current (mins)</label><input type="number" id="progCurMin" placeholder="0" min="0"></div>
         <div class="fg"><label>Total (mins)</label><input type="number" id="progTotalMin" placeholder="600" min="1"></div>
       </div>
+      <div id="progHistoryEdit" style="margin-top:.65rem"></div>
     </div>
   </div>
 
@@ -1063,7 +1064,7 @@ function openEditModal(id){
   document.getElementById('journalSection').style.display='block';
   document.getElementById('loanAddForm').style.display='none';
   document.getElementById('newLoanDate').value=new Date().toISOString().split('T')[0];
-  renderLoanEntries(id);renderJournalEntries(id);
+  renderLoanEntries(id);renderJournalEntries(id);renderProgHistoryEdit(id);
   document.getElementById('bookModal').style.display='flex';
 }
 
@@ -1295,31 +1296,17 @@ function deleteBook(id){
 }
 
 // Shared panel HTML used by both Library cards and Lists
-function unlockField(fieldId){
-  const el=document.getElementById(fieldId);
-  if(!el)return;
-  el.removeAttribute('readonly');
-  el.style.background='var(--parchment)';
-  el.style.color='var(--ink)';
-  el.style.cursor='auto';
-  el.focus();
-  el.select();
-}
-
 function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
   const best=bestProgress(b.id);
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
-  // Pre-fill with last cur of each type, but sticky total = max ever entered
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages')||null;
   const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
   const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
   const p=prefix+'-';
-  const totalStyle='width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.82rem;outline:none;';
-  const stickyStyle=totalStyle+'background:#f0ede6;color:var(--ink-faint);cursor:default;';
-  const editStyle=totalStyle+'background:var(--parchment);';
+  const iStyle='width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.82rem;background:var(--parchment);outline:none';
   return `<div style="padding:.75rem 1rem;background:var(--cream);border:1px solid var(--parchment-dark);border-top:none;border-radius:0 0 var(--r) var(--r)">
 
     ${bestPct!==null?`<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.65rem;padding:.4rem .6rem;background:var(--parchment);border-radius:6px">
@@ -1331,19 +1318,19 @@ function buildProgressPanel(b, prefix='rp'){
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="${editStyle}">
+        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="${iStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:${stickyPageTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Pages${stickyPageTotal?` <button onclick="unlockField('${p}total-${b.id}')" style="background:none;border:none;cursor:pointer;font-size:.58rem;color:var(--teal);text-decoration:underline;padding:0;margin-left:.3rem;font-family:'Lora',serif">✏ edit</button>`:''}</label>
-        <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" ${stickyPageTotal?'readonly':''} style="${stickyPageTotal?stickyStyle:editStyle}">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
+        <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" style="${iStyle}">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Audio Min</label>
-        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="${editStyle}">
+        <input type="number" id="${p}amin-${b.id}" value="${lastAudio?lastAudio.cur:''}" placeholder="e.g. 145" min="0" style="${iStyle}">
       </div>
       <div style="flex:1;min-width:80px">
-        <label style="display:block;font-size:.67rem;color:${stickyAudioTotal?'var(--amber)':'var(--ink-faint)'};margin-bottom:.2rem">of Minutes${stickyAudioTotal?` <button onclick="unlockField('${p}atotal-${b.id}')" style="background:none;border:none;cursor:pointer;font-size:.58rem;color:var(--teal);text-decoration:underline;padding:0;margin-left:.3rem;font-family:'Lora',serif">✏ edit</button>`:''}</label>
-        <input type="number" id="${p}atotal-${b.id}" value="${stickyAudioTotal||''}" placeholder="e.g. 600" min="1" ${stickyAudioTotal?'readonly':''} style="${stickyAudioTotal?stickyStyle:editStyle}">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Minutes</label>
+        <input type="number" id="${p}atotal-${b.id}" value="${stickyAudioTotal||''}" placeholder="e.g. 600" min="1" style="${iStyle}">
       </div>
     </div>
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
@@ -1620,6 +1607,47 @@ function renderProgHistory(bookId){
   }).join('');
 }
 function delProgEntry(bookId,idx){progressDB[bookId].splice(idx,1);save(SK.prog,progressDB);renderProgHistory(bookId);updateProgBig();renderLibrary();}
+
+function renderProgHistoryEdit(bookId){
+  const el=document.getElementById('progHistoryEdit');
+  if(!el)return;
+  const entries=progressDB[bookId]||[];
+  if(!entries.length){el.innerHTML='';return;}
+  el.innerHTML=`
+    <div style="font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em;margin-bottom:.38rem;margin-top:.1rem">Session History <span style="font-weight:400;font-style:italic;color:var(--ink-faint)">(tap a value to edit it)</span></div>
+    ${[...entries].reverse().map((e,ri)=>{
+      const idx=entries.length-1-ri;
+      const typeLabel=e.type==='audio'?'min':'p.';
+      return `<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.78rem">
+        <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
+          style="padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.74rem;background:var(--parchment);outline:none;width:118px">
+        <span style="color:var(--ink-faint);font-size:.7rem;white-space:nowrap">${e.type==='audio'?'🎧':'📄'}</span>
+        <input type="number" value="${e.cur}" onchange="editProgEntry('${bookId}',${idx},'cur',+this.value)"
+          style="width:60px;padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.78rem;background:var(--parchment);outline:none"
+          placeholder="cur">
+        <span style="color:var(--ink-faint);font-size:.72rem">/ </span>
+        <input type="number" value="${e.total||''}" onchange="editProgEntry('${bookId}',${idx},'total',+this.value)"
+          style="width:60px;padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.78rem;background:var(--parchment);outline:none"
+          placeholder="total">
+        <span style="color:var(--ink-faint);font-size:.7rem">${typeLabel}</span>
+        <button onclick="delProgEntryEdit('${bookId}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--parchment-dark);font-size:.75rem;margin-left:auto;transition:color .13s" onmouseover="this.style.color='var(--burgundy)'" onmouseout="this.style.color='var(--parchment-dark)'">✕</button>
+      </div>`;
+    }).join('')}`;
+}
+
+function editProgEntry(bookId,idx,field,val){
+  if(!progressDB[bookId]||!progressDB[bookId][idx])return;
+  progressDB[bookId][idx][field]=val;
+  save(SK.prog,progressDB);
+}
+
+function delProgEntryEdit(bookId,idx){
+  if(!confirm('Remove this progress entry?'))return;
+  progressDB[bookId].splice(idx,1);
+  save(SK.prog,progressDB);
+  renderProgHistoryEdit(bookId);
+  renderLibrary();
+}
 
 // ══════════════════════════════════════════
 // LISTS VIEW
