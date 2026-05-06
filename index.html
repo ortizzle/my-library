@@ -1061,15 +1061,25 @@ function openEditModal(id){
   document.getElementById('coverUrlInput').value=coversDB[id]||'';
   coversDB[id]?setCoverPreview(coversDB[id]):setCoverPreview(null);
 
-  const prog=progressDB[id];
-  if(prog&&prog.length){
-    const last=prog[prog.length-1];
-    if(last.type==='audio'){
-      setProgType('audio',null);
-      fillAudioInputs('progCurH','progCurMin',last.cur||0);
-      fillAudioInputs('progTotalH','progTotalMin',last.total||0);
-    } else{setProgType('pages',null);document.getElementById('progCurPage').value=last.cur||'';document.getElementById('progTotalPage').value=last.total||'';}
+  const prog=progressDB[id]||[];
+  const lastPage=prog.slice().reverse().find(e=>e.type==='pages');
+  const lastAudio=prog.slice().reverse().find(e=>e.type==='audio');
+  const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
+  // Populate pages
+  if(lastPage||stickyPageTotal){
+    document.getElementById('progCurPage').value=lastPage?lastPage.cur:'';
+    document.getElementById('progTotalPage').value=stickyPageTotal||'';
   }
+  // Populate audio
+  if(lastAudio||stickyAudioTotal){
+    fillAudioInputs('progCurH','progCurMin',lastAudio?lastAudio.cur:0);
+    fillAudioInputs('progTotalH','progTotalMin',stickyAudioTotal||0);
+  }
+  // Set active tab to whichever was logged most recently
+  const lastEntry=prog[prog.length-1];
+  if(lastEntry?.type==='audio') setProgType('audio',null);
+  else setProgType('pages',null);
 
   toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(curRating);handleStatusChange();
   // If book has a finish date, always show it regardless of current status
@@ -1671,31 +1681,54 @@ function renderProgHistory(bookId){
 }
 function delProgEntry(bookId,idx){progressDB[bookId].splice(idx,1);save(SK.prog,progressDB);renderProgHistory(bookId);updateProgBig();renderLibrary();}
 
-function renderProgHistoryEdit(bookId){
+function renderProgHistoryEdit(bookId, showAll=false){
   const el=document.getElementById('progHistoryEdit');
   if(!el)return;
   const entries=progressDB[bookId]||[];
   if(!entries.length){el.innerHTML='';return;}
+
+  const PREVIEW=3;
+  const reversed=[...entries].reverse();
+  const visible=showAll?reversed:reversed.slice(0,PREVIEW);
+  const hasMore=entries.length>PREVIEW;
+
+  // Summary line: best % across all entries
+  const best=bestProgress(bookId);
+  const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
+  const summaryLabel=bestPct!==null
+    ? `${entries.length} session${entries.length!==1?'s':''} · best ${bestPct}%`
+    : `${entries.length} session${entries.length!==1?'s':''}`;
+
+  const rows=visible.map((e,ri)=>{
+    const idx=entries.length-1-ri;
+    const typeLabel=e.type==='audio'?'h:mm':'p.';
+    return `<div style="display:flex;align-items:center;gap:.4rem;padding:.28rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.78rem">
+      <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
+        style="padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.72rem;background:var(--parchment);outline:none;width:112px">
+      <span style="color:var(--ink-faint);font-size:.68rem;white-space:nowrap">${e.type==='audio'?'🎧':'📄'}</span>
+      <input type="number" value="${e.cur}" onchange="editProgEntry('${bookId}',${idx},'cur',+this.value)"
+        style="width:56px;padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.76rem;background:var(--parchment);outline:none" placeholder="cur">
+      <span style="color:var(--ink-faint);font-size:.7rem">/</span>
+      <input type="number" value="${e.total||''}" onchange="editProgEntry('${bookId}',${idx},'total',+this.value)"
+        style="width:56px;padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.76rem;background:var(--parchment);outline:none" placeholder="total">
+      <span style="color:var(--ink-faint);font-size:.68rem">${typeLabel}</span>
+      <button onclick="delProgEntryEdit('${bookId}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--parchment-dark);font-size:.73rem;margin-left:auto" onmouseover="this.style.color='var(--burgundy)'" onmouseout="this.style.color='var(--parchment-dark)'">✕</button>
+    </div>`;
+  }).join('');
+
+  const toggleBtn=hasMore
+    ? `<button onclick="renderProgHistoryEdit('${bookId}',${!showAll})" style="background:none;border:none;cursor:pointer;font-family:'Lora',serif;font-size:.72rem;color:var(--teal);text-decoration:underline;padding:.25rem 0;display:block">
+        ${showAll?'▴ Show less':` ▾ See all ${entries.length} sessions`}
+      </button>`
+    : '';
+
   el.innerHTML=`
-    <div style="font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em;margin-bottom:.38rem;margin-top:.1rem">Session History <span style="font-weight:400;font-style:italic;color:var(--ink-faint)">(tap a value to edit it)</span></div>
-    ${[...entries].reverse().map((e,ri)=>{
-      const idx=entries.length-1-ri;
-      const typeLabel=e.type==='audio'?'h:mm':'p.';
-      return `<div style="display:flex;align-items:center;gap:.4rem;padding:.3rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.78rem">
-        <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
-          style="padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.74rem;background:var(--parchment);outline:none;width:118px">
-        <span style="color:var(--ink-faint);font-size:.7rem;white-space:nowrap">${e.type==='audio'?'🎧':'📄'}</span>
-        <input type="number" value="${e.cur}" onchange="editProgEntry('${bookId}',${idx},'cur',+this.value)"
-          style="width:60px;padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.78rem;background:var(--parchment);outline:none"
-          placeholder="cur">
-        <span style="color:var(--ink-faint);font-size:.72rem">/ </span>
-        <input type="number" value="${e.total||''}" onchange="editProgEntry('${bookId}',${idx},'total',+this.value)"
-          style="width:60px;padding:.22rem .4rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.78rem;background:var(--parchment);outline:none"
-          placeholder="total">
-        <span style="color:var(--ink-faint);font-size:.7rem">${typeLabel}</span>
-        <button onclick="delProgEntryEdit('${bookId}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--parchment-dark);font-size:.75rem;margin-left:auto;transition:color .13s" onmouseover="this.style.color='var(--burgundy)'" onmouseout="this.style.color='var(--parchment-dark)'">✕</button>
-      </div>`;
-    }).join('')}`;
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;margin-top:.1rem">
+      <span style="font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em">Session History</span>
+      <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">${summaryLabel} · tap to edit</span>
+    </div>
+    ${rows}
+    ${toggleBtn}`;
 }
 
 function editProgEntry(bookId,idx,field,val){
