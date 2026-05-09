@@ -2334,7 +2334,7 @@ function renderKeepsake(){
 // ══════════════════════════════════════════
 // SETTINGS / EXPORT
 // ══════════════════════════════════════════
-function saveKey(){const k=document.getElementById('apiKeyInput').value.trim();if(!k){toast('Enter an API key.','err');return;}localStorage.setItem(SK.api,k);toast('Key saved!','ok');}
+function saveKey(){const raw=document.getElementById('apiKeyInput').value;const k=raw.replace(/[^\x20-\x7E]/g,'').trim();if(!k){toast('Enter an API key.','err');return;}localStorage.setItem(SK.api,k);document.getElementById('apiKeyInput').value=k;toast('Key saved!','ok');}
 function clearKey(){localStorage.removeItem(SK.api);document.getElementById('apiKeyInput').value='';document.getElementById('keyStatus').innerHTML='';toast('Key cleared.','ok');}
 async function testKey(){
   const k=document.getElementById('apiKeyInput').value.trim()||localStorage.getItem(SK.api)||'';
