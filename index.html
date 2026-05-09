@@ -1029,13 +1029,13 @@ function bookCard(b){
       ${dateDisplay(b)}
       ${loanLine}
       ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
+      ${fmtBadges(b)?`<div style="position:absolute;top:calc(.65rem + 114px);right:.65rem;width:76px;display:flex;justify-content:center;flex-wrap:wrap;gap:.15rem">${fmtBadges(b)}</div>`:''}
       <div class="card-actions">
         ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
         ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
         <button class="btn btn-teal btn-sm" onclick="openBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
       </div>
-      ${fmtBadges(b)?`<div class="badge-row" style="margin-top:.25rem">${fmtBadges(b)}</div>`:''}
     </div>
     ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b,'lp')}</div>`:''}
   </div>`;
