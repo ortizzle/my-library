@@ -491,10 +491,13 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <button class="eye-btn" onclick="toggleKey()">👁</button>
     </div>
     <p class="hint">Stored only in this browser's localStorage. Sent only to Anthropic's API for AI discussion questions.</p>
-    <div style="margin-top:.65rem;display:flex;gap:.42rem">
+    <div style="margin-top:.65rem;display:flex;gap:.42rem;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="saveKey()">Save Key</button>
       <button class="btn btn-secondary" onclick="clearKey()">Clear</button>
+      <button class="btn btn-secondary" onclick="testKey()">✦ Test Key</button>
     </div>
+    <div id="keyStatus" style="margin-top:.55rem;font-size:.78rem;font-style:italic"></div>
+    <p class="hint" style="margin-top:.3rem">To check your credit balance, visit <a href="https://console.anthropic.com/settings/billing" target="_blank" style="color:var(--sage)">console.anthropic.com → Billing</a>.</p>
   </div>
   <div class="settings-card">
     <h3>Export My Library</h3>
@@ -2332,7 +2335,18 @@ function renderKeepsake(){
 // SETTINGS / EXPORT
 // ══════════════════════════════════════════
 function saveKey(){const k=document.getElementById('apiKeyInput').value.trim();if(!k){toast('Enter an API key.','err');return;}localStorage.setItem(SK.api,k);toast('Key saved!','ok');}
-function clearKey(){localStorage.removeItem(SK.api);document.getElementById('apiKeyInput').value='';toast('Key cleared.','ok');}
+function clearKey(){localStorage.removeItem(SK.api);document.getElementById('apiKeyInput').value='';document.getElementById('keyStatus').innerHTML='';toast('Key cleared.','ok');}
+async function testKey(){
+  const k=document.getElementById('apiKeyInput').value.trim()||localStorage.getItem(SK.api)||'';
+  const el=document.getElementById('keyStatus');
+  if(!k){el.style.color='var(--burgundy)';el.textContent='✦ No key entered.';return;}
+  el.style.color='var(--ink-faint)';el.textContent='Checking…';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/models',{headers:{'x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});
+    if(res.ok){el.style.color='var(--sage)';el.textContent='✓ Key is valid.';}
+    else{const e=await res.json().catch(()=>({}));el.style.color='var(--burgundy)';el.textContent=`✦ ${e.error?.message||'Invalid key (status '+res.status+')'}。`;}
+  }catch(e){el.style.color='var(--burgundy)';el.textContent=`✦ ${e.message}`;}
+}
 function toggleKey(){const i=document.getElementById('apiKeyInput');i.type=i.type==='password'?'text':'password';}
 
 function exportJSON(){
