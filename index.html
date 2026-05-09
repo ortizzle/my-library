@@ -380,7 +380,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div class="hdr-meta">
       <div class="streak-pill" id="hdrStreak">🔥 — streak</div>
-      <button class="hdr-btn" onclick="openAddModal()" style="font-weight:600">＋ Add Book</button>
+      <button class="hdr-btn" onclick="openScanner()" style="font-weight:600">＋ Add Book</button>
       <button class="hdr-btn" onclick="showView('settings')">⚙</button>
     </div>
   </div>
@@ -529,10 +529,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div style="position:absolute;top:50%;left:10%;right:10%;height:2px;background:rgba(255,80,80,.7);transform:translateY(-50%);pointer-events:none"></div>
   </div>
   <div id="scannerStatus" style="color:rgba(255,255,255,.7);font-size:.8rem;font-style:italic;min-height:1.2em">Scanning…</div>
-  <div style="display:flex;gap:.6rem">
-    <button class="btn btn-secondary" onclick="closeScanner()">Cancel</button>
-    <button class="btn btn-primary" onclick="closeScanner();openAddModal()">Manual Entry</button>
-  </div>
+  <button class="btn btn-primary" onclick="closeScanner();openAddModal()">Manual Entry</button>
 </div>
 
 <!-- ADD/EDIT BOOK MODAL -->
@@ -1676,6 +1673,7 @@ async function openScanner(){
         if(!result)return;
         const isbn=result.getText();
         closeScanner();
+        openAddModal();
         document.getElementById('isbnInput').value=isbn;
         setIsbnStatus('Barcode detected — looking up…','');
         await lookupISBN();
