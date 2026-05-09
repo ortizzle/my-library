@@ -2118,11 +2118,11 @@ Questions should span themes, character, craft, and personal resonance. Include 
 Return ONLY a JSON array of 7 strings with no markdown or preamble.`;
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`API ${res.status}`);}
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(`[${res.status}] ${e.error?.message||JSON.stringify(e)}`);}
     const data=await res.json();
     const qs=JSON.parse(data.content.map(c=>c.text||'').join('').trim().replace(/```json|```/g,'').trim());
     discQs=qs;cacheQ[b.id]=qs;save(SK.cacheQ,cacheQ);renderDiscQs(b);renderLibrary();
-  }catch(e){document.getElementById('discContent').innerHTML=`<div class="disc-panel"><p style="color:var(--burgundy);font-size:.82rem">✦ Could not generate: ${esc(e.message)}</p></div>`;}
+  }catch(e){document.getElementById('discContent').innerHTML=`<div class="disc-panel"><p style="color:var(--burgundy);font-size:.82rem">✦ Could not generate: ${esc(e.message)}</p><p style="font-size:.7rem;color:var(--ink-faint);margin-top:.3rem">Key in use: ${(localStorage.getItem(SK.api)||'').slice(0,12)}…</p></div>`;}
   finally{document.getElementById('regenBtn').disabled=false;}
 }
 
