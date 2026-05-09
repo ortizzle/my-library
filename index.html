@@ -380,7 +380,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div class="hdr-meta">
       <div class="streak-pill" id="hdrStreak">🔥 — streak</div>
-      <button class="hdr-btn" onclick="showView('settings')">⚙ Settings</button>
+      <button class="hdr-btn" onclick="openScanner()" style="font-size:.9rem">📷</button>
+      <button class="hdr-btn" onclick="openAddModal()" style="font-weight:600">＋ Add Book</button>
+      <button class="hdr-btn" onclick="showView('settings')">⚙</button>
     </div>
   </div>
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
@@ -391,7 +393,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
     <div class="nav-tab" data-view="stats" onclick="showView('stats')">Stats &amp; Streak</div>
     <div class="nav-tab" data-view="keepsake" onclick="showView('keepsake')">Keepsake</div>
-    <div class="nav-tab" data-view="settings" onclick="showView('settings')">Settings</div>
   </nav>
 </header>
 
@@ -529,7 +530,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div style="position:absolute;top:50%;left:10%;right:10%;height:2px;background:rgba(255,80,80,.7);transform:translateY(-50%);pointer-events:none"></div>
   </div>
   <div id="scannerStatus" style="color:rgba(255,255,255,.7);font-size:.8rem;font-style:italic;min-height:1.2em">Scanning…</div>
-  <button class="btn btn-secondary" onclick="closeScanner()">Cancel</button>
+  <div style="display:flex;gap:.6rem">
+    <button class="btn btn-secondary" onclick="closeScanner()">Cancel</button>
+    <button class="btn btn-primary" onclick="closeScanner();openAddModal()">Manual Entry</button>
+  </div>
 </div>
 
 <!-- ADD/EDIT BOOK MODAL -->
@@ -552,9 +556,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <!-- ISBN (books only) -->
   <div id="isbnSection">
     <div class="isbn-bar">
-      <input type="text" id="isbnInput" placeholder="ISBN (backup)" maxlength="17" style="max-width:130px">
+      <input type="text" id="isbnInput" placeholder="Enter ISBN-10 or ISBN-13…" maxlength="17">
       <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
-      <button class="btn btn-primary" onclick="openScanner()" title="Scan barcode" style="font-size:1.3rem;padding:.3rem .9rem;flex-shrink:0">📷 Scan</button>
     </div>
     <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
     <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
@@ -1673,6 +1676,7 @@ async function openScanner(){
         if(!result)return;
         const isbn=result.getText();
         closeScanner();
+        openAddModal();
         document.getElementById('isbnInput').value=isbn;
         setIsbnStatus('Barcode detected — looking up…','');
         await lookupISBN();
