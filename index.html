@@ -800,7 +800,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
-<button onclick="openScanner()" title="Add a book" style="position:fixed;bottom:1.5rem;left:1.5rem;z-index:90;width:52px;height:52px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.6rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
+<button onclick="openScanner()" title="Add a book" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <script>
@@ -1018,7 +1018,7 @@ function bookCard(b){
   const showProg=b.status==='reading'&&b.itemType!=='article';
   const hasJournal=(journalDB[b.id]||[]).length>0;
   return `<div class="book-card-wrap">
-    <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0" id="bc-${b.id}">
+    <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openEditModal('${b.id}')">
       ${coverHtml}
       <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
       <div class="book-title">${esc(b.title)}</div>
@@ -1031,11 +1031,10 @@ function bookCard(b){
       ${loanLine}
       ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
       ${fmtBadges(b)?`<div style="position:absolute;top:calc(.65rem + 114px);right:.65rem;width:76px;display:flex;justify-content:center;flex-wrap:wrap;gap:.15rem">${fmtBadges(b)}</div>`:''}
-      <div class="card-actions">
+      <div class="card-actions" onclick="event.stopPropagation()">
         ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
         ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
         <button class="btn btn-teal btn-sm" onclick="openBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
-        <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
       </div>
     </div>
     ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b,'lp')}</div>`:''}
@@ -1306,6 +1305,8 @@ async function saveBook(){
   if(!title||!author){toast('Title and author are required.','err');return;}
   const status=document.getElementById('bStatus').value;
   const yearOnly=document.getElementById('chkYearOnly').checked?+document.getElementById('bYearOnly').value||null:null;
+
+  if(status==='reading') activeLists.delete('tbr');
 
   const bk={
     title,author,itemType:curItemType,
@@ -1900,12 +1901,7 @@ function renderLists(){
 
   const readingCard=`<div class="list-card"><div class="list-card-head lh-reading"><h3>● Currently Reading</h3><span class="list-count">${readingBks.length} book${readingBks.length!==1?'s':''}</span></div><div class="list-rows" style="max-height:none">${readingRows}</div></div>`;
 
-  const finishedBks=books.filter(b=>b.status==='read').sort((a,b)=>{
-    if(a.date&&b.date) return a.date<b.date?1:-1;
-    if(a.date) return -1;
-    if(b.date) return 1;
-    return 0;
-  });
+  const finishedBks=books.filter(b=>b.status==='read'&&b.date&&b.date.startsWith(String(thisYear))).sort((a,b)=>a.date<b.date?1:-1);
   const finishedRows=finishedBks.length?finishedBks.map(b=>{
     const dateStr=b.yearOnly?b.yearOnly:b.date?fmtDate(b.date):'';
     return `<div class="list-row" onclick="openEditModal('${b.id}')">
@@ -1920,7 +1916,7 @@ function renderLists(){
       </div>
     </div>`;
   }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">No finished books yet.</div>`;
-  const finishedCard=`<div class="list-card" style="grid-column:1/-1"><div class="list-card-head lh-finished"><h3>✓ Finished</h3><span class="list-count">${finishedBks.length} book${finishedBks.length!==1?'s':''}</span></div><div class="list-rows">${finishedRows}</div></div>`;
+  const finishedCard=`<div class="list-card" style="grid-column:1/-1"><div class="list-card-head lh-finished"><h3>✓ Finished ${thisYear}</h3><span class="list-count">${finishedBks.length} book${finishedBks.length!==1?'s':''}</span></div><div class="list-rows">${finishedRows}</div></div>`;
 
   document.getElementById('listsGrid').innerHTML=
     readingCard+
@@ -2260,7 +2256,11 @@ function scrollToBookJournal(id){
     renderJournalView();
     requestAnimationFrame(()=>{
       const el=document.getElementById('jsection-'+id);
-      if(el) el.closest('.journal-book-section').scrollIntoView({behavior:'smooth',block:'start'});
+      if(el){
+        el.style.display='block';
+        const chev=document.getElementById('jchevron-'+id);if(chev)chev.textContent='▾';
+        el.closest('.journal-book-section').scrollIntoView({behavior:'smooth',block:'start'});
+      }
     });
   });
 }
@@ -2324,10 +2324,10 @@ function journalBookSection(b){
       </div>
       <div class="journal-book-actions">
         <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();copyBookJournal('${b.id}')" title="Copy to clipboard">📋 Copy</button>
-        <span style="font-size:.8rem;color:var(--ink-faint)" id="jchevron-${b.id}">▾</span>
+        <span style="font-size:.8rem;color:var(--ink-faint)" id="jchevron-${b.id}">▸</span>
       </div>
     </div>
-    <div class="journal-entries-wrap" id="jsection-${b.id}">
+    <div class="journal-entries-wrap" id="jsection-${b.id}" style="display:none">
       ${entriesHtml}
     </div>
   </div>`;
