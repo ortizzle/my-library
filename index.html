@@ -90,9 +90,9 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .book-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--r) 0 0 var(--r)}
 .bc-read::before{background:var(--sage)}.bc-reading::before{background:var(--amber)}.bc-unread::before{background:var(--parchment-dark)}.bc-dnf::before{background:var(--navy)}.bc-loaned::before{background:repeating-linear-gradient(45deg,var(--burgundy),var(--burgundy) 3px,transparent 3px,transparent 7px)}.bc-article::before{background:var(--teal)}
 
-.cover-thumb{position:absolute;top:.65rem;right:.65rem;width:56px;height:80px;border-radius:3px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--parchment-dark);background:var(--parchment-mid)}
-.cover-ph{position:absolute;top:.65rem;right:.65rem;width:56px;height:80px;border-radius:3px;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
-.card-has-cover{padding-right:70px}
+.cover-thumb{position:absolute;top:.65rem;right:.65rem;width:76px;height:108px;border-radius:3px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--parchment-dark);background:var(--parchment-mid)}
+.cover-ph{position:absolute;top:.65rem;right:.65rem;width:76px;height:108px;border-radius:3px;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.card-has-cover{padding-right:90px}
 
 .badge-row{display:flex;flex-wrap:wrap;gap:.23rem}
 .badge{font-family:'IM Fell English SC',serif;font-size:.56rem;letter-spacing:.07em;padding:.09rem .36rem;border-radius:20px;white-space:nowrap;line-height:1.5}
@@ -737,9 +737,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
   </div>
 
-  <div class="modal-foot">
-    <button class="btn btn-secondary" onclick="closeM('bookModal')">Cancel</button>
-    <button class="btn btn-primary" onclick="saveBook()">Save Book</button>
+  <div class="modal-foot" style="justify-content:space-between">
+    <button class="btn btn-secondary" id="deleteBookBtn" style="color:var(--burgundy);display:none" onclick="deleteBookFromModal()">🗑 Delete</button>
+    <div style="display:flex;gap:.55rem">
+      <button class="btn btn-secondary" onclick="closeM('bookModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBook()">Save Book</button>
+    </div>
   </div>
 </div>
 </div>
@@ -791,6 +794,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div id="discContent"></div>
   <div class="modal-foot">
     <button class="btn btn-secondary" onclick="closeM('discModal')">Close</button>
+    <button class="btn btn-gold" onclick="regenQs()" id="regenBtn" style="display:none">↻ Regenerate</button>
   </div>
 </div>
 </div>
@@ -1015,10 +1019,7 @@ function bookCard(b){
   return `<div class="book-card-wrap">
     <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0" id="bc-${b.id}">
       ${coverHtml}
-      <div style="display:flex;justify-content:space-between;gap:.25rem;flex-wrap:wrap">
-        <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
-        <div class="badge-row">${fmtBadges(b)}</div>
-      </div>
+      <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
       <div class="book-title">${esc(b.title)}</div>
       <div class="book-author">${esc(b.author)}${b.publication?` <span style="color:var(--ink-faint)">· ${esc(b.publication)}</span>`:''}</div>
       ${b.genre?`<div><span class="book-genre">${esc(b.genre)}</span></div>`:''}
@@ -1031,10 +1032,10 @@ function bookCard(b){
       <div class="card-actions">
         ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
         ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
-        <button class="btn btn-teal btn-sm" onclick="showView('journal');scrollToBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
+        <button class="btn btn-teal btn-sm" onclick="openBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
         <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">Edit</button>
-        <button class="btn btn-secondary btn-sm" style="color:var(--burgundy)" onclick="deleteBook('${b.id}')">Remove</button>
       </div>
+      ${fmtBadges(b)?`<div class="badge-row" style="margin-top:.25rem">${fmtBadges(b)}</div>`:''}
     </div>
     ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b,'lp')}</div>`:''}
   </div>`;
@@ -1060,6 +1061,7 @@ function openAddModal(){
   document.getElementById('modalTitle').textContent='Add to Library';
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
+  document.getElementById('deleteBookBtn').style.display='none';
   setItemType('book');clearForm();
   document.getElementById('bookModal').style.display='flex';
   setTimeout(()=>document.getElementById('isbnInput').focus(),60);
@@ -1072,6 +1074,7 @@ function openEditModal(id){
   pendingCoverUrl=coversDB[id]||'';
   curItemType=b.itemType||'book';
   document.getElementById('modalTitle').textContent='Edit';
+  document.getElementById('deleteBookBtn').style.display='inline-flex';
   setItemType(curItemType);
 
   document.getElementById('isbnInput').value='';
@@ -1346,6 +1349,27 @@ async function saveBook(){
   }
   save(SK.books,books);save(SK.prog,progressDB);save(SK.covers,coversDB);
   closeM('bookModal');renderLibrary();updateHdrStreak();
+}
+
+function deleteBookFromModal(){
+  if(!editId)return;
+  if(!confirm('Remove this book from your library?'))return;
+  closeM('bookModal');
+  deleteBook(editId);
+}
+
+function openBookJournal(id){
+  const hasEntries=(journalDB[id]||[]).length>0;
+  if(hasEntries){
+    showView('journal');
+    scrollToBookJournal(id);
+  }else{
+    openEditModal(id);
+    setTimeout(()=>{
+      const el=document.getElementById('journalNewEntry');
+      if(el){el.scrollIntoView({behavior:'smooth',block:'center'});el.focus();}
+    },120);
+  }
 }
 
 function deleteBook(id){
@@ -2159,11 +2183,7 @@ const JOURNAL_PROMPTS=[
   'What passage would you read aloud to someone — and who would you choose?',
 ];
 
-function openDisc(bookId){
-  const b=books.find(x=>x.id===bookId);if(!b)return;
-  curDiscId=bookId;
-  document.getElementById('discTitle').textContent=b.title;
-  document.getElementById('discAuthor').textContent='by '+b.author;
+function discLinksPanel(b){
   const q=encodeURIComponent(`"${b.title}" ${b.author} discussion questions`);
   const qt=encodeURIComponent(b.title);
   const links=[
@@ -2173,17 +2193,59 @@ function openDisc(bookId){
     [`https://www.goodreads.com/search?q=${encodeURIComponent(b.title+' '+b.author)}`,'Goodreads'],
   ].map(([url,label])=>`<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:.32rem .7rem;background:var(--parchment-dark);border:1px solid #d6ccb8;border-radius:4px;font-size:.74rem;color:var(--ink);text-decoration:none;font-family:'IM Fell English SC',serif;letter-spacing:.04em">${label}</a>`).join('');
   const prompts=JOURNAL_PROMPTS.map((p,i)=>`<li style="padding:.45rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.8rem;color:var(--ink);display:flex;gap:.5rem"><span style="color:var(--burgundy);font-family:'Playfair Display',serif;font-weight:700;flex-shrink:0">${i+1}.</span><span>${p}</span></li>`).join('');
-  document.getElementById('discContent').innerHTML=`
-    <div class="disc-panel" style="margin-bottom:.75rem">
-      <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.55rem">📖 Find Discussion Questions</h4>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem">${links}</div>
-    </div>
-    <div class="disc-panel">
-      <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.45rem">✦ Journal Prompts</h4>
-      <ul style="list-style:none;padding:0;margin:0">${prompts}</ul>
-      <p style="font-size:.65rem;color:var(--ink-faint);margin-top:.5rem;font-style:italic">Tap 📓 Journal on this book to write your response.</p>
-    </div>`;
+  return `<div class="disc-panel" style="margin-bottom:.75rem">
+    <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.55rem">📖 Find Discussion Questions</h4>
+    <div style="display:flex;flex-wrap:wrap;gap:.4rem">${links}</div>
+  </div>
+  <div class="disc-panel">
+    <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.45rem">✦ Journal Prompts</h4>
+    <ul style="list-style:none;padding:0;margin:0">${prompts}</ul>
+    <p style="font-size:.65rem;color:var(--ink-faint);margin-top:.5rem;font-style:italic">Tap 📓 Journal on this book to write your response.</p>
+  </div>`;
+}
+
+function openDisc(bookId){
+  const b=books.find(x=>x.id===bookId);if(!b)return;
+  curDiscId=bookId;
+  document.getElementById('discTitle').textContent=b.title;
+  document.getElementById('discAuthor').textContent='by '+b.author;
+  document.getElementById('regenBtn').style.display='none';
   document.getElementById('discModal').style.display='flex';
+  if(cacheQ[bookId]){discQs=cacheQ[bookId];renderDiscQs(b);}else generateQs(b);
+}
+
+async function generateQs(b){
+  const key=localStorage.getItem(SK.api)||'';
+  if(!key){document.getElementById('discContent').innerHTML=discLinksPanel(b);return;}
+  document.getElementById('discContent').innerHTML=`<div class="disc-panel"><div class="ai-loading"><div class="spinner"></div><span>Crafting questions for <em>${esc(b.title)}</em>…</span></div></div>`;
+  document.getElementById('regenBtn').style.display='none';
+  const prompt=`You are a thoughtful book club facilitator. Generate 7 rich, open-ended discussion questions for "${b.title}" by ${b.author}${b.genre?' ('+b.genre+')':''}.${b.rating?' Reader rated it '+b.rating+'/5.':''}${b.notes?' Reader notes: "'+b.notes+'"':''}
+Questions should span themes, character, craft, and personal resonance. Include one about the author's style. Feel warm and conversational.
+Return ONLY a JSON array of 7 strings with no markdown or preamble.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(`[${res.status}] ${e.error?.message||JSON.stringify(e)}`);}
+    const data=await res.json();
+    const qs=JSON.parse(data.content.map(c=>c.text||'').join('').trim().replace(/```json|```/g,'').trim());
+    discQs=qs;cacheQ[b.id]=qs;save(SK.cacheQ,cacheQ);renderDiscQs(b);renderLibrary();
+  }catch(e){
+    document.getElementById('discContent').innerHTML=`<div class="disc-panel" style="margin-bottom:.75rem"><p style="color:var(--burgundy);font-size:.82rem">✦ Could not generate: ${esc(e.message)}</p></div>`+discLinksPanel(b);
+  }
+}
+
+function regenQs(){const b=books.find(x=>x.id===curDiscId);if(b){delete cacheQ[b.id];save(SK.cacheQ,cacheQ);generateQs(b);}}
+
+function renderDiscQs(b){
+  const fq=favQ[curDiscId]||{};
+  const items=discQs.map((q,i)=>`<li class="q-item"><span class="q-num">${i+1}.</span><span class="q-text">${esc(q)}</span><button class="fav-btn ${fq[i]?'on':''}" onclick="toggleFavQ(${i},'${esc(q).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">★</button></li>`).join('');
+  document.getElementById('discContent').innerHTML=`<div class="disc-panel"><h4>✦ Discussion Questions</h4><ul class="q-list">${items}</ul><p style="font-size:.65rem;color:var(--ink-faint);margin-top:.56rem;font-style:italic">★ Star a question to save it to your Keepsake.</p></div>`;
+  document.getElementById('regenBtn').style.display='inline-flex';
+}
+
+function toggleFavQ(idx,qText){
+  const id=curDiscId;if(!favQ[id])favQ[id]={};
+  favQ[id][idx]?delete favQ[id][idx]:(favQ[id][idx]=qText);
+  save(SK.favQ,favQ);const b=books.find(x=>x.id===id);if(b)renderDiscQs(b);
 }
 
 // ══════════════════════════════════════════
