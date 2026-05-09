@@ -11,6 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Reading Room">
   <meta name="theme-color" content="#190d05">
+  <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
@@ -519,6 +520,18 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 
 </main>
 
+<!-- BARCODE SCANNER MODAL -->
+<div id="scannerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1200;flex-direction:column;align-items:center;justify-content:center;gap:1rem">
+  <div style="color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem">Point camera at book barcode</div>
+  <div style="position:relative;width:min(90vw,360px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#000">
+    <video id="scannerVideo" style="width:100%;height:100%;object-fit:cover" playsinline></video>
+    <div style="position:absolute;inset:0;border:2px solid rgba(255,255,255,.25);border-radius:10px;pointer-events:none"></div>
+    <div style="position:absolute;top:50%;left:10%;right:10%;height:2px;background:rgba(255,80,80,.7);transform:translateY(-50%);pointer-events:none"></div>
+  </div>
+  <div id="scannerStatus" style="color:rgba(255,255,255,.7);font-size:.8rem;font-style:italic;min-height:1.2em">Scanning…</div>
+  <button class="btn btn-secondary" onclick="closeScanner()">Cancel</button>
+</div>
+
 <!-- ADD/EDIT BOOK MODAL -->
 <div class="overlay" id="bookModal" style="display:none" onclick="ovc(event,'bookModal')">
 <div class="modal modal-wide">
@@ -541,6 +554,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div class="isbn-bar">
       <input type="text" id="isbnInput" placeholder="Enter ISBN-10 or ISBN-13 to auto-fill…" maxlength="17">
       <button class="btn btn-primary" onclick="lookupISBN()">Look Up</button>
+      <button class="btn btn-secondary" onclick="openScanner()" title="Scan barcode">📷</button>
     </div>
     <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
     <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
@@ -1640,6 +1654,39 @@ async function lookupISBN(){
 function setIsbnStatus(msg,cls){const el=document.getElementById('isbnStatus');el.textContent=msg;el.className='isbn-status'+(cls?' isbn-'+cls:'');}
 
 // ══════════════════════════════════════════
+// BARCODE SCANNER
+// ══════════════════════════════════════════
+let _scanReader=null;
+async function openScanner(){
+  if(typeof ZXing==='undefined'){toast('Scanner library not loaded — try refreshing.','err');return;}
+  document.getElementById('scannerModal').style.display='flex';
+  document.getElementById('scannerStatus').textContent='Starting camera…';
+  try{
+    const hints=new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);
+    _scanReader=new ZXing.BrowserMultiFormatReader(hints);
+    const devices=await ZXing.BrowserCodeReader.listVideoInputDevices();
+    const backCam=devices.find(d=>/back|rear|environment/i.test(d.label))||devices[devices.length-1];
+    const deviceId=backCam?.deviceId;
+    document.getElementById('scannerStatus').textContent='Scanning…';
+    await _scanReader.decodeFromVideoDevice(deviceId,'scannerVideo',async(result,err)=>{
+      if(!result)return;
+      const isbn=result.getText();
+      closeScanner();
+      document.getElementById('isbnInput').value=isbn;
+      setIsbnStatus('Barcode detected — looking up…','');
+      await lookupISBN();
+    });
+  }catch(e){
+    document.getElementById('scannerStatus').textContent='Camera error: '+e.message;
+  }
+}
+function closeScanner(){
+  if(_scanReader){try{_scanReader.reset();}catch(e){}_scanReader=null;}
+  document.getElementById('scannerModal').style.display='none';
+}
+
+// ══════════════════════════════════════════
 // PROGRESS MODAL
 // ══════════════════════════════════════════
 function openProgModal(bookId){
@@ -2427,7 +2474,7 @@ function fillAudioInputs(hId,mId,totalMins){
 document.addEventListener('DOMContentLoaded',()=>{
   runMigration();
   renderLists();renderLibrary();updateHdrStreak();
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeM('progModal');}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeM('progModal');closeScanner();}});
 });
 </script>
 </body>
