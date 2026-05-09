@@ -552,9 +552,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <!-- ISBN (books only) -->
   <div id="isbnSection">
     <div class="isbn-bar">
-      <input type="text" id="isbnInput" placeholder="Enter ISBN-10 or ISBN-13 to auto-fill…" maxlength="17">
-      <button class="btn btn-primary" onclick="lookupISBN()">Look Up</button>
-      <button class="btn btn-secondary" onclick="openScanner()" title="Scan barcode">📷</button>
+      <input type="text" id="isbnInput" placeholder="ISBN (backup)" maxlength="17" style="max-width:130px">
+      <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
+      <button class="btn btn-primary" onclick="openScanner()" title="Scan barcode" style="font-size:1.3rem;padding:.3rem .9rem;flex-shrink:0">📷 Scan</button>
     </div>
     <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
     <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
