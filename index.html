@@ -78,20 +78,21 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .chip.c-tbr.active{background:var(--rose);border-color:var(--rose)}
 .chip.c-fav.active{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 .chip.c-article.active{background:var(--teal);border-color:var(--teal);color:#fff}
+.chip.c-loaned.active{background:var(--burgundy);border-color:var(--burgundy);color:#fff}
 .chip-sep{color:var(--parchment-dark);font-size:.72rem}
 
 /* GRID */
 .books-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:.92rem}
 
 /* CARD */
-.book-card{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:1rem 1.08rem;box-shadow:0 2px 8px var(--shadow),inset 0 1px 0 rgba(255,255,255,.7);display:flex;flex-direction:column;gap:.46rem;transition:box-shadow .2s,transform .2s;position:relative;overflow:hidden}
+.book-card{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:.65rem .8rem;box-shadow:0 2px 8px var(--shadow),inset 0 1px 0 rgba(255,255,255,.7);display:flex;flex-direction:column;gap:.28rem;transition:box-shadow .2s,transform .2s;position:relative;overflow:hidden}
 .book-card:hover{box-shadow:0 5px 20px var(--shadow);transform:translateY(-2px)}
 .book-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--r) 0 0 var(--r)}
 .bc-read::before{background:var(--sage)}.bc-reading::before{background:var(--amber)}.bc-unread::before{background:var(--parchment-dark)}.bc-dnf::before{background:var(--navy)}.bc-loaned::before{background:repeating-linear-gradient(45deg,var(--burgundy),var(--burgundy) 3px,transparent 3px,transparent 7px)}.bc-article::before{background:var(--teal)}
 
-.cover-thumb{position:absolute;top:.72rem;right:.72rem;width:42px;height:60px;border-radius:3px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--parchment-dark);background:var(--parchment-mid)}
-.cover-ph{position:absolute;top:.72rem;right:.72rem;width:42px;height:60px;border-radius:3px;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
-.card-has-cover{padding-right:60px}
+.cover-thumb{position:absolute;top:.65rem;right:.65rem;width:56px;height:80px;border-radius:3px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--parchment-dark);background:var(--parchment-mid)}
+.cover-ph{position:absolute;top:.65rem;right:.65rem;width:56px;height:80px;border-radius:3px;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.card-has-cover{padding-right:70px}
 
 .badge-row{display:flex;flex-wrap:wrap;gap:.23rem}
 .badge{font-family:'IM Fell English SC',serif;font-size:.56rem;letter-spacing:.07em;padding:.09rem .36rem;border-radius:20px;white-space:nowrap;line-height:1.5}
@@ -417,6 +418,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <span class="chip-sep">|</span>
     <button class="chip c-tbr" data-g="list" data-v="tbr" onclick="setFilter(this)">TBR</button>
     <button class="chip c-fav" data-g="list" data-v="fav" onclick="setFilter(this)">⭐ Fav</button>
+    <button class="chip c-loaned" data-g="list" data-v="loaned" onclick="setFilter(this)">📤 Loaned</button>
     <span class="chip-sep">|</span>
     <button class="chip" data-g="fmt" data-v="physical" onclick="setFilter(this)">Physical</button>
     <button class="chip" data-g="fmt" data-v="ebook" onclick="setFilter(this)">eBook</button>
@@ -917,6 +919,7 @@ function renderLibrary(){
   if(filters.status&&filters.status!=='all') list=list.filter(b=>b.status===filters.status);
   if(filters.list==='tbr') list=list.filter(b=>(b.lists||[]).includes('tbr'));
   if(filters.list==='fav') list=list.filter(b=>(b.lists||[]).includes('fav'));
+  if(filters.list==='loaned') list=list.filter(b=>activeLoan(b));
   if(filters.fmt) list=list.filter(b=>(b.formats||[]).includes(filters.fmt));
   if(filters.type==='article') list=list.filter(b=>b.itemType==='article');
   if(q) list=list.filter(b=>
