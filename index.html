@@ -141,6 +141,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .lh-fav{background:linear-gradient(135deg,#fef6d8,#fefaea);border-bottom:2px solid var(--gold)}
 .lh-dnf{background:linear-gradient(135deg,#eaeef8,#f0f4fc);border-bottom:2px solid var(--navy)}
 .lh-article{background:linear-gradient(135deg,#e4f0ee,#eef8f5);border-bottom:2px solid var(--teal)}
+.lh-finished{background:linear-gradient(135deg,#e6f0e6,#eef6ee);border-bottom:2px solid var(--sage)}
 .list-rows{padding:.42rem 0;max-height:300px;overflow-y:auto}
 .list-row{display:flex;align-items:center;gap:.52rem;padding:.42rem 1.02rem;border-bottom:1px dotted var(--parchment-dark);transition:background .14s;cursor:pointer}
 .list-row:last-child{border-bottom:none}.list-row:hover{background:var(--parchment)}
@@ -384,6 +385,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
     <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
     <div class="nav-tab active" data-view="lists" onclick="showView('lists')">Lists</div>
+    <div class="nav-tab" data-view="year" onclick="showView('year')">📅 Reading Year</div>
     <div class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</div>
     <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
     <div class="nav-tab" data-view="stats" onclick="showView('stats')">Stats &amp; Streak</div>
@@ -431,6 +433,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view active" id="view-lists">
   <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
   <div class="lists-grid" id="listsGrid"></div>
+</div>
+
+<!-- READING YEAR -->
+<div class="view" id="view-year">
+  <div class="sec-head"><h2 class="sec-title">📅 Reading Year</h2></div>
+  <div class="lists-grid" id="yearGrid"></div>
 </div>
 
 <!-- JOURNAL -->
@@ -859,6 +867,7 @@ function showView(n){
   if(n==='keepsake') renderKeepsake();
   if(n==='loaned')   renderLoaned();
   if(n==='lists')    renderLists();
+  if(n==='year')     renderYear();
   if(n==='journal')  renderJournalView();
   if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
 }
@@ -1761,57 +1770,6 @@ function renderLists(){
   const dnfL=books.filter(b=>b.status==='dnf'||(b.lists||[]).includes('dnf_list'));
   const articles=books.filter(b=>b.itemType==='article');
 
-  // Read This Year — all months as segments
-  const now=new Date();
-  const thisYear=now.getFullYear();
-  const currentMonth=now.getMonth(); // 0-indexed
-
-  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  // Build month buckets for this year
-  const monthBuckets=monthNames.map((name,mi)=>{
-    const key=`${thisYear}-${String(mi+1).padStart(2,'0')}`;
-    const bks=books.filter(b=>b.status==='read'&&b.date&&b.date.startsWith(key));
-    return {name,key,mi,bks};
-  });
-
-  const totalReadThisYear=monthBuckets.reduce((n,m)=>n+m.bks.length,0);
-
-  const yearRows=monthBuckets.map(({name,mi,bks})=>{
-    const isCurrent=mi===currentMonth;
-    const isFuture=mi>currentMonth;
-    const monthLabel=name.slice(0,3).toUpperCase();
-    const bookPreviews=bks.slice(0,3).map(b=>{
-      const url=coversDB[b.id];
-      return url
-        ? `<img src="${esc(url)}" onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="" onerror="this.style.display='none'">`
-        : `<div onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem">📗</div>`;
-    }).join('');
-    const overflow=bks.length>3?`<span style="font-size:.68rem;color:var(--ink-faint);align-self:center">+${bks.length-3}</span>`:'';
-
-    return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .9rem;border-bottom:1px dotted var(--parchment-dark);${isFuture?'opacity:.4':''}">
-      <div style="width:36px;flex-shrink:0;text-align:center">
-        <div style="font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.07em;color:${isCurrent?'var(--sage)':'var(--ink-faint)'};font-weight:${isCurrent?'600':'400'}">${monthLabel}</div>
-        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:${bks.length?'var(--burgundy)':'var(--parchment-dark)'};line-height:1.1">${bks.length||''}</div>
-      </div>
-      <div style="flex:1;min-width:0">
-        ${bks.length
-          ? `<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}${overflow}</div>`
-          : `<div style="font-size:.75rem;color:var(--ink-faint);font-style:italic;padding-top:.3rem">${isFuture?'—':'Nothing logged yet'}</div>`
-        }
-      </div>
-      ${isCurrent?`<div style="font-family:'IM Fell English SC',serif;font-size:.58rem;letter-spacing:.07em;color:var(--sage);padding-top:.3rem;flex-shrink:0">NOW</div>`:''}
-    </div>`;
-  }).join('');
-
-  const yearCard=`<div class="list-card" style="grid-column:1/-1">
-    <div class="list-card-head lh-month" style="cursor:default">
-      <h3>📅 ${thisYear} Reading Year</h3>
-      <span class="list-count">${totalReadThisYear} book${totalReadThisYear!==1?'s':''}</span>
-    </div>
-    <div>${yearRows}</div>
-  </div>`;
-
   const rowCover=b=>{const url=coversDB[b.id];return url?`<img class="list-row-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="list-row-cover-ph">📗</div>`;};
 
   // Standard list maker (click → edit)
@@ -1863,14 +1821,81 @@ function renderLists(){
 
   const readingCard=`<div class="list-card"><div class="list-card-head lh-reading"><h3>● Currently Reading</h3><span class="list-count">${readingBks.length} book${readingBks.length!==1?'s':''}</span></div><div class="list-rows" style="max-height:none">${readingRows}</div></div>`;
 
-  const monthName=now.toLocaleDateString('en-US',{month:'long'});
+  const finishedBks=books.filter(b=>b.status==='read').sort((a,b)=>{
+    if(a.date&&b.date) return a.date<b.date?1:-1;
+    if(a.date) return -1;
+    if(b.date) return 1;
+    return 0;
+  });
+  const finishedRows=finishedBks.length?finishedBks.map(b=>{
+    const dateStr=b.yearOnly?b.yearOnly:b.date?fmtDate(b.date):'';
+    return `<div class="list-row" onclick="openEditModal('${b.id}')">
+      ${rowCover(b)}
+      <div class="list-row-info">
+        <div class="list-row-title">${esc(b.title)}</div>
+        <div class="list-row-author">${esc(b.author)}</div>
+        ${dateStr?`<div style="font-size:.68rem;color:var(--ink-faint);margin-top:.15rem">${dateStr}</div>`:''}
+      </div>
+      <div class="list-row-right">
+        ${b.rating?`<span class="list-row-stars">${'★'.repeat(b.rating)}</span>`:''}
+      </div>
+    </div>`;
+  }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">No finished books yet.</div>`;
+  const finishedCard=`<div class="list-card" style="grid-column:1/-1"><div class="list-card-head lh-finished"><h3>✓ Finished</h3><span class="list-count">${finishedBks.length} book${finishedBks.length!==1?'s':''}</span></div><div class="list-rows">${finishedRows}</div></div>`;
+
   document.getElementById('listsGrid').innerHTML=
     readingCard+
-    yearCard+
+    finishedCard+
     makeList('🌿 To Be Read','lh-tbr',tbr,'No books on your TBR yet.')+
     makeList('⭐ Favorites','lh-fav',fav,'No favorites yet.')+
     makeList('📕 Did Not Finish','lh-dnf',dnfL,'No DNF books.')+
     makeList('📰 Articles Read','lh-article',articles,'No articles logged yet.');
+}
+
+function renderYear(){
+  const now=new Date();
+  const thisYear=now.getFullYear();
+  const currentMonth=now.getMonth();
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthBuckets=monthNames.map((name,mi)=>{
+    const key=`${thisYear}-${String(mi+1).padStart(2,'0')}`;
+    const bks=books.filter(b=>b.status==='read'&&b.date&&b.date.startsWith(key));
+    return {name,key,mi,bks};
+  });
+  const totalReadThisYear=monthBuckets.reduce((n,m)=>n+m.bks.length,0);
+  const yearRows=monthBuckets.map(({name,mi,bks})=>{
+    const isCurrent=mi===currentMonth;
+    const isFuture=mi>currentMonth;
+    const monthLabel=name.slice(0,3).toUpperCase();
+    const bookPreviews=bks.slice(0,3).map(b=>{
+      const url=coversDB[b.id];
+      return url
+        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="" onerror="this.style.display='none'">`
+        :`<div onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem">📗</div>`;
+    }).join('');
+    const overflow=bks.length>3?`<span style="font-size:.68rem;color:var(--ink-faint);align-self:center">+${bks.length-3}</span>`:'';
+    return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .9rem;border-bottom:1px dotted var(--parchment-dark);${isFuture?'opacity:.4':''}">
+      <div style="width:36px;flex-shrink:0;text-align:center">
+        <div style="font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.07em;color:${isCurrent?'var(--sage)':'var(--ink-faint)'};font-weight:${isCurrent?'600':'400'}">${monthLabel}</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;color:${bks.length?'var(--burgundy)':'var(--parchment-dark)'};line-height:1.1">${bks.length||''}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        ${bks.length
+          ?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}${overflow}</div>`
+          :`<div style="font-size:.75rem;color:var(--ink-faint);font-style:italic;padding-top:.3rem">${isFuture?'—':'Nothing logged yet'}</div>`
+        }
+      </div>
+      ${isCurrent?`<div style="font-family:'IM Fell English SC',serif;font-size:.58rem;letter-spacing:.07em;color:var(--sage);padding-top:.3rem;flex-shrink:0">NOW</div>`:''}
+    </div>`;
+  }).join('');
+  const yearCard=`<div class="list-card" style="grid-column:1/-1">
+    <div class="list-card-head lh-month" style="cursor:default">
+      <h3>📅 ${thisYear} Reading Year</h3>
+      <span class="list-count">${totalReadThisYear} book${totalReadThisYear!==1?'s':''}</span>
+    </div>
+    <div>${yearRows}</div>
+  </div>`;
+  document.getElementById('yearGrid').innerHTML=yearCard;
 }
 
 // ══════════════════════════════════════════
