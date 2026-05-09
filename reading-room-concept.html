@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Reading Room — Design Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:   #0e0c0a;
+  --bg2:  #161310;
+  --bg3:  #1e1a16;
+  --bg4:  #2a241e;
+  --bg5:  #332d26;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --border3: rgba(255,255,255,0.18);
+  --text1: #f5f0e8;
+  --text2: #a89880;
+  --text3: #6b5f50;
+  --text4: #3d342a;
+  --accent:  #c4873a;
+  --accent2: #e8b06a;
+  --accent3: rgba(196,135,58,0.15);
+  --accent4: rgba(196,135,58,0.08);
+  --green:  #5a9e6f;
+  --green-bg: rgba(90,158,111,0.12);
+  --red:    #c44a3a;
+  --red-bg: rgba(196,74,58,0.1);
+  --teal:   #4a8e9a;
+  --teal-bg: rgba(74,142,154,0.12);
+  --serif: 'DM Serif Display', Georgia, serif;
+  --sans:  'DM Sans', system-ui, sans-serif;
+  --mono:  'DM Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text1);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── NAV ── */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.wordmark {
+  font-family: var(--serif);
+  font-size: 19px;
+  color: var(--text1);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.wordmark-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.nav-links {
+  display: flex;
+  gap: 4px;
+}
+
+.nav-link {
+  padding: 5px 13px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-link:hover { color: var(--text1); background: var(--bg3); }
+.nav-link.active {
+  color: var(--accent2);
+  border-color: var(--border2);
+  background: var(--accent4);
+}
+
+.nav-right { display: flex; align-items: center; gap: 10px; }
+
+.streak-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 13px;
+  border-radius: 20px;
+  background: var(--accent3);
+  border: 1px solid rgba(196,135,58,0.22);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent2);
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.avatar {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text2);
+  cursor: pointer;
+}
+
+/* ── LAYOUT ── */
+.main {
+  display: grid;
+  grid-template-columns: 1fr 310px;
+  min-height: calc(100vh - 57px);
+}
+
+.content {
+  padding: 32px 32px;
+  border-right: 1px solid var(--border);
+}
+
+.sidebar {
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── HERO ── */
+.hero-label {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.hero-title {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1.15;
+  color: var(--text1);
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.hero-title em {
+  font-style: italic;
+  color: var(--accent2);
+}
+
+/* ── CURRENTLY READING CARD ── */
+.cr-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 32px;
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.book-cover {
+  width: 88px;
+  height: 126px;
+  border-radius: 5px;
+  border: 1px solid var(--border2);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cover-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 9px 8px;
+}
+
+.cover-accent-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+
+.cover-title-text {
+  font-family: var(--serif);
+  font-size: 9px;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.88);
+}
+
+.book-info h3 {
+  font-family: var(--serif);
+  font-size: 18px;
+  margin: 0 0 2px;
+  color: var(--text1);
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.book-author {
+  font-size: 12px;
+  color: var(--text2);
+  font-style: italic;
+  margin: 0 0 14px;
+}
+
+.progress-track {
+  background: var(--bg4);
+  height: 4px;
+  border-radius: 2px;
+  margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-bottom: 16px;
+}
+
+.btn-row { display: flex; gap: 8px; }
+
+.btn {
+  padding: 7px 15px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text2);
+  font-family: var(--sans);
+  transition: all 0.15s;
+}
+.btn:hover { color: var(--text1); background: var(--bg4); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a0e04;
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+/* ── SECTION ── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--text1);
+  letter-spacing: -0.01em;
+}
+
+.section-link {
+  font-size: 12px;
+  color: var(--text3);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.section-link:hover { color: var(--accent2); }
+
+/* ── SHELF ── */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.shelf-book { cursor: pointer; }
+
+.shelf-cover {
+  width: 100%;
+  aspect-ratio: 2/3;
+  border-radius: 4px;
+  margin-bottom: 9px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.shelf-book:hover .shelf-cover { border-color: var(--border2); }
+
+.shelf-cover-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8px 7px;
+}
+
+.shelf-cover-label {
+  font-family: var(--serif);
+  font-size: 8px;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.82);
+}
+
+.shelf-book-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text1);
+  line-height: 1.3;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stars {
+  display: flex;
+  gap: 1px;
+  margin-bottom: 2px;
+}
+
+.star { font-size: 9px; line-height: 1; }
+.star.on { color: var(--accent); }
+.star.off { color: var(--bg5); }
+
+.shelf-author {
+  font-size: 10px;
+  color: var(--text3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0 0 28px;
+}
+
+/* ── AI DISCUSSION CARD ── */
+.ai-card {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+
+.ai-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ai-pill {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--teal);
+  background: var(--teal-bg);
+  border: 1px solid rgba(74,142,154,0.2);
+  padding: 3px 9px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.ai-book-ref {
+  font-size: 12px;
+  color: var(--text2);
+  font-style: italic;
+}
+
+.question-text {
+  font-size: 14px;
+  color: var(--text1);
+  line-height: 1.65;
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.question-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.q-dots { display: flex; gap: 5px; align-items: center; }
+.q-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--bg5);
+  transition: background 0.15s;
+}
+.q-dot.active { background: var(--accent); }
+
+/* ── SIDEBAR ── */
+.sb-title {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 13px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 13px 12px;
+}
+
+.stat-num {
+  font-family: var(--serif);
+  font-size: 26px;
+  color: var(--text1);
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.3;
+}
+
+/* ── CALENDAR ── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--bg3);
+}
+.cal-day.on { background: var(--accent); opacity: 0.8; }
+.cal-day.today { outline: 1.5px solid var(--accent2); outline-offset: 1px; background: var(--bg3); }
+.cal-day.on.today { background: var(--accent); }
+
+/* ── RECENT LIST ── */
+.recent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.recent-item:hover { border-color: var(--border2); }
+
+.recent-cover {
+  width: 28px; height: 40px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.recent-info { flex: 1; min-width: 0; }
+
+.recent-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+
+.recent-meta {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+}
+
+.badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.badge-read    { background: var(--green-bg);  color: var(--green); border: 1px solid rgba(90,158,111,0.2); }
+.badge-reading { background: var(--accent3);   color: var(--accent2); border: 1px solid rgba(196,135,58,0.2); }
+.badge-dnf     { background: var(--red-bg);    color: var(--red); border: 1px solid rgba(196,74,58,0.2); }
+
+/* ── TBR STACK ── */
+.tbr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tbr-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.tbr-item:hover { border-color: var(--border2); }
+
+.tbr-cover {
+  width: 24px; height: 34px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.tbr-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text1);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tbr-author {
+  font-size: 11px;
+  color: var(--text3);
+  font-style: italic;
+}
+
+/* ── YEAR VIEW PILL ── */
+.year-strip {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.month-pip {
+  height: 28px;
+  border-radius: 3px;
+  background: var(--bg3);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 3px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.month-pip:hover { background: var(--bg4); }
+.month-pip.has-books { background: var(--bg3); }
+.month-pip .pip-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  border-radius: 3px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+.month-pip-label {
+  font-size: 8px;
+  font-family: var(--mono);
+  color: var(--text3);
+  position: relative;
+  z-index: 1;
+}
+.month-pip.now .month-pip-label { color: var(--accent2); }
+
+/* ── CONCEPT LABEL ── */
+.concept-label {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  padding: 5px 14px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wordmark">
+    <div class="wordmark-dot"></div>
+    The Reading Room
+  </div>
+  <div class="nav-links">
+    <div class="nav-link active">Library</div>
+    <div class="nav-link">Lists</div>
+    <div class="nav-link">Journal</div>
+    <div class="nav-link">Stats</div>
+    <div class="nav-link">Discover</div>
+  </div>
+  <div class="nav-right">
+    <div class="streak-pill">🔥 23 days</div>
+    <div class="avatar">CR</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <!-- ── MAIN CONTENT ── -->
+  <div class="content">
+
+    <div class="concept-label">Design concept · not a wireframe</div>
+
+    <div class="hero-label">Good evening, Chris</div>
+    <h1 class="hero-title">Continue where you left off —<br><em>House of Leaves</em></h1>
+
+    <!-- CURRENTLY READING -->
+    <div class="cr-card">
+      <div class="book-cover">
+        <div class="cover-bg" style="background: linear-gradient(155deg, #1a2a3a 0%, #0d1720 100%)">
+          <div class="cover-accent-bar" style="background: var(--accent)"></div>
+          <div class="cover-title-text">House<br>of Leaves</div>
+        </div>
+      </div>
+      <div class="book-info">
+        <h3>House of Leaves</h3>
+        <p class="book-author">Mark Z. Danielewski</p>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:63%"></div>
+        </div>
+        <div class="progress-label">
+          <span>p. 326 / 709</span>
+          <span>63%</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary">Log progress</button>
+          <button class="btn">Discussion</button>
+          <button class="btn">Journal</button>
+          <button class="btn">Full edit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2026 YEAR VIEW -->
+    <div class="section-head">
+      <h2 class="section-title">2026 reading year</h2>
+      <span class="section-link">14 books finished →</span>
+    </div>
+
+    <div class="year-strip" id="yearStrip"></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:28px">
+      <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">Jan</span>
+      <span style="font-size:10px;color:var(--accent2);font-family:var(--mono)">May ←</span>
+      <span style="font-size:10px;color:var(--text4);font-family:var(--mono)">Dec</span>
+    </div>
+
+    <!-- SHELF -->
+    <div class="section-head">
+      <h2 class="section-title">Read this year</h2>
+      <span class="section-link">View all →</span>
+    </div>
+
+    <div class="shelf">
+      <div class="shelf-book">
+        <div class="shelf-cover">
+          <div class="shelf-cover-inner" style="background:linear-gradient(155deg,#2d1f42,#150d22)">
+            <div class="shelf-cover-label">Red Rising</div>
+          </div>
+        </div>
+        <div class="shelf-book-title">Red Rising</div>
+        <div class="stars">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span>
+        </div>
+        <div class="shelf-author">Pierce Brown</div>
+      </div>
+      <div class="shelf-book">
+        <div class="shelf-cover">
+          <div class="shelf-cover-inner" style="background:linear-gradient(155deg,#163422,#091410)">
+            <div class="shelf-cover-label">Gone Girl</div>
+          </div>
+        </div>
+        <div class="shelf-book-title">Gone Girl</div>
+        <div class="stars">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star off">★</span>
+        </div>
+        <div class="shelf-author">Gillian Flynn</div>
+      </div>
+      <div class="shelf-book">
+        <div class="shelf-cover">
+          <div class="shelf-cover-inner" style="background:linear-gradient(155deg,#2e2400,#141000)">
+            <div class="shelf-cover-label">The Da Vinci Code</div>
+          </div>
+        </div>
+        <div class="shelf-book-title">Da Vinci Code</div>
+        <div class="stars">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star off">★</span>
+        </div>
+        <div class="shelf-author">Dan Brown</div>
+      </div>
+      <div class="shelf-book">
+        <div class="shelf-cover">
+          <div class="shelf-cover-inner" style="background:linear-gradient(155deg,#1a2a40,#0a1220)">
+            <div class="shelf-cover-label">Morning Star</div>
+          </div>
+        </div>
+        <div class="shelf-book-title">Morning Star</div>
+        <div class="stars">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span>
+        </div>
+        <div class="shelf-author">Pierce Brown</div>
+      </div>
+      <div class="shelf-book">
+        <div class="shelf-cover">
+          <div class="shelf-cover-inner" style="background:linear-gradient(155deg,#2e1616,#140808)">
+            <div class="shelf-cover-label">Nurse's Secret</div>
+          </div>
+        </div>
+        <div class="shelf-book-title">Nurse's Secret</div>
+        <div class="stars">
+          <span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star on">★</span><span class="star off">★</span>
+        </div>
+        <div class="shelf-author">A. Skenandore</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- AI DISCUSSION -->
+    <div class="section-head">
+      <h2 class="section-title">Discussion questions</h2>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-head">
+        <div class="ai-pill">AI · Claude</div>
+        <div class="ai-book-ref">House of Leaves · 7 questions generated</div>
+      </div>
+      <div class="question-text">
+        "The novel's footnotes have been described as both a coping mechanism and a form of obsession. What do Truant's annotations reveal about his psychological state — and does the answer change as the book progresses?"
+      </div>
+      <div class="question-nav">
+        <div class="q-dots">
+          <div class="q-dot active"></div>
+          <div class="q-dot"></div>
+          <div class="q-dot"></div>
+          <div class="q-dot"></div>
+          <div class="q-dot"></div>
+          <div class="q-dot"></div>
+          <div class="q-dot"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn" style="padding:5px 11px;font-size:11px">← Prev</button>
+          <button class="btn" style="padding:5px 11px;font-size:11px">Next →</button>
+          <button class="btn btn-primary" style="padding:5px 11px;font-size:11px">★ Save</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+
+    <!-- STATS -->
+    <div>
+      <div class="sb-title">Reading stats · 2026</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-num">14</div>
+          <div class="stat-label">books this year</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">23</div>
+          <div class="stat-label">day streak</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">4.2</div>
+          <div class="stat-label">avg rating</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">63%</div>
+          <div class="stat-label">in progress</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div>
+      <div class="sb-title">Activity · May 2026</div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <!-- RECENT -->
+    <div>
+      <div class="sb-title">Recent activity</div>
+      <div class="recent-list">
+        <div class="recent-item">
+          <div class="recent-cover" style="background:linear-gradient(155deg,#2d1f42,#150d22)"></div>
+          <div class="recent-info">
+            <div class="recent-title">Red Rising</div>
+            <div class="recent-meta">Finished Apr 18</div>
+          </div>
+          <div class="badge badge-read">Read</div>
+        </div>
+        <div class="recent-item">
+          <div class="recent-cover" style="background:linear-gradient(155deg,#1a2a3a,#0d1720)"></div>
+          <div class="recent-info">
+            <div class="recent-title">House of Leaves</div>
+            <div class="recent-meta">p. 326 · today</div>
+          </div>
+          <div class="badge badge-reading">Reading</div>
+        </div>
+        <div class="recent-item">
+          <div class="recent-cover" style="background:linear-gradient(155deg,#2e1616,#140808)"></div>
+          <div class="recent-info">
+            <div class="recent-title">The Patient</div>
+            <div class="recent-meta">Stopped at p. 80</div>
+          </div>
+          <div class="badge badge-dnf">DNF</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TBR -->
+    <div>
+      <div class="sb-title" style="display:flex;justify-content:space-between">
+        <span>Up next · TBR</span>
+        <span style="cursor:pointer;color:var(--accent2)">+</span>
+      </div>
+      <div class="tbr-list">
+        <div class="tbr-item">
+          <div class="tbr-cover" style="background:linear-gradient(155deg,#1a2620,#0c140e);border-radius:2px;border:1px solid var(--border)"></div>
+          <div>
+            <div class="tbr-title">Golden Son</div>
+            <div class="tbr-author">Pierce Brown</div>
+          </div>
+        </div>
+        <div class="tbr-item">
+          <div class="tbr-cover" style="background:linear-gradient(155deg,#261a10,#120d08);border-radius:2px;border:1px solid var(--border)"></div>
+          <div>
+            <div class="tbr-title">The Escape Artist</div>
+            <div class="tbr-author">Brad Meltzer</div>
+          </div>
+        </div>
+        <div class="tbr-item">
+          <div class="tbr-cover" style="background:linear-gradient(155deg,#1e1a2e,#0e0d18);border-radius:2px;border:1px solid var(--border)"></div>
+          <div>
+            <div class="tbr-title">Iron Gold</div>
+            <div class="tbr-author">Pierce Brown</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// Calendar
+const cal = document.getElementById('calGrid');
+const activeDays = [1,2,3,5,6,7,8,9,11,12,14,15,16,17,18,20,21,22,23,25,26,27,28,29,30];
+for(let i=1;i<=31;i++){
+  const d = document.createElement('div');
+  d.className = 'cal-day' + (activeDays.includes(i)?' on':'') + (i===8?' today':'');
+  cal.appendChild(d);
+}
+
+// Year strip
+const strip = document.getElementById('yearStrip');
+const monthData = [3,2,1,2,3,1,0,0,0,0,0,0]; // books per month
+const monthNames = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+monthData.forEach((count, mi) => {
+  const el = document.createElement('div');
+  el.className = 'month-pip' + (count>0?' has-books':'') + (mi===4?' now':'');
+  const pct = Math.min(100, count * 25);
+  el.innerHTML = `<div class="pip-fill" style="height:${pct}%"></div><div class="month-pip-label">${monthNames[mi]}</div>`;
+  strip.appendChild(el);
+});
+</script>
+</body>
+</html>
