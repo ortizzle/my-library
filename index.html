@@ -2343,7 +2343,7 @@ async function testKey(){
   el.style.color='var(--ink-faint)';el.textContent='Checking…';
   try{
     const res=await fetch('https://api.anthropic.com/v1/models',{headers:{'x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});
-    if(res.ok){el.style.color='var(--sage)';el.textContent='✓ Key is valid.';}
+    if(res.ok){el.style.color='var(--sage)';el.textContent=`✓ Key is valid. (${k.length} chars)`;}
     else{const e=await res.json().catch(()=>({}));el.style.color='var(--burgundy)';el.textContent=`✦ ${e.error?.message||'Invalid key (status '+res.status+')'}。`;}
   }catch(e){el.style.color='var(--burgundy)';el.textContent=`✦ ${e.message}`;}
 }
