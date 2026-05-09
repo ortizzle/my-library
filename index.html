@@ -800,6 +800,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
+<button onclick="openScanner()" title="Add a book" style="position:fixed;bottom:1.5rem;left:1.5rem;z-index:90;width:52px;height:52px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.6rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <script>
