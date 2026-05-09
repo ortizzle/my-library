@@ -1665,18 +1665,19 @@ async function openScanner(){
     const hints=new Map();
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);
     _scanReader=new ZXing.BrowserMultiFormatReader(hints);
-    const devices=await ZXing.BrowserCodeReader.listVideoInputDevices();
-    const backCam=devices.find(d=>/back|rear|environment/i.test(d.label))||devices[devices.length-1];
-    const deviceId=backCam?.deviceId;
     document.getElementById('scannerStatus').textContent='Scanning…';
-    await _scanReader.decodeFromVideoDevice(deviceId,'scannerVideo',async(result,err)=>{
-      if(!result)return;
-      const isbn=result.getText();
-      closeScanner();
-      document.getElementById('isbnInput').value=isbn;
-      setIsbnStatus('Barcode detected — looking up…','');
-      await lookupISBN();
-    });
+    await _scanReader.decodeFromConstraints(
+      {video:{facingMode:'environment'}},
+      'scannerVideo',
+      async(result,err)=>{
+        if(!result)return;
+        const isbn=result.getText();
+        closeScanner();
+        document.getElementById('isbnInput').value=isbn;
+        setIsbnStatus('Barcode detected — looking up…','');
+        await lookupISBN();
+      }
+    );
   }catch(e){
     document.getElementById('scannerStatus').textContent='Camera error: '+e.message;
   }
