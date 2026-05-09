@@ -388,6 +388,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
     <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
     <div class="nav-tab active" data-view="lists" onclick="showView('lists')">Lists</div>
+    <div class="nav-tab" data-view="log" onclick="showView('log')">📖 Log</div>
     <div class="nav-tab" data-view="year" onclick="showView('year')">📅 Reading Year</div>
     <div class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</div>
     <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
@@ -442,6 +443,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view" id="view-year">
   <div class="sec-head"><h2 class="sec-title">📅 Reading Year</h2></div>
   <div class="lists-grid" id="yearGrid"></div>
+</div>
+
+<!-- READING LOG -->
+<div class="view" id="view-log">
+  <div class="sec-head"><h2 class="sec-title">📖 Reading Log</h2></div>
+  <div id="logContent" style="max-width:560px"></div>
 </div>
 
 <!-- JOURNAL -->
@@ -890,6 +897,7 @@ function showView(n){
   if(n==='keepsake') renderKeepsake();
   if(n==='loaned')   renderLoaned();
   if(n==='lists')    renderLists();
+  if(n==='log')      renderLogSession();
   if(n==='year')     renderYear();
   if(n==='journal')  renderJournalView();
   if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
@@ -2168,6 +2176,95 @@ function renderPaceTable(readBks){
 }
 
 function updateHdrStreak(){const{cur}=computeStreak();document.getElementById('hdrStreak').innerHTML=`🔥 ${cur} day${cur!==1?'s':''} streak`;}
+
+// ══════════════════════════════════════════
+// READING LOG SESSION
+// ══════════════════════════════════════════
+let _logRatings={};
+
+function renderLogSession(){
+  const reading=books.filter(b=>b.status==='reading');
+  const el=document.getElementById('logContent');
+  if(!reading.length){
+    el.innerHTML=`<div class="empty"><span class="icon">📚</span><h3>Nothing in progress</h3><p>Mark a book as Currently Reading to log sessions here.</p></div>`;
+    return;
+  }
+  _logRatings={};
+  reading.forEach(b=>_logRatings[b.id]=b.rating||0);
+  el.innerHTML=reading.map(b=>buildLogCard(b)).join('');
+}
+
+function buildLogCard(b){
+  const coverUrl=coversDB[b.id];
+  const coverHtml=coverUrl
+    ?`<img src="${esc(coverUrl)}" style="width:60px;height:86px;border-radius:3px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2)" alt="">`
+    :`<div style="width:60px;height:86px;border-radius:3px;background:var(--parchment-dark);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem">📗</div>`;
+  const best=bestProgress(b.id);
+  const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
+  const prog=progressDB[b.id]||[];
+  const lastPage=prog.slice().reverse().find(e=>e.type==='pages')||null;
+  const stickyTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const today=new Date().toISOString().split('T')[0];
+  const iStyle='width:100%;padding:.38rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.85rem;background:var(--parchment);outline:none;box-sizing:border-box';
+  const stars=[1,2,3,4,5].map(i=>`<span id="lsr-${b.id}-${i}" onclick="setLogRating('${b.id}',${i})" style="font-size:1.3rem;cursor:pointer;color:${i<=(_logRatings[b.id]||0)?'var(--gold)':'var(--parchment-dark)'}">★</span>`).join('');
+
+  return `<div class="list-card" style="margin-bottom:1rem" id="logcard-${b.id}">
+    <div style="padding:.85rem 1rem .7rem;display:flex;gap:.8rem;align-items:flex-start">
+      ${coverHtml}
+      <div style="flex:1;min-width:0">
+        <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--ink);line-height:1.25;margin-bottom:.18rem">${esc(b.title)}</div>
+        <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;margin-bottom:.45rem">${esc(b.author)}</div>
+        ${bestPct!==null?`<div class="prog-bar" style="height:6px;margin-bottom:.22rem"><div class="prog-fill" style="width:${bestPct}%"></div></div><div style="font-size:.65rem;color:var(--amber);font-family:'IM Fell English SC',serif;letter-spacing:.05em">${bestPct}% complete</div>`:'<div style="font-size:.65rem;color:var(--ink-faint);font-style:italic">No progress logged yet</div>'}
+      </div>
+    </div>
+    <div style="padding:0 1rem .9rem;border-top:1px dotted var(--parchment-dark);padding-top:.75rem">
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
+        <div style="flex:1">
+          <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">CURRENT PAGE</label>
+          <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" style="${iStyle}">
+        </div>
+        <div style="flex:1">
+          <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">OF PAGES</label>
+          <input type="number" id="ls-total-${b.id}" value="${stickyTotal||''}" placeholder="e.g. 320" min="1" style="${iStyle}">
+        </div>
+      </div>
+      <textarea id="ls-journal-${b.id}" placeholder="Quick note about today's session…" rows="2" style="${iStyle};resize:none;margin-bottom:.6rem;line-height:1.5"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div style="display:flex;gap:.1rem">${stars}</div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn btn-secondary btn-sm" onclick="logSessionSave('${b.id}')">Save</button>
+          <button class="btn btn-sage" onclick="logSessionFinish('${b.id}')" style="font-size:.78rem;padding:.35rem .9rem;font-weight:600">✓ Finished Today</button>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" id="ls-date-${b.id}" value="${today}">
+    <input type="checkbox" id="ls-done-${b.id}" style="display:none">
+    <input type="checkbox" id="ls-nocount-${b.id}" style="display:none">
+  </div>`;
+}
+
+function setLogRating(id,val){
+  _logRatings[id]=val;
+  [1,2,3,4,5].forEach(i=>{
+    const el=document.getElementById(`lsr-${id}-${i}`);
+    if(el)el.style.color=i<=val?'var(--gold)':'var(--parchment-dark)';
+  });
+}
+
+function logSessionSave(id){
+  const rating=_logRatings[id]||0;
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  logProgressAndJournalInline(id,'ls');
+}
+
+function logSessionFinish(id){
+  const rating=_logRatings[id]||0;
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  const doneChk=document.getElementById('ls-done-'+id);
+  if(doneChk)doneChk.checked=true;
+  logProgressAndJournalInline(id,'ls');
+  renderLogSession();
+}
 
 // ══════════════════════════════════════════
 // DISCUSSION
