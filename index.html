@@ -775,7 +775,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div id="discContent"></div>
   <div class="modal-foot">
     <button class="btn btn-secondary" onclick="closeM('discModal')">Close</button>
-    <button class="btn btn-gold" onclick="regenQs()" id="regenBtn">↻ Regenerate</button>
   </div>
 </div>
 </div>
@@ -2099,45 +2098,40 @@ function updateHdrStreak(){const{cur}=computeStreak();document.getElementById('h
 // ══════════════════════════════════════════
 // DISCUSSION
 // ══════════════════════════════════════════
+const JOURNAL_PROMPTS=[
+  'What themes in this book connected to your own life?',
+  'Which character\'s perspective challenged or surprised you most?',
+  'What moment stayed with you after you finished, and why?',
+  'How did this book change the way you see something in the world?',
+  'What would you ask the author if you could sit down with them?',
+  'What passage would you read aloud to someone — and who would you choose?',
+];
+
 function openDisc(bookId){
   const b=books.find(x=>x.id===bookId);if(!b)return;
   curDiscId=bookId;
   document.getElementById('discTitle').textContent=b.title;
   document.getElementById('discAuthor').textContent='by '+b.author;
+  const q=encodeURIComponent(`"${b.title}" ${b.author} discussion questions`);
+  const qt=encodeURIComponent(b.title);
+  const links=[
+    [`https://www.google.com/search?q=${q}`,'🔍 Google'],
+    [`https://www.litcharts.com/search?q=${qt}`,'LitCharts'],
+    [`https://www.sparknotes.com/search/?q=${qt}`,'SparkNotes'],
+    [`https://www.goodreads.com/search?q=${encodeURIComponent(b.title+' '+b.author)}`,'Goodreads'],
+  ].map(([url,label])=>`<a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:.32rem .7rem;background:var(--parchment-dark);border:1px solid #d6ccb8;border-radius:4px;font-size:.74rem;color:var(--ink);text-decoration:none;font-family:'IM Fell English SC',serif;letter-spacing:.04em">${label}</a>`).join('');
+  const prompts=JOURNAL_PROMPTS.map((p,i)=>`<li style="padding:.45rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.8rem;color:var(--ink);display:flex;gap:.5rem"><span style="color:var(--burgundy);font-family:'Playfair Display',serif;font-weight:700;flex-shrink:0">${i+1}.</span><span>${p}</span></li>`).join('');
+  document.getElementById('discContent').innerHTML=`
+    <div class="disc-panel" style="margin-bottom:.75rem">
+      <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.55rem">📖 Find Discussion Questions</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem">${links}</div>
+    </div>
+    <div class="disc-panel">
+      <h4 style="font-family:'Playfair Display',serif;font-size:.84rem;color:var(--burgundy);margin-bottom:.45rem">✦ Journal Prompts</h4>
+      <ul style="list-style:none;padding:0;margin:0">${prompts}</ul>
+      <p style="font-size:.65rem;color:var(--ink-faint);margin-top:.5rem;font-style:italic">Tap 📓 Journal on this book to write your response.</p>
+    </div>`;
   document.getElementById('discModal').style.display='flex';
-  if(cacheQ[bookId]){discQs=cacheQ[bookId];renderDiscQs(b);}else generateQs(b);
-}
-
-async function generateQs(b){
-  const key=localStorage.getItem(SK.api)||'';
-  if(!key){document.getElementById('discContent').innerHTML=`<div class="disc-panel"><p style="color:var(--burgundy);font-size:.82rem;font-style:italic">✦ Add your Anthropic API key in Settings to generate discussion questions.</p></div>`;return;}
-  document.getElementById('discContent').innerHTML=`<div class="disc-panel"><div class="ai-loading"><div class="spinner"></div><span>Crafting questions for <em>${esc(b.title)}</em>…</span></div></div>`;
-  document.getElementById('regenBtn').disabled=true;
-  const prompt=`You are a thoughtful book club facilitator. Generate 7 rich, open-ended discussion questions for "${b.title}" by ${b.author}${b.genre?' ('+b.genre+')':''}.${b.rating?' Reader rated it '+b.rating+'/5.':''}${b.notes?' Reader notes: "'+b.notes+'"':''}
-Questions should span themes, character, craft, and personal resonance. Include one about the author's style. Feel warm and conversational.
-Return ONLY a JSON array of 7 strings with no markdown or preamble.`;
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(`[${res.status}] ${e.error?.message||JSON.stringify(e)}`);}
-    const data=await res.json();
-    const qs=JSON.parse(data.content.map(c=>c.text||'').join('').trim().replace(/```json|```/g,'').trim());
-    discQs=qs;cacheQ[b.id]=qs;save(SK.cacheQ,cacheQ);renderDiscQs(b);renderLibrary();
-  }catch(e){document.getElementById('discContent').innerHTML=`<div class="disc-panel"><p style="color:var(--burgundy);font-size:.82rem">✦ Could not generate: ${esc(e.message)}</p><p style="font-size:.7rem;color:var(--ink-faint);margin-top:.3rem">Key in use: ${(localStorage.getItem(SK.api)||'').slice(0,12)}…</p></div>`;}
-  finally{document.getElementById('regenBtn').disabled=false;}
-}
-
-function regenQs(){const b=books.find(x=>x.id===curDiscId);if(b){delete cacheQ[b.id];save(SK.cacheQ,cacheQ);generateQs(b);}}
-
-function renderDiscQs(b){
-  const fq=favQ[curDiscId]||{};
-  const items=discQs.map((q,i)=>`<li class="q-item"><span class="q-num">${i+1}.</span><span class="q-text">${esc(q)}</span><button class="fav-btn ${fq[i]?'on':''}" onclick="toggleFavQ(${i},'${esc(q).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">★</button></li>`).join('');
-  document.getElementById('discContent').innerHTML=`<div class="disc-panel"><h4>✦ Discussion Questions</h4><ul class="q-list">${items}</ul><p style="font-size:.65rem;color:var(--ink-faint);margin-top:.56rem;font-style:italic">★ Star a question to save it to your Keepsake.</p></div>`;
-}
-
-function toggleFavQ(idx,qText){
-  const id=curDiscId;if(!favQ[id])favQ[id]={};
-  favQ[id][idx]?delete favQ[id][idx]:(favQ[id][idx]=qText);
-  save(SK.favQ,favQ);const b=books.find(x=>x.id===id);if(b)renderDiscQs(b);
 }
 
 // ══════════════════════════════════════════
