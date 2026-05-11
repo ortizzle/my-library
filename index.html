@@ -1564,8 +1564,10 @@ function logProgressAndJournalInline(id, prefix='rp'){
   // "Just mark today" — log a no-count entry
   const noCount=document.getElementById(p+'nocount-'+id);
   if(noCount&&noCount.checked){
+    const noteEl=document.getElementById(p+'note-'+id);
+    const ncNote=noteEl&&noteEl.value?noteEl.value:'Read today';
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:sessionDate,type:'nocount',cur:0,total:0,note:'Read today'});
+    progressDB[id].push({date:sessionDate,type:'nocount',cur:0,total:0,note:ncNote});
     save(SK.prog,progressDB);
     saved=true;
   }
@@ -2229,6 +2231,7 @@ function buildLogCard(b){
         </div>
       </div>
       <textarea id="ls-journal-${b.id}" placeholder="Quick note about today's session…" rows="2" style="${iStyle};resize:none;margin-bottom:.6rem;line-height:1.5"></textarea>
+      <button onclick="logQuick('${b.id}','Listened today')" style="width:100%;margin-bottom:.5rem;padding:.42rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.8rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no page count</button>
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
         <div style="display:flex;gap:.1rem">${stars}</div>
         <div style="display:flex;gap:.4rem">
@@ -2238,6 +2241,7 @@ function buildLogCard(b){
       </div>
     </div>
     <input type="hidden" id="ls-date-${b.id}" value="${today}">
+    <input type="hidden" id="ls-note-${b.id}" value="">
     <input type="checkbox" id="ls-done-${b.id}" style="display:none">
     <input type="checkbox" id="ls-nocount-${b.id}" style="display:none">
   </div>`;
@@ -2264,6 +2268,16 @@ function logSessionFinish(id){
   if(doneChk)doneChk.checked=true;
   logProgressAndJournalInline(id,'ls');
   renderLogSession();
+}
+
+function logQuick(id, note){
+  const nc=document.getElementById('ls-nocount-'+id);
+  if(nc)nc.checked=true;
+  const ni=document.getElementById('ls-note-'+id);
+  if(ni)ni.value=note;
+  const rating=_logRatings[id]||0;
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  logProgressAndJournalInline(id,'ls');
 }
 
 // ══════════════════════════════════════════
