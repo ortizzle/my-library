@@ -939,6 +939,9 @@ function renderLibrary(){
     b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||(b.genre||'').toLowerCase().includes(q)||(b.publication||'').toLowerCase().includes(q)
   );
   list.sort((a,b)=>{
+    const aR=a.status==='reading'?0:1;
+    const bR=b.status==='reading'?0:1;
+    if(aR!==bR)return aR-bR;
     if(a.date&&b.date) return a.date<b.date?1:-1;
     if(a.date) return -1;
     if(b.date) return 1;
@@ -1025,11 +1028,12 @@ function bookCard(b){
   const loanLine=al?`<div class="loan-line">📤 With ${esc(al.to)}${al.date?' · '+fmtDate(al.date):''}</div>`:'';
   const showProg=b.status==='reading'&&b.itemType!=='article';
   const hasJournal=(journalDB[b.id]||[]).length>0;
+  const todayDot=b.status==='reading'&&loggedToday(b.id)?`<span title="Logged today" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4caf78;margin-left:.35rem;vertical-align:middle;flex-shrink:0"></span>`:'';
   return `<div class="book-card-wrap">
     <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openEditModal('${b.id}')">
       ${coverHtml}
       <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
-      <div class="book-title">${esc(b.title)}</div>
+      <div class="book-title" style="display:flex;align-items:baseline;gap:0">${esc(b.title)}${todayDot}</div>
       <div class="book-author">${esc(b.author)}${b.publication?` <span style="color:var(--ink-faint)">· ${esc(b.publication)}</span>`:''}</div>
       ${b.genre?`<div><span class="book-genre">${esc(b.genre)}</span></div>`:''}
       ${b.itemType!=='article'?`<div class="star-ro">${stars}</div>`:''}
@@ -1471,8 +1475,10 @@ function buildProgressPanel(b, prefix='rp'){
       </div>
       <div id="${p}audio-pct-${b.id}" style="font-size:.75rem;color:var(--amber);font-family:'Playfair Display',serif;font-weight:600;align-self:center;white-space:nowrap;min-width:36px"></div>
     </div>
+    <button onclick="document.getElementById('${p}nocount-${b.id}').checked=true;document.getElementById('${p}note-${b.id}').value='Listened today';logProgressAndJournalInline('${b.id}','${prefix}')" style="width:100%;margin-bottom:.5rem;padding:.38rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no page count</button>
+    <input type="hidden" id="${p}note-${b.id}" value="">
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
-      <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Just mark that I read today (no page count)
+      <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Mark as read today (no page count)
     </label>
 
     <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem">
@@ -2210,7 +2216,9 @@ function buildLogCard(b){
   const iStyle='width:100%;padding:.38rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.85rem;background:var(--parchment);outline:none;box-sizing:border-box';
   const stars=[1,2,3,4,5].map(i=>`<span id="lsr-${b.id}-${i}" onclick="setLogRating('${b.id}',${i})" style="font-size:1.3rem;cursor:pointer;color:${i<=(_logRatings[b.id]||0)?'var(--gold)':'var(--parchment-dark)'}">★</span>`).join('');
 
+  const doneToday=loggedToday(b.id);
   return `<div class="list-card" style="margin-bottom:1rem" id="logcard-${b.id}">
+    ${doneToday?`<div style="background:#e8f5ed;border-bottom:1px solid #c8e6d4;padding:.28rem 1rem;font-size:.72rem;color:#2e7d4f;font-family:'IM Fell English SC',serif;letter-spacing:.05em;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;gap:.35rem">✓ Logged today</div>`:''}
     <div style="padding:.85rem 1rem .7rem;display:flex;gap:.8rem;align-items:flex-start">
       ${coverHtml}
       <div style="flex:1;min-width:0">
@@ -2255,10 +2263,16 @@ function setLogRating(id,val){
   });
 }
 
+function loggedToday(id){
+  const today=new Date().toISOString().split('T')[0];
+  return (progressDB[id]||[]).some(e=>e.date===today);
+}
+
 function logSessionSave(id){
   const rating=_logRatings[id]||0;
   if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
   logProgressAndJournalInline(id,'ls');
+  renderLogSession();
 }
 
 function logSessionFinish(id){
@@ -2278,6 +2292,7 @@ function logQuick(id, note){
   const rating=_logRatings[id]||0;
   if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
   logProgressAndJournalInline(id,'ls');
+  renderLogSession();
 }
 
 // ══════════════════════════════════════════
