@@ -1565,37 +1565,46 @@ function logProgressAndJournalInline(id, prefix='rp'){
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
   const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
 
-  // "Just mark today" — log a no-count entry
+  // "Just mark today" — log a no-count entry (once per day)
   const noCount=document.getElementById(p+'nocount-'+id);
   if(noCount&&noCount.checked){
     const noteEl=document.getElementById(p+'note-'+id);
     const ncNote=noteEl&&noteEl.value?noteEl.value:'Read today';
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:sessionDate,type:'nocount',cur:0,total:0,note:ncNote});
-    save(SK.prog,progressDB);
-    saved=true;
+    const alreadyNocount=progressDB[id].some(e=>e.date===sessionDate&&e.type==='nocount');
+    if(!alreadyNocount){
+      progressDB[id].push({date:sessionDate,type:'nocount',cur:0,total:0,note:ncNote});
+      save(SK.prog,progressDB);
+      saved=true;
+    } else { saved=true; }
   }
 
-  // Pages progress — use sticky total if field is readonly/blank
+  // Pages progress — skip if same cur already logged today
   const page=+document.getElementById(p+'page-'+id).value||0;
   const totalRaw=+document.getElementById(p+'total-'+id).value||0;
   const total=totalRaw||stickyPageTotal;
   if(page){
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:sessionDate,type:'pages',cur:page,total,note:''});
-    save(SK.prog,progressDB);
+    const lastSameDay=progressDB[id].slice().reverse().find(e=>e.date===sessionDate&&e.type==='pages');
+    if(!lastSameDay||lastSameDay.cur!==page||lastSameDay.total!==total){
+      progressDB[id].push({date:sessionDate,type:'pages',cur:page,total,note:''});
+      save(SK.prog,progressDB);
+    }
     saved=true;
   }
 
-  // Audio progress — h+m fields, independent of pages
+  // Audio progress — skip if same cur already logged today
   const aCurrentMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
   const aTotalRaw=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
   const atotal=aTotalRaw||stickyAudioTotal;
   const amin=aCurrentMins;
   if(amin||aCurrentMins){
     if(!progressDB[id])progressDB[id]=[];
-    progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
-    save(SK.prog,progressDB);
+    const lastAudioSameDay=progressDB[id].slice().reverse().find(e=>e.date===sessionDate&&e.type==='audio');
+    if(!lastAudioSameDay||lastAudioSameDay.cur!==amin||lastAudioSameDay.total!==atotal){
+      progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
+      save(SK.prog,progressDB);
+    }
     saved=true;
   }
 
