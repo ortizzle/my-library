@@ -2241,13 +2241,9 @@ function buildLogCard(b){
       </div>
       <textarea id="ls-journal-${b.id}" placeholder="Quick note about today's session…" rows="2" style="${iStyle};resize:none;margin-bottom:.6rem;line-height:1.5"></textarea>
       <button onclick="logQuick('${b.id}','Listened today')" style="width:100%;margin-bottom:.5rem;padding:.42rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.8rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no page count</button>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
-        <div style="display:flex;gap:.1rem">${stars}</div>
-        <div style="display:flex;gap:.4rem">
-          <button class="btn btn-secondary btn-sm" onclick="logSessionSave('${b.id}')">Save</button>
-          <button class="btn btn-sage" onclick="logSessionFinish('${b.id}')" style="font-size:.78rem;padding:.35rem .9rem;font-weight:600">✓ Finished Today</button>
-        </div>
-      </div>
+      <div style="display:flex;justify-content:center;gap:.15rem;margin-bottom:.6rem">${stars}</div>
+      <button onclick="logSessionSave('${b.id}')" style="width:100%;padding:.72rem;background:var(--burgundy);color:var(--parchment);border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.97rem;font-weight:600;cursor:pointer;letter-spacing:.03em;margin-bottom:.45rem">Save Session</button>
+      <button onclick="logSessionFinish('${b.id}',this)" style="width:100%;padding:.4rem;border:1px solid var(--sage);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);cursor:pointer">🏁 I finished this book today</button>
     </div>
     <input type="hidden" id="ls-date-${b.id}" value="${today}">
     <input type="hidden" id="ls-note-${b.id}" value="">
@@ -2276,13 +2272,35 @@ function logSessionSave(id){
   renderLogSession();
 }
 
-function logSessionFinish(id){
+function confettiBurst(originEl){
+  const rect=originEl?originEl.getBoundingClientRect():{left:window.innerWidth/2,top:window.innerHeight/2,width:0,height:0};
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+  const emojis=['📚','🎉','⭐','✨','🏆','🎊','📖','🌟','🎈','💫','🥳'];
+  for(let i=0;i<22;i++){
+    const el=document.createElement('span');
+    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.cssText=`position:fixed;left:${cx}px;top:${cy}px;font-size:${1+Math.random()*.9}rem;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);`;
+    document.body.appendChild(el);
+    const angle=(i/22)*Math.PI*2+Math.random()*.4;
+    const dist=80+Math.random()*110;
+    const tx=Math.cos(angle)*dist, ty=Math.sin(angle)*dist-50;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      el.style.transition='transform 1s cubic-bezier(.2,.8,.3,1),opacity .7s ease .25s';
+      el.style.transform=`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) rotate(${Math.random()*360}deg)`;
+      el.style.opacity='0';
+    }));
+    setTimeout(()=>el.remove(),1300);
+  }
+}
+
+function logSessionFinish(id, el){
   const rating=_logRatings[id]||0;
   if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
   const doneChk=document.getElementById('ls-done-'+id);
   if(doneChk)doneChk.checked=true;
+  confettiBurst(el);
   logProgressAndJournalInline(id,'ls');
-  renderLogSession();
+  setTimeout(()=>renderLogSession(),950);
 }
 
 function logQuick(id, note){
