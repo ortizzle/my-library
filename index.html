@@ -1407,24 +1407,15 @@ function deleteBook(id){
 }
 
 // Shared panel HTML used by both Library cards and Lists
-function toggleRemainingMode(id, prefix){
-  const p=prefix+'-';
-  const isRemaining=document.getElementById(p+'remaining-'+id)?.checked;
-  const lbl=document.getElementById(p+'apos-label-'+id);
-  if(lbl) lbl.textContent=isRemaining?'Time remaining':'Current position';
-  syncAudioPct(id,prefix);
-}
 
 function syncAudioPct(id, prefix){
   const p=prefix+'-';
-  const isRemaining=document.getElementById(p+'remaining-'+id)?.checked||false;
   const curMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
   const totalMins=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
   const el=document.getElementById(p+'audio-pct-'+id);
   if(!el)return;
   if(!totalMins){el.textContent='';return;}
-  const posMins=isRemaining?Math.max(0,totalMins-curMins):curMins;
-  const pct=Math.min(100,Math.round((posMins/totalMins)*100));
+  const pct=Math.min(100,Math.round((curMins/totalMins)*100));
   el.textContent=pct+'%';
 }
 
@@ -1459,14 +1450,11 @@ function buildProgressPanel(b, prefix='rp'){
     </div>
 
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.25rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
-      <div style="flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem">
-        <span style="font-size:.67rem;color:var(--ink-faint)">🎧 AUDIOBOOK</span>
-        <label style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.7rem;color:var(--ink-light);user-select:none">
-          <input type="checkbox" id="${p}remaining-${b.id}" onchange="toggleRemainingMode('${b.id}','${prefix}')" style="cursor:pointer;accent-color:var(--teal)"> Enter time remaining instead
-        </label>
+      <div style="flex:0 0 100%;margin-bottom:.25rem">
+        <span style="font-size:.67rem;color:var(--ink-faint)">🎧 AUDIOBOOK — time listened so far</span>
       </div>
       <div style="flex:1;min-width:100px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem" id="${p}apos-label-${b.id}">Current position</label>
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Current position</label>
         <div style="display:flex;gap:.3rem">
           <input type="number" id="${p}ah-${b.id}" value="${lastAudio?Math.floor(lastAudio.cur/60):''}" placeholder="0" min="0" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
           <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">h</span>
@@ -1600,12 +1588,10 @@ function logProgressAndJournalInline(id, prefix='rp'){
   }
 
   // Audio progress — h+m fields, independent of pages
-  const remainingMode=document.getElementById(p+'remaining-'+id)?.checked||false;
   const aCurrentMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
   const aTotalRaw=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
   const atotal=aTotalRaw||stickyAudioTotal;
-  // If remaining mode: cur = total - remaining
-  const amin=remainingMode&&atotal?Math.max(0,atotal-aCurrentMins):aCurrentMins;
+  const amin=aCurrentMins;
   if(amin||aCurrentMins){
     if(!progressDB[id])progressDB[id]=[];
     progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
