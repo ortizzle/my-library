@@ -1803,7 +1803,7 @@ function renderProgHistoryEdit(bookId, showAll=false){
   const best=bestProgress(bookId);
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
   const summaryLabel=bestPct!==null
-    ? `${entries.length} session${entries.length!==1?'s':''} · best ${bestPct}%`
+    ? `${entries.length} session${entries.length!==1?'s':''} · latest ${bestPct}%`
     : `${entries.length} session${entries.length!==1?'s':''}`;
 
   const rows=visible.map((e,ri)=>{
@@ -1842,6 +1842,7 @@ function editProgEntry(bookId,idx,field,val){
   if(!progressDB[bookId]||!progressDB[bookId][idx])return;
   progressDB[bookId][idx][field]=val;
   save(SK.prog,progressDB);
+  renderLibrary();renderLogSession();
 }
 
 function delProgEntryEdit(bookId,idx){
@@ -1849,7 +1850,7 @@ function delProgEntryEdit(bookId,idx){
   progressDB[bookId].splice(idx,1);
   save(SK.prog,progressDB);
   renderProgHistoryEdit(bookId);
-  renderLibrary();
+  renderLibrary();renderLogSession();
 }
 
 // ══════════════════════════════════════════
