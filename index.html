@@ -994,13 +994,13 @@ function fmtBadges(b){
 }
 
 function bestProgress(id){
-  // Returns the entry with the highest percentage across all logged entries
+  // Returns the most recent entry with a total; ties broken by highest cur
   const prog=progressDB[id]||[];
-  let best=null, bestPct=-1;
+  let best=null;
   for(const e of prog){
     if(!e.total) continue;
-    const pct=Math.min(100,(e.cur/e.total)*100);
-    if(pct>bestPct){bestPct=pct;best=e;}
+    if(!best){best=e;continue;}
+    if(e.date>best.date||(e.date===best.date&&e.cur>best.cur)) best=e;
   }
   return best;
 }
@@ -2241,7 +2241,7 @@ function buildLogCard(b){
 
   const doneToday=loggedToday(b.id);
   return `<div class="list-card" style="margin-bottom:1.1rem;box-shadow:0 6px 22px var(--shadow-deep),0 1px 4px var(--shadow)" id="logcard-${b.id}">
-    ${doneToday?`<div style="background:#e8f5ed;border-bottom:1px solid #c8e6d4;padding:.28rem 1rem;font-size:.72rem;color:#2e7d4f;font-family:'IM Fell English SC',serif;letter-spacing:.05em;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;gap:.35rem">✓ Read today</div>`:''}
+    ${doneToday?`<div style="background:#b6e8c8;border-bottom:1px solid #7ecfa0;padding:.28rem 1rem;font-size:.72rem;color:#145c30;font-family:'IM Fell English SC',serif;letter-spacing:.05em;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;gap:.35rem">✓ Read today</div>`:''}
     <div style="padding:.85rem 1rem .7rem;display:flex;gap:.8rem;align-items:center;cursor:pointer" onclick="toggleLogCard('${b.id}')">
       ${coverHtml}
       <div style="flex:1;min-width:0">
