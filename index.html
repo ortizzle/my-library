@@ -163,6 +163,10 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .stat-sub{font-size:.65rem;color:var(--ink-faint);margin-top:.1rem;font-style:italic}
 
 .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1.2rem}
+.genre-pill{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:6px;padding:.5rem .75rem;cursor:pointer;transition:border-color .15s,background .15s;font-family:'Lora',serif}
+.genre-pill:hover{border-color:var(--burgundy);background:var(--cream)}
+.genre-pill-name{font-size:.85rem;color:var(--ink);font-style:italic}
+.genre-pill-count{font-family:'Playfair Display',serif;font-size:.88rem;font-weight:700;color:var(--burgundy);background:var(--parchment-dark);border-radius:20px;padding:.08rem .5rem;flex-shrink:0}
 .chart-card{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:1.1rem 1.2rem;box-shadow:0 2px 8px var(--shadow)}
 .chart-title{font-family:'Playfair Display',serif;font-size:.9rem;font-style:italic;color:var(--burgundy);margin-bottom:.85rem}
 .chart-wrap{position:relative;width:100%}
@@ -480,6 +484,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div class="cal-grid" id="calGrid"></div>
   </div>
   <div class="chart-card" style="margin-top:1rem" id="paceSection"></div>
+  <div id="genreSection" style="margin-top:1rem"></div>
 </div>
 
 <!-- KEEPSAKE -->
@@ -906,6 +911,12 @@ function showView(n){
 // ══════════════════════════════════════════
 // FILTERS
 // ══════════════════════════════════════════
+function browseGenre(genre){
+  document.getElementById('searchInput').value=genre;
+  showView('library');
+  renderLibrary();
+}
+
 function setFilter(el){
   const g=el.dataset.g,v=el.dataset.v;
   const groupChips=()=>document.querySelectorAll(`.chip[data-g="${g}"]`);
@@ -2074,6 +2085,18 @@ function renderStats(){
     [totalPages?totalPages.toLocaleString():'—','Total Pages Read','across logged sessions'],
     [totalMins?Math.round(totalMins/60)+'h':'—','Audio Hours','approx'],
   ].map(([n,l,s])=>`<div class="stat-card"><div class="stat-n">${n}</div><div class="stat-l">${l}</div>${s?`<div class="stat-sub">${s}</div>`:''}</div>`).join('');
+
+  // Genre breakdown
+  const genreCounts={};
+  bookOnly.forEach(b=>{if(b.genre)genreCounts[b.genre]=(genreCounts[b.genre]||0)+1;});
+  const genreEntries=Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('genreSection').innerHTML=genreEntries.length?`
+    <div class="chart-card">
+      <div class="chart-title">📚 By Genre <span style="font-size:.72rem;color:var(--ink-faint);font-style:normal;font-family:'Lora',serif">— tap to browse</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.5rem">
+        ${genreEntries.map(([g,n])=>`<div class="genre-pill" onclick="browseGenre('${esc(g)}')"><span class="genre-pill-name">${esc(g)}</span><span class="genre-pill-count">${n}</span></div>`).join('')}
+      </div>
+    </div>`:'';
 
   // Charts
   renderCharts(dailyMap,readBks,rated);
