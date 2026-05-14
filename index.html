@@ -2241,8 +2241,8 @@ function buildLogCard(b){
   const stars=[1,2,3,4,5].map(i=>`<span id="lsr-${b.id}-${i}" onclick="setLogRating('${b.id}',${i})" style="font-size:1.3rem;cursor:pointer;color:${i<=(_logRatings[b.id]||0)?'var(--gold)':'var(--parchment-dark)'}">★</span>`).join('');
 
   const doneToday=loggedToday(b.id);
-  return `<div class="list-card" style="margin-bottom:1rem" id="logcard-${b.id}">
-    ${doneToday?`<div style="background:#e8f5ed;border-bottom:1px solid #c8e6d4;padding:.28rem 1rem;font-size:.72rem;color:#2e7d4f;font-family:'IM Fell English SC',serif;letter-spacing:.05em;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;gap:.35rem">✓ Logged today</div>`:''}
+  return `<div class="list-card" style="margin-bottom:1.1rem;box-shadow:0 6px 22px var(--shadow-deep),0 1px 4px var(--shadow)" id="logcard-${b.id}">
+    ${doneToday?`<div style="background:#e8f5ed;border-bottom:1px solid #c8e6d4;padding:.28rem 1rem;font-size:.72rem;color:#2e7d4f;font-family:'IM Fell English SC',serif;letter-spacing:.05em;border-radius:var(--r) var(--r) 0 0;display:flex;align-items:center;gap:.35rem">✓ Read today</div>`:''}
     <div style="padding:.85rem 1rem .7rem;display:flex;gap:.8rem;align-items:center;cursor:pointer" onclick="toggleLogCard('${b.id}')">
       ${coverHtml}
       <div style="flex:1;min-width:0">
@@ -2253,7 +2253,7 @@ function buildLogCard(b){
       <span id="logchev-${b.id}" style="font-size:.8rem;color:var(--ink-faint);flex-shrink:0;margin-left:.25rem">▾</span>
     </div>
     <div style="padding:0 1rem .85rem" onclick="event.stopPropagation()">
-      <button onclick="logQuick('${b.id}','Listened today')" style="width:100%;padding:.62rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.02em">🎧 Listened Today</button>
+      <button onclick="logQuick('${b.id}','Listened today')" style="width:100%;padding:.62rem;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;cursor:pointer;letter-spacing:.02em;box-shadow:0 2px 8px rgba(0,0,0,.18)">🎧 Listened Today</button>
     </div>
     <div id="logexpand-${b.id}" style="display:none;border-top:1px dotted var(--parchment-dark);padding:.75rem 1rem .9rem" onclick="event.stopPropagation()">
       <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
@@ -2266,10 +2266,12 @@ function buildLogCard(b){
           <input type="number" id="ls-total-${b.id}" value="${stickyTotal||''}" placeholder="e.g. 320" min="1" style="${iStyle}">
         </div>
       </div>
-      <textarea id="ls-journal-${b.id}" placeholder="Quick note about today's session…" rows="2" style="${iStyle};resize:none;margin-bottom:.6rem;line-height:1.5"></textarea>
-      <div style="display:flex;justify-content:center;gap:.15rem;margin-bottom:.6rem">${stars}</div>
-      <button onclick="logSessionSave('${b.id}')" style="width:100%;padding:.68rem;background:var(--burgundy);color:var(--parchment);border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.03em;margin-bottom:.4rem">Save Session</button>
-      <button onclick="logSessionFinish('${b.id}',this)" style="width:100%;padding:.4rem;border:1px solid var(--sage);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.8rem;color:var(--sage);cursor:pointer">🏁 I finished this book today</button>
+      <textarea id="ls-journal-${b.id}" placeholder="What are you thinking about this book…" rows="4" style="${iStyle};resize:none;margin-bottom:.7rem;line-height:1.6;min-height:80px"></textarea>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem">
+        <div style="display:flex;gap:.12rem">${stars}</div>
+        <button onclick="logSessionFinish('${b.id}',this)" style="padding:.35rem .8rem;border:1px solid var(--sage);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--sage);cursor:pointer;white-space:nowrap">🏁 Finished this book</button>
+      </div>
+      <button onclick="logSessionSave('${b.id}')" style="width:100%;padding:.68rem;background:var(--burgundy);color:var(--parchment);border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.03em">Save Session</button>
     </div>
     <input type="hidden" id="ls-date-${b.id}" value="${today}">
     <input type="hidden" id="ls-note-${b.id}" value="">
