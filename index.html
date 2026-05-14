@@ -2729,32 +2729,38 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 // ── Reading Session ──────────────────────────────────────────────
-let _sessBookId=null,_sessTimer=null,_sessSeconds=0,_sessRunning=false,_sessWakeLock=null;
+let _sessBookId=null,_sessTimer=null,_sessSeconds=0,_sessRunning=false,_sessWakeLock=null,_sessDuration=0;
 
 function openReadingSession(bookId){
   const b=books.find(x=>x.id===bookId);
   if(!b)return;
-  _sessBookId=bookId;
-  _sessSeconds=0;
-  _sessRunning=false;
+  _sessBookId=bookId;_sessSeconds=0;_sessDuration=0;_sessRunning=false;
   clearInterval(_sessTimer);
   const prog=progressDB[bookId]||[];
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages');
   const coverUrl=coversDB[bookId];
+  // Blurred book cover background
+  const bg=document.getElementById('sess-bg');
+  if(coverUrl){bg.style.backgroundImage=`url(${coverUrl})`;bg.style.opacity='0.28';}
+  else{bg.style.backgroundImage='none';bg.style.opacity='0';}
   document.getElementById('sess-cover').innerHTML=coverUrl
-    ?`<img src="${esc(coverUrl)}" style="width:48px;height:68px;border-radius:3px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.4)" alt="">`
-    :`<div style="width:48px;height:68px;border-radius:3px;background:#2a1a0e;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">📗</div>`;
+    ?`<img src="${esc(coverUrl)}" style="width:48px;height:68px;border-radius:4px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 12px rgba(0,0,0,.5)" alt="">`
+    :`<div style="width:48px;height:68px;border-radius:4px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0">📗</div>`;
   document.getElementById('sess-title').textContent=b.title;
   document.getElementById('sess-author').textContent=b.author;
   document.getElementById('sess-timer').textContent='0:00';
+  document.getElementById('sess-timer').style.color='#f4edd8';
   const btn=document.getElementById('sess-start-btn');
-  btn.textContent='▶  Start';btn.style.opacity='1';
+  btn.textContent='▶  Start';
   document.getElementById('sess-start-page').value=lastPage?lastPage.cur:'';
   document.getElementById('sess-end-page').value='';
   document.getElementById('sess-journal').value='';
   document.getElementById('sess-dnd-note').style.display='none';
-  const modal=document.getElementById('sessionModal');
-  modal.style.display='flex';
+  // Reset preset pills
+  document.querySelectorAll('.sess-preset').forEach(el=>{el.style.background='rgba(255,255,255,.07)';el.style.color='#a08868';});
+  document.querySelector('.sess-preset[data-mins="0"]').style.background='rgba(200,168,75,.25)';
+  document.querySelector('.sess-preset[data-mins="0"]').style.color='#e8c872';
+  document.getElementById('sessionModal').style.display='flex';
   document.body.style.overflow='hidden';
 }
 
@@ -2763,6 +2769,21 @@ function closeReadingSession(){
   if(_sessWakeLock){_sessWakeLock.release().catch(()=>{});_sessWakeLock=null;}
   document.getElementById('sessionModal').style.display='none';
   document.body.style.overflow='';
+}
+
+function setSessionPreset(mins){
+  _sessDuration=mins*60;
+  document.querySelectorAll('.sess-preset').forEach(el=>{el.style.background='rgba(255,255,255,.07)';el.style.color='#a08868';});
+  const active=document.querySelector(`.sess-preset[data-mins="${mins}"]`);
+  if(active){active.style.background='rgba(200,168,75,.25)';active.style.color='#e8c872';}
+  if(!_sessRunning){_sessSeconds=0;_updateSessDisplay();}
+}
+
+function _updateSessDisplay(){
+  const show=_sessDuration>0?Math.max(0,_sessDuration-_sessSeconds):_sessSeconds;
+  const h=Math.floor(show/3600),m=Math.floor((show%3600)/60),s=show%60;
+  document.getElementById('sess-timer').textContent=
+    h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`:`${m}:${String(s).padStart(2,'0')}`;
 }
 
 function toggleSessionTimer(){
@@ -2776,30 +2797,32 @@ function toggleSessionTimer(){
     document.getElementById('sess-dnd-note').style.display='block';
     _sessTimer=setInterval(()=>{
       _sessSeconds++;
-      const h=Math.floor(_sessSeconds/3600);
-      const m=Math.floor((_sessSeconds%3600)/60);
-      const s=_sessSeconds%60;
-      document.getElementById('sess-timer').textContent=
-        h>0?`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-           :`${m}:${String(s).padStart(2,'0')}`;
+      if(_sessDuration>0&&_sessSeconds>=_sessDuration){
+        clearInterval(_sessTimer);_sessRunning=false;
+        document.getElementById('sess-timer').textContent='0:00';
+        document.getElementById('sess-timer').style.color='#e8c872';
+        document.getElementById('sess-start-btn').textContent='▶  Start';
+        if(_sessWakeLock){_sessWakeLock.release().catch(()=>{});_sessWakeLock=null;}
+        if(navigator.vibrate)navigator.vibrate([500,150,500,150,500]);
+        toast("Time's up! Great session 📚",'ok');
+        document.getElementById('sess-end-page').focus();
+        return;
+      }
+      _updateSessDisplay();
     },1000);
-    if('wakeLock' in navigator){
-      navigator.wakeLock.request('screen').then(l=>{_sessWakeLock=l;}).catch(()=>{});
-    }
+    if('wakeLock' in navigator)navigator.wakeLock.request('screen').then(l=>{_sessWakeLock=l;}).catch(()=>{});
   }
 }
 
 function endReadingSession(){
   clearInterval(_sessTimer);_sessRunning=false;
-  const btn=document.getElementById('sess-start-btn');
-  btn.textContent='▶  Resume';
+  document.getElementById('sess-start-btn').textContent='▶  Resume';
   if(_sessWakeLock){_sessWakeLock.release().catch(()=>{});_sessWakeLock=null;}
   document.getElementById('sess-end-page').focus();
 }
 
 function saveReadingSession(){
-  const id=_sessBookId;
-  if(!id)return;
+  const id=_sessBookId;if(!id)return;
   const endPage=+document.getElementById('sess-end-page').value||0;
   const startPage=+document.getElementById('sess-start-page').value||0;
   const journal=document.getElementById('sess-journal').value.trim();
@@ -2812,11 +2835,11 @@ function saveReadingSession(){
   if(pageToLog){
     const lastSameDay=prog.slice().reverse().find(e=>e.date===today&&e.type==='pages');
     if(!lastSameDay||lastSameDay.cur!==pageToLog)
-      progressDB[id].push({date:today,type:'pages',cur:pageToLog,total:stickyTotal,note:''});
+      prog.push({date:today,type:'pages',cur:pageToLog,total:stickyTotal,note:''});
   }
-  const h=Math.floor(_sessSeconds/3600);
-  const m=Math.floor((_sessSeconds%3600)/60);
-  const durStr=_sessSeconds>0?(h>0?`${h}h ${m}m`:`${m}m`):null;
+  const elapsed=_sessDuration>0?Math.min(_sessSeconds,_sessDuration):_sessSeconds;
+  const h=Math.floor(elapsed/3600),m=Math.floor((elapsed%3600)/60);
+  const durStr=elapsed>0?(h>0?`${h}h ${m}m`:`${m}m`):null;
   const pagesStr=(endPage&&startPage&&endPage>startPage)?`pp. ${startPage}–${endPage}`:(pageToLog?`p. ${pageToLog}`:null);
   const stamp=[durStr,pagesStr].filter(Boolean).join(' · ');
   const fullNote=(stamp?`[${stamp}] `:'')+journal;
@@ -2825,8 +2848,8 @@ function saveReadingSession(){
     journalDB[id].push({date:today,time:now,text:fullNote.trim()});
     save(SK.journal,journalDB);
   }
-  const alreadyLogged=prog.some(e=>e.date===today&&e.type==='nocount');
-  if(!alreadyLogged)progressDB[id].push({date:today,type:'nocount',cur:0,total:0,note:'Reading session'});
+  if(!prog.some(e=>e.date===today&&e.type==='nocount'))
+    prog.push({date:today,type:'nocount',cur:0,total:0,note:'Reading session'});
   save(SK.prog,progressDB);
   closeReadingSession();
   renderLibrary();renderLogSession();updateHdrStreak();
@@ -2835,46 +2858,62 @@ function saveReadingSession(){
 </script>
 
 <!-- Reading Session Modal -->
-<div id="sessionModal" style="display:none;position:fixed;inset:0;z-index:8000;background:#100800;flex-direction:column;overflow-y:auto">
-  <div style="max-width:480px;margin:0 auto;padding:1.5rem 1.25rem;min-height:100vh;display:flex;flex-direction:column;box-sizing:border-box">
+<div id="sessionModal" style="display:none;position:fixed;inset:0;z-index:8000;overflow:hidden;flex-direction:column">
+  <!-- Blurred book cover background -->
+  <div id="sess-bg" style="position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(22px);opacity:0;transition:opacity .4s"></div>
+  <!-- Dark overlay — slightly translucent so cover shows through -->
+  <div style="position:absolute;inset:0;background:rgba(14,7,1,0.78)"></div>
+  <!-- Scrollable content layer -->
+  <div style="position:relative;z-index:1;height:100%;overflow-y:auto;">
+  <div style="max-width:480px;margin:0 auto;padding:1.5rem 1.25rem 2rem;min-height:100%;display:flex;flex-direction:column;box-sizing:border-box">
 
     <!-- Header -->
-    <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:2rem">
+    <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:1.75rem">
       <div id="sess-cover"></div>
       <div style="flex:1;min-width:0">
-        <div id="sess-title" style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:#f4edd8;line-height:1.3;margin-bottom:.15rem"></div>
-        <div id="sess-author" style="font-size:.76rem;color:#7a5c3a;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <div id="sess-title" style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:#f4edd8;line-height:1.3;margin-bottom:.18rem"></div>
+        <div id="sess-author" style="font-size:.76rem;color:#a08868;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
       </div>
-      <button onclick="closeReadingSession()" style="background:none;border:none;color:#5a3e28;font-size:1.4rem;cursor:pointer;padding:.25rem;flex-shrink:0;line-height:1">✕</button>
+      <button onclick="closeReadingSession()" style="background:none;border:none;color:#6a4e32;font-size:1.4rem;cursor:pointer;padding:.25rem;flex-shrink:0;line-height:1">✕</button>
+    </div>
+
+    <!-- Preset duration pills -->
+    <div style="display:flex;gap:.45rem;justify-content:center;margin-bottom:1.5rem;flex-wrap:wrap">
+      <button class="sess-preset" data-mins="0" onclick="setSessionPreset(0)" style="padding:.32rem .75rem;border:1px solid rgba(200,168,75,.3);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(200,168,75,.25);color:#e8c872;transition:all .15s">Free</button>
+      <button class="sess-preset" data-mins="15" onclick="setSessionPreset(15)" style="padding:.32rem .75rem;border:1px solid rgba(255,255,255,.1);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(255,255,255,.07);color:#a08868;transition:all .15s">15 min</button>
+      <button class="sess-preset" data-mins="20" onclick="setSessionPreset(20)" style="padding:.32rem .75rem;border:1px solid rgba(255,255,255,.1);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(255,255,255,.07);color:#a08868;transition:all .15s">20 min</button>
+      <button class="sess-preset" data-mins="30" onclick="setSessionPreset(30)" style="padding:.32rem .75rem;border:1px solid rgba(255,255,255,.1);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(255,255,255,.07);color:#a08868;transition:all .15s">30 min</button>
+      <button class="sess-preset" data-mins="45" onclick="setSessionPreset(45)" style="padding:.32rem .75rem;border:1px solid rgba(255,255,255,.1);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(255,255,255,.07);color:#a08868;transition:all .15s">45 min</button>
+      <button class="sess-preset" data-mins="60" onclick="setSessionPreset(60)" style="padding:.32rem .75rem;border:1px solid rgba(255,255,255,.1);border-radius:20px;font-family:'Lora',serif;font-size:.75rem;cursor:pointer;background:rgba(255,255,255,.07);color:#a08868;transition:all .15s">60 min</button>
     </div>
 
     <!-- Timer -->
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 0 2rem">
-      <div id="sess-timer" style="font-family:'Playfair Display',serif;font-size:min(18vw,5.5rem);font-weight:700;color:#f4edd8;letter-spacing:.04em;margin-bottom:.5rem;line-height:1">0:00</div>
-      <div id="sess-dnd-note" style="display:none;font-size:.68rem;color:#5a3e28;font-style:italic;margin-bottom:1.5rem;text-align:center">Tip: enable Do Not Disturb for a focused session</div>
-      <div style="display:none" id="sess-dnd-spacer"></div>
-      <div style="display:flex;gap:.75rem;margin-top:1.25rem">
-        <button id="sess-start-btn" onclick="toggleSessionTimer()" style="padding:.75rem 2.25rem;background:linear-gradient(135deg,#c8a84b,#e8c872);color:#190d05;border:none;border-radius:8px;font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;cursor:pointer;letter-spacing:.03em;box-shadow:0 3px 12px rgba(200,168,75,.35)">▶  Start</button>
-        <button onclick="endReadingSession()" style="padding:.75rem 1.25rem;border:1px solid #2a1a0e;border-radius:8px;background:transparent;font-family:'Lora',serif;font-size:.88rem;color:#7a5c3a;cursor:pointer">■ Stop</button>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0 1.75rem">
+      <div id="sess-timer" style="font-family:'Playfair Display',serif;font-size:min(20vw,6rem);font-weight:700;color:#f4edd8;letter-spacing:.04em;line-height:1;margin-bottom:.6rem;transition:color .4s">0:00</div>
+      <div id="sess-dnd-note" style="display:none;font-size:.68rem;color:#7a6040;font-style:italic;margin-bottom:.5rem;text-align:center">Tip: enable Do Not Disturb on your phone now</div>
+      <div style="display:flex;gap:.75rem;margin-top:1.1rem">
+        <button id="sess-start-btn" onclick="toggleSessionTimer()" style="padding:.75rem 2.25rem;background:linear-gradient(135deg,#c8a84b,#e8c872);color:#190d05;border:none;border-radius:8px;font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;cursor:pointer;letter-spacing:.03em;box-shadow:0 3px 14px rgba(200,168,75,.4)">▶  Start</button>
+        <button onclick="endReadingSession()" style="padding:.75rem 1.25rem;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:transparent;font-family:'Lora',serif;font-size:.88rem;color:#9a7a58;cursor:pointer">■ Stop</button>
       </div>
     </div>
 
     <!-- Pages + Journal -->
-    <div style="border-top:1px solid #1e1008;padding-top:1.25rem">
+    <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:1.25rem">
       <div style="display:flex;gap:.65rem;margin-bottom:.75rem">
         <div style="flex:1">
-          <label style="display:block;font-size:.62rem;color:#5a3e28;margin-bottom:.28rem;font-family:'IM Fell English SC',serif;letter-spacing:.07em">STARTED AT PAGE</label>
-          <input type="number" id="sess-start-page" placeholder="—" min="0" style="width:100%;padding:.48rem .6rem;background:#1a0e04;border:1px solid #2a1a0e;border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.92rem;outline:none;box-sizing:border-box">
+          <label style="display:block;font-size:.62rem;color:#7a6040;margin-bottom:.28rem;font-family:'IM Fell English SC',serif;letter-spacing:.07em">STARTED AT PAGE</label>
+          <input type="number" id="sess-start-page" placeholder="—" min="0" style="width:100%;padding:.48rem .6rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.92rem;outline:none;box-sizing:border-box">
         </div>
         <div style="flex:1">
-          <label style="display:block;font-size:.62rem;color:#5a3e28;margin-bottom:.28rem;font-family:'IM Fell English SC',serif;letter-spacing:.07em">ENDED AT PAGE</label>
-          <input type="number" id="sess-end-page" placeholder="—" min="0" style="width:100%;padding:.48rem .6rem;background:#1a0e04;border:1px solid #2a1a0e;border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.92rem;outline:none;box-sizing:border-box">
+          <label style="display:block;font-size:.62rem;color:#7a6040;margin-bottom:.28rem;font-family:'IM Fell English SC',serif;letter-spacing:.07em">ENDED AT PAGE</label>
+          <input type="number" id="sess-end-page" placeholder="—" min="0" style="width:100%;padding:.48rem .6rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.92rem;outline:none;box-sizing:border-box">
         </div>
       </div>
-      <textarea id="sess-journal" placeholder="Thoughts, quotes, reactions…" rows="4" style="width:100%;padding:.55rem .65rem;background:#1a0e04;border:1px solid #2a1a0e;border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.88rem;outline:none;resize:none;box-sizing:border-box;line-height:1.65;placeholder-color:#3a2a1e"></textarea>
-      <button onclick="saveReadingSession()" style="width:100%;margin-top:.75rem;padding:.78rem;background:linear-gradient(135deg,#c8a84b,#e8c872);color:#190d05;border:none;border-radius:8px;font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.03em;box-shadow:0 3px 12px rgba(200,168,75,.3)">Save Session</button>
+      <textarea id="sess-journal" placeholder="Thoughts, quotes, reactions…" rows="4" style="width:100%;padding:.55rem .65rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f4edd8;font-family:'Lora',serif;font-size:.88rem;outline:none;resize:none;box-sizing:border-box;line-height:1.65"></textarea>
+      <button onclick="saveReadingSession()" style="width:100%;margin-top:.75rem;padding:.78rem;background:linear-gradient(135deg,#c8a84b,#e8c872);color:#190d05;border:none;border-radius:8px;font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:.03em;box-shadow:0 3px 12px rgba(200,168,75,.35)">Save Session</button>
     </div>
 
+  </div>
   </div>
 </div>
 </body>
