@@ -836,6 +836,19 @@ const OLD_SUFFIXES={books:'books',api:'api',streak:'streak',favQ:'favq',cacheQ:'
 const load=k=>{try{return JSON.parse(localStorage.getItem(k))||null}catch{return null}};
 const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 
+function bookGradient(title='',author=''){
+  const s=(title+author).toLowerCase();
+  let h=0;for(let i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;
+  const p=[
+    ['#3d1a22','#5c2433'],['#1a2d3d','#254159'],['#1e3328','#2a4a38'],
+    ['#3d2a10','#5c3f18'],['#2a1a3d','#3d2659'],['#1a2e38','#254452'],
+    ['#3a1c1c','#572828'],['#1c2e1c','#2a4430'],['#2e2010','#443018'],
+    ['#1a1e3d','#252a59']
+  ];
+  const[c1,c2]=p[Math.abs(h)%p.length];
+  return `linear-gradient(155deg,${c1},${c2})`;
+}
+
 // ══════════════════════════════════════════
 // MIGRATION — runs once on startup
 // ══════════════════════════════════════════
@@ -1029,18 +1042,18 @@ function dateDisplay(b){
 }
 
 function bookCard(b){
-  const hasCover=!!coversDB[b.id];
   const coverUrl=coversDB[b.id];
+  const grad=bookGradient(b.title,b.author);
   const coverHtml=coverUrl
     ?`<img class="cover-thumb" src="${esc(coverUrl)}" alt="" onerror="this.style.display='none'">`
-    :``;
+    :`<div class="cover-ph" style="background:${grad};align-items:flex-end;padding:8px 7px"><span style="font-family:var(--serif);font-size:8px;line-height:1.35;color:rgba(255,255,255,.82)">${esc(b.title)}</span></div>`;
   const stars=[...Array(5)].map((_,i)=>`<span class="star ${i<(b.rating||0)?'on':''}">★</span>`).join('');
   const al=activeLoan(b);
   const loanLine=al?`<div class="loan-line">📤 With ${esc(al.to)}${al.date?' · '+fmtDate(al.date):''}</div>`:'';
   const showProg=b.status==='reading'&&b.itemType!=='article';
   const hasJournal=(journalDB[b.id]||[]).length>0;
   return `<div class="book-card-wrap">
-    <div class="book-card ${spineClass(b)} ${hasCover?'card-has-cover':''}" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openEditModal('${b.id}')">
+    <div class="book-card ${spineClass(b)} card-has-cover" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openEditModal('${b.id}')">
       ${coverHtml}
       <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
       <div class="book-title">${esc(b.title)}</div>
@@ -1872,7 +1885,7 @@ function renderLists(){
   const dnfL=books.filter(b=>b.status==='dnf'||(b.lists||[]).includes('dnf_list'));
   const articles=books.filter(b=>b.itemType==='article');
 
-  const rowCover=b=>{const url=coversDB[b.id];return url?`<img class="list-row-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="list-row-cover-ph">📗</div>`;};
+  const rowCover=b=>{const url=coversDB[b.id];const g=bookGradient(b.title,b.author);return url?`<img class="list-row-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="list-row-cover-ph" style="background:${g}"></div>`;};
 
   // Standard list maker (click → edit)
   const makeList=(head,headCls,items,emptyMsg,clickFn)=>{
@@ -2225,7 +2238,7 @@ function buildLogCard(b){
   const coverUrl=coversDB[b.id];
   const coverHtml=coverUrl
     ?`<img src="${esc(coverUrl)}" style="width:60px;height:86px;border-radius:3px;object-fit:cover;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2)" alt="">`
-    :`<div style="width:60px;height:86px;border-radius:3px;background:var(--parchment-dark);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem">📗</div>`;
+    :`<div style="width:60px;height:86px;border-radius:3px;background:${bookGradient(b.title,b.author)};flex-shrink:0;display:flex;align-items:flex-end;padding:7px 6px"><span style="font-family:var(--serif);font-size:8px;line-height:1.35;color:rgba(255,255,255,.82)">${esc(b.title)}</span></div>`;
   const best=bestProgress(b.id);
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
   const prog=progressDB[b.id]||[];
@@ -2485,7 +2498,7 @@ function journalBookSection(b){
   const coverUrl=coversDB[b.id];
   const coverHtml=coverUrl
     ?`<img class="journal-book-header-cover" src="${esc(coverUrl)}" alt="" onerror="this.style.display='none'">`
-    :`<div class="journal-book-header-cover-ph">📗</div>`;
+    :`<div class="journal-book-header-cover-ph" style="background:${bookGradient(b.title,b.author)}"></div>`;
   const statusLabel={read:'Read',reading:'Reading',unread:'Unread',dnf:'DNF'}[b.status]||b.status;
 
   const entriesHtml=entries.map(e=>`
@@ -2598,7 +2611,7 @@ function renderKeepsake(){
 
   const ksRow=b=>{
     const url=coversDB[b.id];
-    const ch=url?`<img class="ks-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="ks-cover-ph">${b.itemType==='article'?'📰':'📗'}</div>`;
+    const ch=url?`<img class="ks-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="ks-cover-ph" style="background:${bookGradient(b.title,b.author)}"></div>`;
     return `<div class="ks-row">${ch}<div class="ks-info"><div class="ks-title">${esc(b.title)}</div><div class="ks-author">by ${esc(b.author)}${b.publication?` · ${esc(b.publication)}`:''}</div></div>${b.rating?`<span class="ks-stars">${'★'.repeat(b.rating)}${'☆'.repeat(5-b.rating)}</span>`:''}</div>${b.notes?`<div style="font-size:.71rem;color:var(--ink-faint);font-style:italic;padding:.07rem 0 .26rem 2.6rem">${esc(b.notes)}</div>`:''}`;
   };
 
