@@ -596,7 +596,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <option value="">— Select —</option>
         <option>Literary Fiction</option><option>Mystery / Thriller</option><option>Historical Fiction</option>
         <option>Fantasy</option><option>Science Fiction</option><option>Romance</option><option>Nonfiction</option>
-        <option>Memoir / Biography</option><option>Self-Help</option><option>Short Stories</option>
+        <option>Memoir / Biography</option><option>Self-Help</option><option>Business</option><option>Short Stories</option>
         <option>Poetry</option><option>Graphic Novel</option><option>Young Adult</option><option>Children's</option>
         <option>News / Journalism</option><option>Science / Technology</option><option>Culture / Arts</option><option>Other</option>
       </select>
@@ -1706,7 +1706,7 @@ async function lookupISBN(){
     document.getElementById('bTitle').value=bk.title||'';
     document.getElementById('bAuthor').value=(bk.authors||[]).map(a=>a.name).join(', ')||'';
     const subjects=(bk.subjects||[]).map(s=>typeof s==='string'?s:s.name);
-    const gmap={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',poetry:'Poetry','young adult':'Young Adult'};
+    const gmap={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
     let genre='';for(const s of subjects){const sl=s.toLowerCase();for(const[k,v]of Object.entries(gmap)){if(sl.includes(k)){genre=v;break;}}if(genre)break;}
     if(genre)document.getElementById('bGenre').value=genre;
     if(bk.number_of_pages){document.getElementById('progTotalPage').value=bk.number_of_pages;document.getElementById('pmTotalPage').value=bk.number_of_pages;}
