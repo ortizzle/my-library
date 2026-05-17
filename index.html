@@ -1194,6 +1194,8 @@ function handleStatusChange(){
     if(s==='reading'){
       if(dateFinishedWrap) dateFinishedWrap.style.display='none';
       if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+      const startEl=document.getElementById('bStartDate');
+      if(startEl&&!startEl.value) startEl.value=localDateStr();
     } else if(s==='read'){
       if(dateFinishedLabel) dateFinishedLabel.textContent='Date Finished';
       if(dateFinishedWrap) dateFinishedWrap.style.display='block';
