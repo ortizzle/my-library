@@ -2278,7 +2278,10 @@ function buildLogCard(b){
       <textarea id="ls-journal-${b.id}" placeholder="What are you thinking about this book…" rows="4" style="${iStyle};resize:none;margin-bottom:.7rem;line-height:1.6;min-height:80px"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem">
         <div style="display:flex;gap:.12rem">${stars}</div>
-        <button onclick="logSessionFinish('${b.id}',this)" style="padding:.35rem .8rem;border:1px solid var(--sage);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--sage);cursor:pointer;white-space:nowrap">🏁 Finished this book</button>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <button onclick="openEditModal('${b.id}')" style="padding:.35rem .8rem;border:1px solid var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;white-space:nowrap">✏︎ Edit</button>
+          <button onclick="logSessionFinish('${b.id}',this)" style="padding:.35rem .8rem;border:1px solid var(--sage);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--sage);cursor:pointer;white-space:nowrap">🏁 Finished this book</button>
+        </div>
       </div>
       <button onclick="logSessionSave('${b.id}')" style="width:100%;padding:.68rem;background:var(--burgundy);color:var(--parchment);border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;cursor:pointer;letter-spacing:.03em">Save Session</button>
     </div>
