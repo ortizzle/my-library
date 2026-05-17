@@ -383,6 +383,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <div class="brand-sub">My Personal Library &amp; Book Club Companion</div>
     </div>
     <div class="hdr-meta">
+      <div id="gistDot" onclick="showView('settings')" style="width:8px;height:8px;border-radius:50%;background:transparent;flex-shrink:0;cursor:pointer;transition:background .4s" title="Gist sync"></div>
       <div class="streak-pill" id="hdrStreak" onclick="showView('stats')" style="cursor:pointer">🔥 — streak</div>
       <button class="hdr-btn" onclick="openScanner()" style="font-weight:600">＋ Add Book</button>
       <button class="hdr-btn" onclick="showView('settings')">⚙</button>
@@ -498,6 +499,27 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <!-- SETTINGS -->
 <div class="view" id="view-settings">
   <div class="sec-head"><h2 class="sec-title">Settings</h2></div>
+
+  <div class="settings-card">
+    <h3>GitHub Gist Sync</h3>
+    <p class="hint" style="margin-bottom:.75rem">Auto-saves your library to a private GitHub Gist after every change — versioned, accessible from any browser, free.</p>
+    <div id="gistConnectSection">
+      <p class="hint" style="margin-bottom:.5rem">Create a token at <a href="https://github.com/settings/tokens/new?scopes=gist&description=Reading+Room+Sync" target="_blank" style="color:var(--sage)">GitHub → Settings → Tokens</a> with the <strong>gist</strong> scope, then paste it below.</p>
+      <div style="display:flex;gap:.45rem;align-items:stretch;margin-top:.5rem">
+        <input type="password" id="gistTokenInput" placeholder="ghp_…" style="flex:1;padding:.44rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--parchment);color:var(--ink);font-family:'Lora',serif;font-size:.84rem;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--burgundy)'" onblur="this.style.borderColor='var(--parchment-dark)'">
+        <button id="gistConnectBtn" class="btn btn-primary" onclick="gistConnect()">Connect</button>
+      </div>
+    </div>
+    <div id="gistConnectedSection" style="display:none">
+      <div style="display:flex;gap:.42rem;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="gistPull()">↓ Pull latest</button>
+        <button class="btn btn-secondary" onclick="gistPush()">↑ Push now</button>
+        <button class="btn btn-secondary" style="color:var(--burgundy)" onclick="gistDisconnect()">Disconnect</button>
+      </div>
+    </div>
+    <div id="gistStatus" style="font-size:.7rem;color:var(--ink-faint);font-style:italic;margin-top:.55rem;line-height:1.5"></div>
+  </div>
+
   <div class="settings-card">
     <h3>Anthropic API Key</h3>
     <div class="key-wrap">
@@ -834,7 +856,7 @@ const OLD_PREFIXES=['trr4_','trr3_','trr2_','trr_'];
 const OLD_SUFFIXES={books:'books',api:'api',streak:'streak',favQ:'favq',cacheQ:'cq',prog:'progress',covers:'covers'};
 
 const load=k=>{try{return JSON.parse(localStorage.getItem(k))||null}catch{return null}};
-const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const save=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));scheduleGistPush();};
 
 function bookGradient(title='',author=''){
   const s=(title+author).toLowerCase();
@@ -847,6 +869,140 @@ function bookGradient(title='',author=''){
   ];
   const[c1,c2]=p[Math.abs(h)%p.length];
   return `linear-gradient(155deg,${c1},${c2})`;
+}
+
+// ══════════════════════════════════════════
+// GIST SYNC
+// ══════════════════════════════════════════
+const GIST_TOKEN_KEY='trr_v1_gist_token';
+const GIST_ID_KEY='trr_v1_gist_id';
+const GIST_SYNC_KEY='trr_v1_gist_sync';
+const GIST_FILE='reading-room-library.json';
+
+let _appReady=false,_gistPulling=false,_gistPushTimer=null;
+
+function scheduleGistPush(){
+  if(!_appReady||_gistPulling)return;
+  if(!localStorage.getItem(GIST_TOKEN_KEY))return;
+  clearTimeout(_gistPushTimer);
+  _gistPushTimer=setTimeout(gistPush,2500);
+}
+
+function gistPayload(){
+  return JSON.stringify({v:1,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ},null,2);
+}
+
+async function gistApi(method,path,body){
+  const token=localStorage.getItem(GIST_TOKEN_KEY);
+  const r=await fetch('https://api.github.com'+path,{
+    method,
+    headers:{'Authorization':`token ${token}`,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+    body:body?JSON.stringify(body):undefined
+  });
+  if(!r.ok)throw new Error(`GitHub ${r.status}`);
+  return r.json();
+}
+
+function setGistDot(state){
+  const dot=document.getElementById('gistDot');
+  if(!dot)return;
+  const colors={synced:'#4a6050',pushing:'#d4a030',off:'transparent'};
+  dot.style.background=colors[state]||'transparent';
+  dot.title=state==='synced'?'Gist synced':state==='pushing'?'Syncing…':'Gist not connected';
+}
+
+async function gistPush(){
+  const token=localStorage.getItem(GIST_TOKEN_KEY);
+  const id=localStorage.getItem(GIST_ID_KEY);
+  if(!token||!id)return;
+  setGistDot('pushing');
+  try{
+    await gistApi('PATCH',`/gists/${id}`,{files:{[GIST_FILE]:{content:gistPayload()}}});
+    localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
+    updateGistStatus();
+    setGistDot('synced');
+  }catch(e){console.warn('Gist push failed:',e);setGistDot('off');}
+}
+
+async function gistPull(){
+  const token=localStorage.getItem(GIST_TOKEN_KEY);
+  const id=localStorage.getItem(GIST_ID_KEY);
+  if(!token||!id)return;
+  _gistPulling=true;
+  setGistDot('pushing');
+  try{
+    const data=await gistApi('GET',`/gists/${id}`);
+    const raw=data.files?.[GIST_FILE]?.content;
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    // Only overwrite if gist has at least as many books (safety check)
+    if(d.books&&d.books.length>=books.length){books=d.books;localStorage.setItem(SK.books,JSON.stringify(books));}
+    if(d.prog){progressDB=d.prog;localStorage.setItem(SK.prog,JSON.stringify(progressDB));}
+    if(d.covers){coversDB=d.covers;localStorage.setItem(SK.covers,JSON.stringify(coversDB));}
+    if(d.journal){journalDB=d.journal;localStorage.setItem(SK.journal,JSON.stringify(journalDB));}
+    if(d.streak){streakDB=d.streak;localStorage.setItem(SK.streak,JSON.stringify(streakDB));}
+    if(d.favQ){favQ=d.favQ;localStorage.setItem(SK.favQ,JSON.stringify(favQ));}
+    if(d.cacheQ){cacheQ=d.cacheQ;localStorage.setItem(SK.cacheQ,JSON.stringify(cacheQ));}
+    localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
+    updateGistStatus();
+    setGistDot('synced');
+    renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+  }catch(e){console.warn('Gist pull failed:',e);setGistDot('off');}
+  _gistPulling=false;
+}
+
+async function gistConnect(){
+  const token=document.getElementById('gistTokenInput').value.trim();
+  if(!token){toast('Paste your GitHub token first','err');return;}
+  const btn=document.getElementById('gistConnectBtn');
+  btn.disabled=true;btn.textContent='Connecting…';
+  try{
+    await gistApi('GET','/user');// verify token
+    const data=await gistApi('POST','/gists',{
+      description:'The Reading Room — Library Backup',
+      public:false,
+      files:{[GIST_FILE]:{content:gistPayload()}}
+    });
+    localStorage.setItem(GIST_TOKEN_KEY,token);
+    localStorage.setItem(GIST_ID_KEY,data.id);
+    localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
+    document.getElementById('gistTokenInput').value='';
+    updateGistStatus();
+    setGistDot('synced');
+    toast('Gist connected — library synced ✓','ok');
+  }catch(e){
+    toast('Connection failed — check your token','err');
+  }
+  btn.disabled=false;btn.textContent='Connect';
+}
+
+function gistDisconnect(){
+  if(!confirm('Disconnect Gist sync? Your local data stays intact.'))return;
+  [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
+  updateGistStatus();
+  setGistDot('off');
+  toast('Gist disconnected','ok');
+}
+
+function updateGistStatus(){
+  const connected=!!(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY));
+  const id=localStorage.getItem(GIST_ID_KEY);
+  const syncTime=localStorage.getItem(GIST_SYNC_KEY);
+  const connectSection=document.getElementById('gistConnectSection');
+  const connectedSection=document.getElementById('gistConnectedSection');
+  const statusEl=document.getElementById('gistStatus');
+  if(!statusEl)return;
+  if(connected){
+    if(connectSection)connectSection.style.display='none';
+    if(connectedSection)connectedSection.style.display='block';
+    const t=syncTime?new Date(syncTime):null;
+    const ts=t?t.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'never';
+    statusEl.innerHTML=`Last synced: ${ts} · <a href="https://gist.github.com/${id}" target="_blank" style="color:var(--sage)">View Gist ↗</a>`;
+  }else{
+    if(connectSection)connectSection.style.display='block';
+    if(connectedSection)connectedSection.style.display='none';
+    statusEl.textContent='Not connected — your library is local only.';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -2740,9 +2896,15 @@ function fillAudioInputs(hId,mId,totalMins){
 // ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
   renderLists();renderLibrary();renderLogSession();updateHdrStreak();
+  updateGistStatus();
+  _appReady=true;
+  if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){
+    setGistDot('pushing');
+    await gistPull();
+  }
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeM('progModal');closeScanner();closeReadingSession();}});
 });
 
