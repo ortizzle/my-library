@@ -2433,7 +2433,7 @@ function buildLogCard(b){
       <span id="logchev-${b.id}" style="font-size:.8rem;color:var(--ink-faint);flex-shrink:0;margin-left:.25rem">▾</span>
     </div>
     <div style="padding:0 1rem .85rem;display:flex;gap:.55rem" onclick="event.stopPropagation()">
-      <button onclick="logQuick('${b.id}','Listened today')" style="flex:1;padding:.62rem .5rem;${doneToday?'background:var(--parchment-dark);color:var(--ink-faint);box-shadow:none;':'background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18);'}border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;cursor:pointer;letter-spacing:.02em">${doneToday?'✓ Listened Today':'🎧 Listened Today'}</button>
+      <button onclick="logQuick('${b.id}','Listened today')" style="flex:1;padding:.62rem .5rem;${doneToday?'background:var(--parchment-dark);color:var(--ink-faint);box-shadow:none;':'background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18);'}border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;cursor:pointer;letter-spacing:.02em">${doneToday?'✓ Listened / Read Today':'🎧 Listened / Read Today'}</button>
       <button onclick="openReadingSession('${b.id}')" style="padding:.62rem .85rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.88rem;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)" title="Start a timed reading session">⏱</button>
     </div>
     <div id="logexpand-${b.id}" style="display:none;border-top:1px dotted var(--parchment-dark);padding:.75rem 1rem .9rem" onclick="event.stopPropagation()">
