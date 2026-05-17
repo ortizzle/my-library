@@ -959,17 +959,29 @@ async function gistConnect(){
   localStorage.setItem(GIST_TOKEN_KEY,token); // store first so gistApi can read it
   try{
     await gistApi('GET','/user'); // verify token is valid
-    const data=await gistApi('POST','/gists',{
-      description:'The Reading Room — Library Backup',
-      public:false,
-      files:{[GIST_FILE]:{content:gistPayload()}}
-    });
-    localStorage.setItem(GIST_ID_KEY,data.id);
+    // Look for an existing Reading Room gist before creating a new one
+    let gistId=null;
+    const existing=await gistApi('GET','/gists?per_page=100');
+    const found=existing.find(g=>g.files&&g.files[GIST_FILE]);
+    if(found){
+      gistId=found.id;
+      toast('Found your existing library gist — pulling data…','ok');
+    }else{
+      const data=await gistApi('POST','/gists',{
+        description:'The Reading Room — Library Backup',
+        public:false,
+        files:{[GIST_FILE]:{content:gistPayload()}}
+      });
+      gistId=data.id;
+    }
+    localStorage.setItem(GIST_ID_KEY,gistId);
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     document.getElementById('gistTokenInput').value='';
     updateGistStatus();
     setGistDot('synced');
-    toast('Gist connected — library synced ✓','ok');
+    // Pull data from gist into this browser
+    await gistPull();
+    toast('Gist connected ✓','ok');
   }catch(e){
     localStorage.removeItem(GIST_TOKEN_KEY); // clean up on failure
     console.error('Gist connect error:',e);
