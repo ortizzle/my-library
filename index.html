@@ -236,6 +236,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(30,20,10,.62);backdrop-filter:blur(2px);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fi .2s ease}
 @keyframes fi{from{opacity:0}to{opacity:1}}
+@keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .modal{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:12px;padding:1.6rem;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.4);max-height:92vh;overflow-y:auto;animation:su .23s ease}
 .modal-wide{max-width:640px}
 @keyframes su{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -1737,7 +1738,7 @@ function toggleReadingPanel(id){
   if(!isOpen) panel.style.display='block';
 }
 
-function logProgressAndJournalInline(id, prefix='rp'){
+function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
   const p=prefix+'-';
   const dateEl=document.getElementById(p+'date-'+id);
   const today=localDateStr();
@@ -1834,8 +1835,10 @@ function logProgressAndJournalInline(id, prefix='rp'){
     if(panelEl) panelEl.innerHTML=buildProgressPanel(b,prefix);
   }
 
-  const backdated=sessionDate!==today;
-  toast(backdated?`Saved for ${fmtDate(sessionDate)}!`:'Saved!','ok');
+  if(!suppressToast){
+    const backdated=sessionDate!==today;
+    toast(backdated?`Saved for ${fmtDate(sessionDate)}!`:'Saved!','ok');
+  }
 }
 
 // ══════════════════════════════════════════
@@ -2529,14 +2532,29 @@ function logSessionFinish(id, el){
 }
 
 function logQuick(id, note){
+  // Snapshot for undo
+  const prevProg=JSON.parse(JSON.stringify(progressDB[id]||[]));
+  const prevStreak=JSON.parse(JSON.stringify(streakDB));
+
   const nc=document.getElementById('ls-nocount-'+id);
   if(nc)nc.checked=true;
   const ni=document.getElementById('ls-note-'+id);
   if(ni)ni.value=note;
   const rating=_logRatings[id]||0;
   if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
-  logProgressAndJournalInline(id,'ls');
+  logProgressAndJournalInline(id,'ls',true); // suppress internal toast
   renderLogSession();
+
+  toastUndo('Logged ✓ — tap to undo',()=>{
+    progressDB[id]=prevProg;
+    save(SK.prog,progressDB);
+    Object.keys(streakDB).forEach(k=>delete streakDB[k]);
+    Object.assign(streakDB,prevStreak);
+    save(SK.streak,streakDB);
+    updateHdrStreak();
+    renderLogSession();
+    toast('Undone','ok');
+  });
 }
 
 // ══════════════════════════════════════════
@@ -2890,6 +2908,17 @@ function clearAll(){
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
 function fmtDate(s){if(!s)return'';try{return new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return s;}}
 function toast(msg,type='ok'){const wrap=document.getElementById('toastWrap');const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;wrap.appendChild(el);setTimeout(()=>el.remove(),3000);}
+
+function toastUndo(msg,undoFn,duration=5000){
+  const wrap=document.getElementById('toastWrap');
+  const el=document.createElement('div');
+  el.className='toast ok';
+  el.style.cssText='display:flex;align-items:center;gap:.7rem;padding-right:.6rem;overflow:hidden;position:relative';
+  el.innerHTML=`<span style="flex:1">${msg}</span><button style="background:none;border:1px solid rgba(255,255,255,.45);color:inherit;padding:.18rem .6rem;border-radius:4px;cursor:pointer;font-family:'Lora',serif;font-size:.72rem;white-space:nowrap;flex-shrink:0">Undo</button><div style="position:absolute;bottom:0;left:0;height:2px;background:rgba(255,255,255,.35);width:100%;transform-origin:left;animation:toastBar ${duration}ms linear forwards"></div>`;
+  el.querySelector('button').onclick=()=>{undoFn();el.remove();};
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(),duration);
+}
 
 // Audio time helpers — all values stored as total minutes internally
 function minsToHM(mins){
