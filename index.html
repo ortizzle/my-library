@@ -350,7 +350,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .loaned-meta{font-size:.69rem;color:var(--ink-faint)}
 
 /* TOAST */
-.toast-wrap{position:fixed;bottom:1.28rem;right:1.28rem;z-index:200;display:flex;flex-direction:column;gap:.38rem;pointer-events:none}
+.toast-wrap{position:fixed;bottom:5.8rem;right:1.28rem;z-index:200;display:flex;flex-direction:column;gap:.38rem;pointer-events:none}
 .toast{background:var(--ink);color:var(--parchment);padding:.48rem .9rem;border-radius:7px;font-family:'Lora',serif;font-size:.75rem;box-shadow:0 4px 16px rgba(0,0,0,.3);animation:ti .24s ease,toa .24s ease 2.5s forwards;max-width:268px;line-height:1.4}
 .toast.ok{border-left:3px solid var(--gold)}.toast.err{border-left:3px solid var(--burg-lt)}
 @keyframes ti{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -1720,6 +1720,12 @@ function toggleLibraryPanel(id){
 
 function markDone(id){
   const b=books.find(x=>x.id===id);if(!b)return;
+  // Snapshot for undo
+  const prevStatus=b.status;
+  const prevDate=b.date;
+  const prevProg=JSON.parse(JSON.stringify(progressDB[id]||[]));
+  const prevStreak=JSON.parse(JSON.stringify(streakDB));
+
   b.status='read';
   b.date=localDateStr();
   const prog=progressDB[id];
@@ -1729,7 +1735,18 @@ function markDone(id){
   }
   save(SK.books,books);
   renderLibrary();renderLists();updateHdrStreak();
-  toast(`"${b.title}" marked as finished! 🎉`,'ok');
+  toastUndo(`"${b.title}" finished 🎉 — tap to undo`,()=>{
+    b.status=prevStatus;
+    b.date=prevDate;
+    progressDB[id]=prevProg;
+    save(SK.prog,progressDB);
+    Object.keys(streakDB).forEach(k=>delete streakDB[k]);
+    Object.assign(streakDB,prevStreak);
+    save(SK.streak,streakDB);
+    save(SK.books,books);
+    renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+    toast('Undone','ok');
+  });
 }
 
 function toggleReadingPanel(id){
