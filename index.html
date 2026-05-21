@@ -558,6 +558,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 
 <!-- BARCODE SCANNER MODAL -->
 <div id="scannerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1200;flex-direction:column;align-items:center;justify-content:center;gap:1rem">
+  <button onclick="closeScanner()" aria-label="Close scanner" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;width:40px;height:40px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:background .18s" onmouseenter="this.style.background='rgba(255,255,255,.22)'" onmouseleave="this.style.background='rgba(255,255,255,.12)'">✕</button>
   <div style="color:#fff;font-family:'Playfair Display',serif;font-size:1.1rem">Point camera at book barcode</div>
   <div style="position:relative;width:min(90vw,360px);aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#000">
     <video id="scannerVideo" style="width:100%;height:100%;object-fit:cover" playsinline></video>
@@ -565,7 +566,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div style="position:absolute;top:50%;left:10%;right:10%;height:2px;background:rgba(255,80,80,.7);transform:translateY(-50%);pointer-events:none"></div>
   </div>
   <div id="scannerStatus" style="color:rgba(255,255,255,.7);font-size:.8rem;font-style:italic;min-height:1.2em">Scanning…</div>
-  <button class="btn btn-primary" onclick="closeScanner();openAddModal()">Manual Entry</button>
+  <div style="display:flex;gap:.65rem;align-items:center">
+    <button class="btn btn-primary" onclick="closeScanner();openAddModal()">Manual Entry</button>
+    <button class="btn" onclick="closeScanner()" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.22)">Cancel</button>
+  </div>
 </div>
 
 <!-- ADD/EDIT BOOK MODAL -->
