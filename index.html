@@ -1618,6 +1618,14 @@ function syncAudioPct(id, prefix){
   const pct=Math.min(100,Math.round((curMins/totalMins)*100));
   el.textContent=pct+'%';
 }
+function checkPageOverflow(id, prefix){
+  const p=prefix+'-';
+  const page=+(document.getElementById(p+'page-'+id)||{}).value||0;
+  const total=+(document.getElementById(p+'total-'+id)||{}).value||0;
+  const warn=document.getElementById(p+'pagewarn-'+id);
+  if(!warn)return;
+  warn.style.display=(page&&total&&page>total)?'flex':'none';
+}
 
 function buildProgressPanel(b, prefix='rp'){
   const prog=progressDB[b.id]||[];
@@ -1641,13 +1649,14 @@ function buildProgressPanel(b, prefix='rp'){
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" style="${iStyle}">
+        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}')" style="${iStyle}">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
-        <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" style="${iStyle}">
+        <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}')" style="${iStyle}">
       </div>
     </div>
+    <div id="${p}pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.3rem">⚠ Page number exceeds total — double-check before saving</div>
 
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.25rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
       <div style="flex:0 0 100%;margin-bottom:.25rem">
@@ -2474,13 +2483,14 @@ function buildLogCard(b){
       <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
         <div style="flex:1">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">CURRENT PAGE</label>
-          <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" style="${iStyle}">
+          <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls')" style="${iStyle}">
         </div>
         <div style="flex:1">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">OF PAGES</label>
-          <input type="number" id="ls-total-${b.id}" value="${stickyTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" style="${iStyle}">
+          <input type="number" id="ls-total-${b.id}" value="${stickyTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls')" style="${iStyle}">
         </div>
       </div>
+      <div id="ls-pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.4rem">⚠ Page number exceeds total — double-check before saving</div>
       <textarea id="ls-journal-${b.id}" placeholder="What are you thinking about this book…" rows="4" style="${iStyle};resize:none;margin-bottom:.7rem;line-height:1.6;min-height:80px"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem">
         <div style="display:flex;gap:.12rem">${stars}</div>
