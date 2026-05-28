@@ -248,13 +248,21 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .scan-corner.bl{bottom:14px;left:14px;border-bottom-width:2.5px;border-left-width:2.5px}
 .scan-corner.br{bottom:14px;right:14px;border-bottom-width:2.5px;border-right-width:2.5px}
 .scan-beam{position:absolute;left:14px;right:14px;height:2px;background:var(--gold-lt);box-shadow:0 0 8px 2px rgba(176,125,32,.6);animation:scanLine 2s ease-in-out infinite;pointer-events:none}
-.modal{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:12px;padding:1.6rem;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.4);max-height:92vh;overflow-y:auto;animation:su .23s ease}
+.modal{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:12px;width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.4);max-height:92vh;animation:su .23s ease;display:flex;flex-direction:column;overflow:hidden}
 .modal-wide{max-width:640px}
+.modal-body{flex:1;overflow-y:auto;padding:0 1.6rem 1rem}
+.modal-hdr{padding:1.4rem 1.6rem .9rem;flex-shrink:0}
+.modal-foot{flex-shrink:0;margin-top:0;padding:0.8rem 1.6rem 1.2rem}
+.modal-tabs{display:flex;border-bottom:2px solid var(--parchment-dark);flex-shrink:0;padding:0 1.6rem;background:var(--cream);overflow-x:auto;scrollbar-width:none}
+.modal-tabs::-webkit-scrollbar{display:none}
+.modal-tab{padding:.52rem 1rem;font-family:'IM Fell English SC',serif;font-size:.7rem;letter-spacing:.06em;color:var(--ink-faint);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:color .15s;white-space:nowrap;user-select:none}
+.modal-tab:hover{color:var(--ink)}.modal-tab.active{color:var(--burgundy);border-bottom-color:var(--burgundy)}
+.modal-tab-panel{display:none;padding-top:.9rem}.modal-tab-panel.active{display:block}
 @keyframes su{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
-.modal-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem}
+.modal-hdr{display:flex;justify-content:space-between;align-items:flex-start}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.18rem;font-weight:600}
 .modal-close{background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--ink-faint);padding:.1rem;transition:color .14s}.modal-close:hover{color:var(--ink)}
-.modal-foot{display:flex;justify-content:flex-end;gap:.55rem;margin-top:1.25rem;padding-top:.8rem;border-top:1px solid var(--parchment-dark)}
+.modal-foot{display:flex;justify-content:flex-end;gap:.55rem;border-top:1px solid var(--parchment-dark)}
 
 /* FORMS */
 .fg{margin-bottom:.85rem}
@@ -611,216 +619,213 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <!-- ADD/EDIT BOOK MODAL -->
 <div class="overlay" id="bookModal" style="display:none" onclick="ovc(event,'bookModal')">
 <div class="modal modal-wide">
+
   <div class="modal-hdr">
     <h2 class="modal-title" id="modalTitle">Add a Book</h2>
     <button class="modal-close" onclick="closeM('bookModal')">✕</button>
   </div>
 
-  <!-- ITEM TYPE -->
-  <div class="fg">
-    <label>Item Type</label>
-    <div style="display:flex;gap:.35rem">
-      <button type="button" class="fmt-chip on" id="typeBook" onclick="setItemType('book')">📗 Book</button>
-      <button type="button" class="fmt-chip fc-ebook" id="typeArticle" onclick="setItemType('article')" style="background:transparent;color:var(--ink-light);border-color:var(--parchment-dark)">📰 Article</button>
-    </div>
+  <!-- TAB BAR -->
+  <div class="modal-tabs">
+    <button class="modal-tab active" data-tab="details" onclick="switchModalTab('details')">📖 Book Details</button>
+    <button class="modal-tab" data-tab="reading" onclick="switchModalTab('reading')">📊 My Reading</button>
+    <button class="modal-tab" data-tab="location" onclick="switchModalTab('location')">📍 Location &amp; Ownership</button>
   </div>
 
-  <!-- ISBN (books only) -->
-  <div id="isbnSection">
-    <div class="isbn-bar">
-      <input type="text" id="isbnInput" placeholder="ISBN (backup)" maxlength="17" style="max-width:130px">
-      <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
-      <button class="btn btn-primary" onclick="openScanner()" title="Scan barcode" style="font-size:1.3rem;padding:.3rem .9rem;flex-shrink:0">📷 Scan</button>
-    </div>
-    <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
-    <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
-  </div>
+  <div class="modal-body">
 
-  <!-- COVER -->
-  <div class="cover-preview-wrap" id="coverPreviewWrap">
-    <div class="cover-preview-ph" id="coverPreviewPh">📗</div>
-    <img id="coverPreviewImg" class="cover-preview-img" style="display:none" alt="cover">
-    <div class="cover-preview-info">
-      <p id="coverPreviewStatus">Cover appears after ISBN lookup, or paste a URL.</p>
-      <div class="fg" style="margin-top:.38rem;margin-bottom:0">
-        <input type="url" id="coverUrlInput" placeholder="Or paste a cover image URL…" oninput="previewCoverUrl()">
-      </div>
-    </div>
-  </div>
-
-  <div class="row2">
-    <div class="fg"><label>Title *</label><input type="text" id="bTitle" placeholder="Title"></div>
-    <div class="fg"><label id="authorLabel">Author *</label><input type="text" id="bAuthor" placeholder="Author / Creator"></div>
-  </div>
-  <div class="row3">
-    <div class="fg">
-      <label>Genre / Category</label>
-      <select id="bGenre">
-        <option value="">— Select —</option>
-        <option>Literary Fiction</option><option>Mystery / Thriller</option><option>Historical Fiction</option>
-        <option>Fantasy</option><option>Science Fiction</option><option>Romance</option><option>Nonfiction</option>
-        <option>Memoir / Biography</option><option>Self-Help</option><option>Business</option><option>Short Stories</option>
-        <option>Poetry</option><option>Graphic Novel</option><option>Young Adult</option><option>Children's</option>
-        <option>News / Journalism</option><option>Science / Technology</option><option>Culture / Arts</option><option>Other</option>
-      </select>
-    </div>
-    <div class="fg">
-      <label>Reading Status</label>
-      <select id="bStatus" onchange="handleStatusChange()">
-        <option value="unread">Unread</option>
-        <option value="reading">Currently Reading</option>
-        <option value="read">Read / Finished</option>
-        <option value="dnf">Did Not Finish (DNF)</option>
-        <option value="wishlist">🌿 Wishlist</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- ARTICLE-SPECIFIC -->
-  <div id="articleSection" style="display:none">
-    <div class="row2">
-      <div class="fg"><label>Publication / Source</label><input type="text" id="bPublication" placeholder="e.g. The Atlantic, New Yorker…"></div>
-      <div class="fg"><label>Word Count (approx)</label><input type="number" id="bWordCount" placeholder="e.g. 3500" min="0"></div>
-    </div>
-    <div class="fg"><label>Article URL</label><input type="url" id="bArticleUrl" placeholder="https://…"></div>
-  </div>
-
-  <!-- DATES — shown/hidden and labelled by status -->
-  <div id="datesSection" class="row2" style="display:none">
-    <div class="fg">
-      <label id="dateStartedLabel">Date Started <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
-      <input type="date" id="bStartDate">
-      <label class="inline-check" id="yearOnlyCheck"><input type="checkbox" id="chkYearOnly" onchange="toggleYearOnly()"> I only know the year</label>
-    </div>
-    <div class="fg" id="dateFinishedWrap">
-      <label id="dateFinishedLabel">Date Finished</label>
-      <input type="date" id="bDate">
-    </div>
-  </div>
-  <div class="fg" id="yearOnlyWrap" style="display:none">
-    <label>Year Read / Started</label>
-    <input type="number" id="bYearOnly" placeholder="e.g. 2021" min="1900" max="2099">
-  </div>
-
-  <!-- LISTS -->
-  <div class="fg">
-    <label>Add to Lists</label>
-    <div class="list-grp">
-      <button type="button" class="list-chip lc-tbr" data-list="tbr" onclick="toggleListChip(this)">🌿 TBR</button>
-      <button type="button" class="list-chip lc-fav" data-list="fav" onclick="toggleListChip(this)">⭐ Favorites</button>
-      <button type="button" class="list-chip lc-dnf" data-list="dnf_list" onclick="toggleListChip(this)">📕 DNF Shelf</button>
-    </div>
-  </div>
-
-  <!-- OWNERSHIP (books only) -->
-  <div class="own-section" id="ownershipSection">
-    <h4>📦 How I Own / Access This Book</h4>
-    <div class="fg" style="margin-bottom:.5rem">
-      <label>Formats</label>
-      <div class="fmt-grp">
-        <button type="button" class="fmt-chip" data-fmt="physical" onclick="toggleFmt(this)">📗 Physical</button>
-        <button type="button" class="fmt-chip fc-ebook" data-fmt="ebook" onclick="toggleFmt(this)">📱 eBook</button>
-        <button type="button" class="fmt-chip fc-audio" data-fmt="audio" onclick="toggleFmt(this)">🎧 Audiobook</button>
-        <button type="button" class="fmt-chip" data-fmt="borrowed" onclick="toggleFmt(this)">🏛 Library Loan</button>
-        <button type="button" class="fmt-chip" data-fmt="wishlist" onclick="toggleFmt(this)">🌿 Wishlist</button>
-      </div>
-    </div>
-    <div id="srcPhysicalWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Physical — edition / notes</label><input type="text" id="srcPhysical" placeholder="e.g. Hardcover, signed…"></div>
-    <div id="srcEbookWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">eBook platform</label><input type="text" id="srcEbook" placeholder="e.g. Kindle, Apple Books…"></div>
-    <div id="srcAudioWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Audiobook platform</label><input type="text" id="srcAudio" placeholder="e.g. Audible, Libby…"></div>
-    <div id="srcBorrowedWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Library / borrowed from</label><input type="text" id="srcBorrowed" placeholder="e.g. Chandler Public Library…"></div>
-
-    <!-- PROGRESS -->
-    <div id="progressSection" style="display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--parchment-dark)">
-      <label style="display:block;font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em;margin-bottom:.36rem">Progress Tracking</label>
-      <div class="prog-type-tabs" id="progTypeTabs">
-        <button type="button" class="prog-tab active" data-pt="pages" onclick="setProgType('pages',this)">By Pages</button>
-        <button type="button" class="prog-tab" data-pt="audio" onclick="setProgType('audio',this)">By Time (Audio)</button>
-      </div>
-      <div id="ptPages" class="prog-fields">
-        <div class="fg"><label>Current Page</label><input type="number" id="progCurPage" placeholder="0" min="0"></div>
-        <div class="fg"><label>Total Pages</label><input type="number" id="progTotalPage" placeholder="300" min="1"></div>
-      </div>
-      <div id="ptAudio" class="prog-fields" style="display:none">
-        <div class="fg">
-          <label>Current position</label>
-          <div style="display:flex;gap:.4rem;align-items:center">
-            <input type="number" id="progCurH" placeholder="0" min="0" style="width:60px">
-            <span style="color:var(--ink-faint);font-size:.8rem">h</span>
-            <input type="number" id="progCurMin" placeholder="0" min="0" max="59" style="width:60px">
-            <span style="color:var(--ink-faint);font-size:.8rem">min</span>
-          </div>
+    <!-- ── TAB 1: BOOK DETAILS ── -->
+    <div class="modal-tab-panel active" data-panel="details">
+      <div class="fg">
+        <label>Item Type</label>
+        <div style="display:flex;gap:.35rem">
+          <button type="button" class="fmt-chip on" id="typeBook" onclick="setItemType('book')">📗 Book</button>
+          <button type="button" class="fmt-chip fc-ebook" id="typeArticle" onclick="setItemType('article')" style="background:transparent;color:var(--ink-light);border-color:var(--parchment-dark)">📰 Article</button>
         </div>
-        <div class="fg">
-          <label>Total length</label>
-          <div style="display:flex;gap:.4rem;align-items:center">
-            <input type="number" id="progTotalH" placeholder="0" min="0" style="width:60px">
-            <span style="color:var(--ink-faint);font-size:.8rem">h</span>
-            <input type="number" id="progTotalMin" placeholder="0" min="0" max="59" style="width:60px">
-            <span style="color:var(--ink-faint);font-size:.8rem">min</span>
+      </div>
+      <div id="isbnSection">
+        <div class="isbn-bar">
+          <input type="text" id="isbnInput" placeholder="ISBN (backup)" maxlength="17" style="max-width:130px">
+          <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
+          <button class="btn btn-primary" onclick="openScanner()" title="Scan barcode" style="font-size:1.3rem;padding:.3rem .9rem;flex-shrink:0">📷 Scan</button>
+        </div>
+        <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
+        <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
+      </div>
+      <div class="cover-preview-wrap" id="coverPreviewWrap">
+        <div class="cover-preview-ph" id="coverPreviewPh">📗</div>
+        <img id="coverPreviewImg" class="cover-preview-img" style="display:none" alt="cover">
+        <div class="cover-preview-info">
+          <p id="coverPreviewStatus">Cover appears after ISBN lookup, or paste a URL.</p>
+          <div class="fg" style="margin-top:.38rem;margin-bottom:0">
+            <input type="url" id="coverUrlInput" placeholder="Or paste a cover image URL…" oninput="previewCoverUrl()">
           </div>
         </div>
       </div>
-      <div id="progHistoryEdit" style="margin-top:.65rem"></div>
-    </div>
-  </div>
-
-  <!-- LOCATION -->
-  <div class="fg" id="locationSection">
-    <label>📍 Location in Home <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">(optional — where does this book live?)</span></label>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
-      <input type="text" id="bLocationRoom" list="roomsList" placeholder="Room (e.g. Office, Bedroom…)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
-      <datalist id="roomsList"></datalist>
-      <input type="text" id="bLocationShelf" placeholder="Shelf / section (optional)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
-    </div>
-  </div>
-
-  <!-- RATING & REVIEW -->
-  <div class="row2">
-    <div class="fg">
-      <label>My Rating</label>
-      <div class="star-input" id="ratingInput">
-        <span class="star" data-v="1" onclick="setRating(1)">★</span>
-        <span class="star" data-v="2" onclick="setRating(2)">★</span>
-        <span class="star" data-v="3" onclick="setRating(3)">★</span>
-        <span class="star" data-v="4" onclick="setRating(4)">★</span>
-        <span class="star" data-v="5" onclick="setRating(5)">★</span>
+      <div class="row2">
+        <div class="fg"><label>Title *</label><input type="text" id="bTitle" placeholder="Title"></div>
+        <div class="fg"><label id="authorLabel">Author *</label><input type="text" id="bAuthor" placeholder="Author / Creator"></div>
       </div>
-    </div>
-  </div>
-  <div class="fg"><label>Review / Overall Thoughts <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">(permanent summary)</span></label><textarea id="bNotes" placeholder="Your overall take — this shows on the card…"></textarea></div>
-
-  <!-- SESSION JOURNAL (edit mode) -->
-  <div id="journalSection" style="display:none">
-    <div class="journal-section">
-      <h4>Reading Journal <span style="font-size:.7rem;font-family:'Lora',serif;font-weight:400;font-style:italic;color:var(--ink-faint)">(timestamped session notes)</span></h4>
-      <div id="journalEntries"></div>
-      <div class="journal-add">
-        <textarea id="journalNewEntry" placeholder="Add a journal note for today's reading session…"></textarea>
-        <div style="display:flex;justify-content:flex-end"><button class="btn btn-teal btn-sm" onclick="addJournalEntry()">＋ Add Note</button></div>
+      <div class="fg">
+        <label>Genre / Category</label>
+        <select id="bGenre">
+          <option value="">— Select —</option>
+          <option>Literary Fiction</option><option>Mystery / Thriller</option><option>Historical Fiction</option>
+          <option>Fantasy</option><option>Science Fiction</option><option>Romance</option><option>Nonfiction</option>
+          <option>Memoir / Biography</option><option>Self-Help</option><option>Business</option><option>Short Stories</option>
+          <option>Poetry</option><option>Graphic Novel</option><option>Young Adult</option><option>Children's</option>
+          <option>News / Journalism</option><option>Science / Technology</option><option>Culture / Arts</option><option>Other</option>
+        </select>
       </div>
-    </div>
-  </div>
-
-  <!-- LOAN LOG (edit mode) -->
-  <div id="loanHistorySection" style="display:none">
-    <div class="loan-history-wrap">
-      <h4>📤 Loan History <button class="btn btn-xs btn-primary" onclick="showAddLoanForm()">＋ Add Loan</button></h4>
-      <div id="loanAddForm" class="loan-add-form" style="display:none">
-        <h5>New Loan</h5>
+      <div id="articleSection" style="display:none">
         <div class="row2">
-          <div class="fg"><label>Loaned to</label><input type="text" id="newLoanTo" placeholder="Name"></div>
-          <div class="fg"><label>Date out</label><input type="date" id="newLoanDate"></div>
+          <div class="fg"><label>Publication / Source</label><input type="text" id="bPublication" placeholder="e.g. The Atlantic, New Yorker…"></div>
+          <div class="fg"><label>Word Count (approx)</label><input type="number" id="bWordCount" placeholder="e.g. 3500" min="0"></div>
         </div>
-        <div class="fg"><label>Note</label><input type="text" id="newLoanNote" placeholder="Reminder…"></div>
-        <div style="display:flex;gap:.4rem;margin-top:.33rem">
-          <button class="btn btn-primary btn-sm" onclick="addLoan()">Add</button>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('loanAddForm').style.display='none'">Cancel</button>
+        <div class="fg"><label>Article URL</label><input type="url" id="bArticleUrl" placeholder="https://…"></div>
+      </div>
+    </div><!-- /details -->
+
+    <!-- ── TAB 2: MY READING ── -->
+    <div class="modal-tab-panel" data-panel="reading">
+      <div class="row2">
+        <div class="fg">
+          <label>Reading Status</label>
+          <select id="bStatus" onchange="handleStatusChange()">
+            <option value="unread">Unread</option>
+            <option value="reading">Currently Reading</option>
+            <option value="read">Read / Finished</option>
+            <option value="dnf">Did Not Finish (DNF)</option>
+            <option value="wishlist">🌿 Wishlist</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>My Rating</label>
+          <div class="star-input" id="ratingInput">
+            <span class="star" data-v="1" onclick="setRating(1)">★</span>
+            <span class="star" data-v="2" onclick="setRating(2)">★</span>
+            <span class="star" data-v="3" onclick="setRating(3)">★</span>
+            <span class="star" data-v="4" onclick="setRating(4)">★</span>
+            <span class="star" data-v="5" onclick="setRating(5)">★</span>
+          </div>
         </div>
       </div>
-      <div id="loanEntriesList"></div>
-    </div>
-  </div>
+      <div id="datesSection" class="row2" style="display:none">
+        <div class="fg">
+          <label id="dateStartedLabel">Date Started <span style="font-style:italic;font-size:.68rem;color:var(--ink-faint)">(optional)</span></label>
+          <input type="date" id="bStartDate">
+          <label class="inline-check" id="yearOnlyCheck"><input type="checkbox" id="chkYearOnly" onchange="toggleYearOnly()"> I only know the year</label>
+        </div>
+        <div class="fg" id="dateFinishedWrap">
+          <label id="dateFinishedLabel">Date Finished</label>
+          <input type="date" id="bDate">
+        </div>
+      </div>
+      <div class="fg" id="yearOnlyWrap" style="display:none">
+        <label>Year Read / Started</label>
+        <input type="number" id="bYearOnly" placeholder="e.g. 2021" min="1900" max="2099">
+      </div>
+      <div class="fg">
+        <label>Add to Lists</label>
+        <div class="list-grp">
+          <button type="button" class="list-chip lc-tbr" data-list="tbr" onclick="toggleListChip(this)">🌿 TBR</button>
+          <button type="button" class="list-chip lc-fav" data-list="fav" onclick="toggleListChip(this)">⭐ Favorites</button>
+          <button type="button" class="list-chip lc-dnf" data-list="dnf_list" onclick="toggleListChip(this)">📕 DNF Shelf</button>
+        </div>
+      </div>
+      <div class="fg"><label>Review / Overall Thoughts <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">(permanent summary)</span></label><textarea id="bNotes" placeholder="Your overall take — this shows on the card…"></textarea></div>
+      <div id="progressSection" style="display:none;background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:.8rem .9rem;margin-bottom:.85rem">
+        <label style="display:block;font-size:.71rem;color:var(--ink-light);font-family:'IM Fell English SC',serif;letter-spacing:.05em;margin-bottom:.36rem">Progress Tracking</label>
+        <div class="prog-type-tabs" id="progTypeTabs">
+          <button type="button" class="prog-tab active" data-pt="pages" onclick="setProgType('pages',this)">By Pages</button>
+          <button type="button" class="prog-tab" data-pt="audio" onclick="setProgType('audio',this)">By Time (Audio)</button>
+        </div>
+        <div id="ptPages" class="prog-fields">
+          <div class="fg"><label>Current Page</label><input type="number" id="progCurPage" placeholder="0" min="0"></div>
+          <div class="fg"><label>Total Pages</label><input type="number" id="progTotalPage" placeholder="300" min="1"></div>
+        </div>
+        <div id="ptAudio" class="prog-fields" style="display:none">
+          <div class="fg">
+            <label>Current position</label>
+            <div style="display:flex;gap:.4rem;align-items:center">
+              <input type="number" id="progCurH" placeholder="0" min="0" style="width:60px">
+              <span style="color:var(--ink-faint);font-size:.8rem">h</span>
+              <input type="number" id="progCurMin" placeholder="0" min="0" max="59" style="width:60px">
+              <span style="color:var(--ink-faint);font-size:.8rem">min</span>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Total length</label>
+            <div style="display:flex;gap:.4rem;align-items:center">
+              <input type="number" id="progTotalH" placeholder="0" min="0" style="width:60px">
+              <span style="color:var(--ink-faint);font-size:.8rem">h</span>
+              <input type="number" id="progTotalMin" placeholder="0" min="0" max="59" style="width:60px">
+              <span style="color:var(--ink-faint);font-size:.8rem">min</span>
+            </div>
+          </div>
+        </div>
+        <div id="progHistoryEdit" style="margin-top:.65rem"></div>
+      </div>
+      <div id="journalSection" style="display:none">
+        <div class="journal-section">
+          <h4>Reading Journal <span style="font-size:.7rem;font-family:'Lora',serif;font-weight:400;font-style:italic;color:var(--ink-faint)">(timestamped session notes)</span></h4>
+          <div id="journalEntries"></div>
+          <div class="journal-add">
+            <textarea id="journalNewEntry" placeholder="Add a journal note for today's reading session…"></textarea>
+            <div style="display:flex;justify-content:flex-end"><button class="btn btn-teal btn-sm" onclick="addJournalEntry()">＋ Add Note</button></div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /reading -->
+
+    <!-- ── TAB 3: LOCATION & OWNERSHIP ── -->
+    <div class="modal-tab-panel" data-panel="location">
+      <div class="own-section" id="ownershipSection">
+        <h4>📦 How I Own / Access This Book</h4>
+        <div class="fg" style="margin-bottom:.5rem">
+          <label>Formats</label>
+          <div class="fmt-grp">
+            <button type="button" class="fmt-chip" data-fmt="physical" onclick="toggleFmt(this)">📗 Physical</button>
+            <button type="button" class="fmt-chip fc-ebook" data-fmt="ebook" onclick="toggleFmt(this)">📱 eBook</button>
+            <button type="button" class="fmt-chip fc-audio" data-fmt="audio" onclick="toggleFmt(this)">🎧 Audiobook</button>
+            <button type="button" class="fmt-chip" data-fmt="borrowed" onclick="toggleFmt(this)">🏛 Library Loan</button>
+            <button type="button" class="fmt-chip" data-fmt="wishlist" onclick="toggleFmt(this)">🌿 Wishlist</button>
+          </div>
+        </div>
+        <div id="srcPhysicalWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Physical — edition / notes</label><input type="text" id="srcPhysical" placeholder="e.g. Hardcover, signed…"></div>
+        <div id="srcEbookWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">eBook platform</label><input type="text" id="srcEbook" placeholder="e.g. Kindle, Apple Books…"></div>
+        <div id="srcAudioWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Audiobook platform</label><input type="text" id="srcAudio" placeholder="e.g. Audible, Libby…"></div>
+        <div id="srcBorrowedWrap" class="src-row"><label style="font-size:.68rem;color:var(--ink-faint)">Library / borrowed from</label><input type="text" id="srcBorrowed" placeholder="e.g. Chandler Public Library…"></div>
+      </div>
+      <div class="fg" id="locationSection">
+        <label>📍 Location in Home <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">(where does this book live?)</span></label>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <input type="text" id="bLocationRoom" list="roomsList" placeholder="Room (e.g. Office, Bedroom…)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
+          <datalist id="roomsList"></datalist>
+          <input type="text" id="bLocationShelf" placeholder="Shelf / section (optional)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
+        </div>
+      </div>
+      <div id="loanHistorySection" style="display:none">
+        <div class="loan-history-wrap">
+          <h4>📤 Loan History <button class="btn btn-xs btn-primary" onclick="showAddLoanForm()">＋ Add Loan</button></h4>
+          <div id="loanAddForm" class="loan-add-form" style="display:none">
+            <h5>New Loan</h5>
+            <div class="row2">
+              <div class="fg"><label>Loaned to</label><input type="text" id="newLoanTo" placeholder="Name"></div>
+              <div class="fg"><label>Date out</label><input type="date" id="newLoanDate"></div>
+            </div>
+            <div class="fg"><label>Note</label><input type="text" id="newLoanNote" placeholder="Reminder…"></div>
+            <div style="display:flex;gap:.4rem;margin-top:.33rem">
+              <button class="btn btn-primary btn-sm" onclick="addLoan()">Add</button>
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('loanAddForm').style.display='none'">Cancel</button>
+            </div>
+          </div>
+          <div id="loanEntriesList"></div>
+        </div>
+      </div>
+    </div><!-- /location -->
+
+  </div><!-- /modal-body -->
 
   <div class="modal-foot" style="justify-content:space-between">
     <button class="btn btn-secondary" id="deleteBookBtn" style="color:var(--burgundy);display:none" onclick="deleteBookFromModal()">🗑 Delete</button>
@@ -1399,7 +1404,7 @@ function openAddModal(){
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
   document.getElementById('deleteBookBtn').style.display='none';
-  setItemType('book');clearForm();updateRoomsDatalist();
+  setItemType('book');clearForm();updateRoomsDatalist();switchModalTab('details');
   document.getElementById('bookModal').style.display='flex';
   setTimeout(()=>document.getElementById('isbnInput').focus(),60);
 }
@@ -1412,7 +1417,7 @@ function openEditModal(id){
   curItemType=b.itemType||'book';
   document.getElementById('modalTitle').textContent='Edit';
   document.getElementById('deleteBookBtn').style.display='inline-flex';
-  setItemType(curItemType);
+  setItemType(curItemType);switchModalTab('details');
 
   document.getElementById('isbnInput').value='';
   setIsbnStatus('ISBN lookup available if you want to refresh details.','');
@@ -1485,6 +1490,12 @@ function clearForm(){
 
 function closeM(id){document.getElementById(id).style.display='none';}
 function ovc(e,id){if(e.target===e.currentTarget)closeM(id);}
+function switchModalTab(n){
+  document.querySelectorAll('.modal-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===n));
+  document.querySelectorAll('.modal-tab-panel').forEach(p=>p.classList.toggle('active',p.dataset.panel===n));
+  // Reset scroll position of the modal body
+  const body=document.querySelector('#bookModal .modal-body');if(body)body.scrollTop=0;
+}
 
 function handleStatusChange(){
   const s=document.getElementById('bStatus').value;
