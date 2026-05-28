@@ -146,6 +146,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .lh-fav{background:linear-gradient(135deg,#fef6d8,#fefaea);border-bottom:2px solid var(--gold)}
 .lh-dnf{background:linear-gradient(135deg,#eaeef8,#f0f4fc);border-bottom:2px solid var(--navy)}
 .lh-article{background:linear-gradient(135deg,#e4f0ee,#eef8f5);border-bottom:2px solid var(--teal)}
+.lh-wishlist{background:linear-gradient(135deg,#e4f0ee,#f4f8ed);border-bottom:2px solid var(--teal)}
 .lh-finished{background:linear-gradient(135deg,#e6f0e6,#eef6ee);border-bottom:2px solid var(--sage)}
 .list-rows{padding:.42rem 0;max-height:300px;overflow-y:auto}
 .list-row{display:flex;align-items:center;gap:.52rem;padding:.42rem 1.02rem;border-bottom:1px dotted var(--parchment-dark);transition:background .14s;cursor:pointer}
@@ -1190,7 +1191,7 @@ function renderLibrary(){
   let list=[...books].filter(b=>b.status!=='wishlist'); // wishlist lives in its own tab
   if(filters.status&&filters.status!=='all') list=list.filter(b=>b.status===filters.status);
   if(filters.list==='tbr') list=list.filter(b=>(b.lists||[]).includes('tbr'));
-  if(filters.list==='fav') list=list.filter(b=>(b.lists||[]).includes('fav'));
+  if(filters.list==='fav') list=list.filter(b=>isFav(b));
   if(filters.list==='loaned') list=list.filter(b=>activeLoan(b));
   if(filters.fmt) list=list.filter(b=>(b.formats||[]).includes(filters.fmt));
   if(filters.type==='article') list=list.filter(b=>b.itemType==='article');
@@ -2232,12 +2233,15 @@ function delProgEntryEdit(bookId,idx){
 // ══════════════════════════════════════════
 // LISTS VIEW
 // ══════════════════════════════════════════
+function isFav(b){return b.rating===5||(b.lists||[]).includes('fav');}
+
 function renderLists(){
   const readingBks=books.filter(b=>b.status==='reading');
   const tbr=books.filter(b=>(b.lists||[]).includes('tbr'));
-  const fav=books.filter(b=>(b.lists||[]).includes('fav'));
+  const fav=books.filter(b=>isFav(b)&&b.status!=='wishlist').sort((a,b2)=>(b2.rating||0)-(a.rating||0));
   const dnfL=books.filter(b=>b.status==='dnf'||(b.lists||[]).includes('dnf_list'));
   const articles=books.filter(b=>b.itemType==='article');
+  const wishlistBks=books.filter(b=>b.status==='wishlist').sort((a,b)=>a.title.localeCompare(b.title));
 
   const rowCover=b=>{const url=coversDB[b.id];const g=bookGradient(b.title,b.author);return url?`<img class="list-row-cover" src="${esc(url)}" alt="" onerror="this.style.display='none'">`:`<div class="list-row-cover-ph" style="background:${g}"></div>`;};
 
@@ -2308,13 +2312,30 @@ function renderLists(){
   }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">No finished books yet.</div>`;
   const finishedCard=`<div class="list-card" style="grid-column:1/-1"><div class="list-card-head lh-finished"><h3>✓ Finished ${thisYear}</h3><span class="list-count">${finishedBks.length} book${finishedBks.length!==1?'s':''}</span></div><div class="list-rows">${finishedRows}</div></div>`;
 
+  // Wishlist rows — with Move to Library action
+  const wishlistRows=wishlistBks.length?wishlistBks.map(b=>{
+    return `<div class="list-row" style="cursor:pointer" onclick="openEditModal('${b.id}')">
+      ${rowCover(b)}
+      <div class="list-row-info">
+        <div class="list-row-title">${esc(b.title)}</div>
+        <div class="list-row-author">${esc(b.author)}</div>
+        ${b.genre?`<div style="font-size:.66rem;color:var(--ink-faint);margin-top:.1rem;font-style:italic">${esc(b.genre)}</div>`:''}
+      </div>
+      <div class="list-row-right" onclick="event.stopPropagation()">
+        <button onclick="moveToLibrary('${b.id}')" style="font-size:.65rem;padding:.18rem .48rem;border:1px solid var(--sage);border-radius:4px;background:transparent;color:var(--sage);cursor:pointer;white-space:nowrap;font-family:'Lora',serif">📚 Add</button>
+      </div>
+    </div>`;
+  }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">Your wishlist is empty — add books you'd love to read.</div>`;
+  const wishlistCard=`<div class="list-card"><div class="list-card-head lh-wishlist"><h3>🌿 Wishlist</h3><span class="list-count">${wishlistBks.length} book${wishlistBks.length!==1?'s':''}</span></div><div class="list-rows">${wishlistRows}</div></div>`;
+
   document.getElementById('listsGrid').innerHTML=
     readingCard+
     finishedCard+
     makeList('🌿 To Be Read','lh-tbr',tbr,'No books on your TBR yet.')+
-    makeList('⭐ Favorites','lh-fav',fav,'No favorites yet.')+
+    makeList('⭐ Favorites','lh-fav',fav,'No favorites yet — rate a book 5 stars or tag it ⭐.')+
     makeList('📕 Did Not Finish','lh-dnf',dnfL,'No DNF books.')+
-    makeList('📰 Articles Read','lh-article',articles,'No articles logged yet.');
+    makeList('📰 Articles Read','lh-article',articles,'No articles logged yet.')+
+    wishlistCard;
 }
 
 function renderYear(){
@@ -2977,7 +2998,7 @@ function renderKeepsake(){
   const{cur}=computeStreak();
   const bookOnly=books.filter(b=>b.itemType!=='article');
   const readBks=bookOnly.filter(b=>b.status==='read');
-  const favBks=books.filter(b=>(b.lists||[]).includes('fav'));
+  const favBks=books.filter(b=>isFav(b)&&b.status!=='wishlist');
   const tbrBks=books.filter(b=>(b.lists||[]).includes('tbr'));
   const dnfBks=books.filter(b=>b.status==='dnf'||(b.lists||[]).includes('dnf_list'));
   const articleBks=books.filter(b=>b.itemType==='article'&&b.status==='read');
