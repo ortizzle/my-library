@@ -259,6 +259,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .modal-tab{padding:.52rem 1rem;font-family:'IM Fell English SC',serif;font-size:.7rem;letter-spacing:.06em;color:var(--ink-faint);border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:color .15s;white-space:nowrap;user-select:none}
 .modal-tab:hover{color:var(--ink)}.modal-tab.active{color:var(--burgundy);border-bottom-color:var(--burgundy)}
 .modal-tab-panel{display:none;padding-top:.9rem}.modal-tab-panel.active{display:block}
+/* Add mode: hide tabs, stack all panels */
+#bookModal .modal.add-mode .modal-tabs{display:none}
+#bookModal .modal.add-mode .modal-tab-panel{display:block}
+#bookModal .modal.add-mode .modal-tab-panel+.modal-tab-panel{border-top:2px dashed var(--parchment-dark);padding-top:.9rem;margin-top:.4rem}
+/* Title search results */
+.title-search-results{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:6px;overflow:hidden;margin-bottom:.6rem;box-shadow:0 4px 12px var(--shadow)}
 @keyframes su{from{transform:translateY(15px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-hdr{display:flex;justify-content:space-between;align-items:flex-start}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.18rem;font-weight:600}
@@ -630,7 +636,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div class="modal-tabs">
     <button class="modal-tab active" data-tab="details" onclick="switchModalTab('details')">📖 Book Details</button>
     <button class="modal-tab" data-tab="reading" onclick="switchModalTab('reading')">📊 My Reading</button>
-    <button class="modal-tab" data-tab="location" onclick="switchModalTab('location')">📍 Location &amp; Ownership</button>
+    <button class="modal-tab" data-tab="location" onclick="switchModalTab('location')">📍 Location</button>
   </div>
 
   <div class="modal-body">
@@ -645,12 +651,26 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         </div>
       </div>
       <div id="isbnSection">
-        <div class="isbn-bar">
-          <input type="text" id="isbnInput" placeholder="ISBN (backup)" maxlength="17" style="max-width:130px">
-          <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
-          <button class="btn btn-primary" onclick="openScanner()" title="Scan barcode" style="font-size:1.3rem;padding:.3rem .9rem;flex-shrink:0">📷 Scan</button>
+        <div class="isbn-bar" style="flex-direction:column;gap:.55rem">
+          <!-- Title / Author search -->
+          <div style="display:flex;gap:.4rem;align-items:stretch">
+            <input type="text" id="titleSearchInput" placeholder="Search by title or author…" onkeydown="if(event.key==='Enter')searchByTitle()" style="flex:1;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.84rem;outline:none">
+            <button class="btn btn-primary" onclick="searchByTitle()" style="white-space:nowrap;flex-shrink:0">🔍 Search</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <div style="flex:1;border-top:1px dashed var(--parchment-dark)"></div>
+            <span style="font-size:.66rem;color:var(--ink-faint);white-space:nowrap">or look up by ISBN</span>
+            <div style="flex:1;border-top:1px dashed var(--parchment-dark)"></div>
+          </div>
+          <!-- ISBN + scan -->
+          <div style="display:flex;gap:.4rem;align-items:stretch">
+            <input type="text" id="isbnInput" placeholder="ISBN" maxlength="17" style="flex:1;max-width:140px;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.84rem;outline:none">
+            <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
+            <button class="btn btn-secondary" onclick="openScanner()" title="Scan barcode" style="flex-shrink:0">📷 Scan</button>
+          </div>
         </div>
-        <div class="isbn-status" id="isbnStatus">Enter an ISBN to auto-fill, or fill in manually below.</div>
+        <div id="titleSearchResults" class="title-search-results" style="display:none"></div>
+        <div class="isbn-status" id="isbnStatus">Search by title, scan, or enter an ISBN to auto-fill.</div>
         <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
       </div>
       <div class="cover-preview-wrap" id="coverPreviewWrap">
@@ -1405,9 +1425,10 @@ function openAddModal(){
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
   document.getElementById('deleteBookBtn').style.display='none';
+  document.querySelector('#bookModal .modal').classList.add('add-mode');
   setItemType('book');clearForm();updateRoomsDatalist();switchModalTab('details');
   document.getElementById('bookModal').style.display='flex';
-  setTimeout(()=>document.getElementById('isbnInput').focus(),60);
+  setTimeout(()=>document.getElementById('titleSearchInput').focus(),60);
 }
 
 function openEditModal(id){
@@ -1418,6 +1439,7 @@ function openEditModal(id){
   curItemType=b.itemType||'book';
   document.getElementById('modalTitle').textContent='Edit';
   document.getElementById('deleteBookBtn').style.display='inline-flex';
+  document.querySelector('#bookModal .modal').classList.remove('add-mode');
   setItemType(curItemType);switchModalTab('details');
 
   document.getElementById('isbnInput').value='';
@@ -1481,7 +1503,8 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','titleSearchInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const tsr=document.getElementById('titleSearchResults');if(tsr)tsr.style.display='none';
   updateRoomsDatalist();
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
   document.getElementById('chkYearOnly').checked=false;
@@ -2070,6 +2093,57 @@ async function lookupISBN(){
   }catch{setIsbnStatus('Lookup failed — fill in manually.','err');}
 }
 function setIsbnStatus(msg,cls){const el=document.getElementById('isbnStatus');el.textContent=msg;el.className='isbn-status'+(cls?' isbn-'+cls:'');}
+
+let _titleDocs=[];
+async function searchByTitle(){
+  const q=document.getElementById('titleSearchInput').value.trim();
+  if(!q){setIsbnStatus('Enter a title or author to search.','err');return;}
+  setIsbnStatus('Searching…','');
+  document.getElementById('titleSearchResults').style.display='none';
+  try{
+    const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median&limit=8`);
+    const d=await r.json();
+    _titleDocs=(d.docs||[]).filter(x=>x.title);
+    if(!_titleDocs.length){setIsbnStatus('No results — try different keywords.','err');return;}
+    setIsbnStatus('','');
+    const wrap=document.getElementById('titleSearchResults');
+    wrap.style.display='block';
+    wrap.innerHTML=_titleDocs.map((doc,i)=>{
+      const coverUrl=doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg`:'';
+      const author=(doc.author_name||[]).slice(0,2).join(', ');
+      const year=doc.first_publish_year?` · ${doc.first_publish_year}`:'';
+      return `<div onclick="selectTitleResult(${i})" style="display:flex;align-items:center;gap:.6rem;padding:.48rem .72rem;border-bottom:1px dotted var(--parchment-dark);cursor:pointer;transition:background .12s" onmouseenter="this.style.background='var(--parchment)'" onmouseleave="this.style.background='transparent'">
+        ${coverUrl?`<img src="${esc(coverUrl)}" style="width:28px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:28px;height:40px;border-radius:2px;background:var(--parchment-dark);flex-shrink:0"></div>'}
+        <div style="flex:1;min-width:0">
+          <div style="font-family:\'Playfair Display\',serif;font-size:.82rem;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(doc.title)}</div>
+          <div style="font-size:.69rem;color:var(--ink-light);font-style:italic">${esc(author)}${esc(year)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch{setIsbnStatus('Search failed — check connection and try again.','err');}
+}
+async function selectTitleResult(i){
+  const doc=_titleDocs[i];if(!doc)return;
+  document.getElementById('titleSearchResults').style.display='none';
+  document.getElementById('titleSearchInput').value='';
+  document.getElementById('bTitle').value=doc.title||'';
+  document.getElementById('bAuthor').value=(doc.author_name||[]).slice(0,2).join(', ')||'';
+  if(doc.number_of_pages_median){
+    document.getElementById('progTotalPage').value=doc.number_of_pages_median;
+    const pmEl=document.getElementById('pmTotalPage');if(pmEl)pmEl.value=doc.number_of_pages_median;
+  }
+  const isbn=(doc.isbn||[])[0];
+  if(isbn){
+    document.getElementById('isbnInput').value=isbn;
+    setIsbnStatus('Fetching full details…','');
+    await lookupISBN();
+  }else{
+    const coverUrl=doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`:await fetchCoverByTitle(doc.title,(doc.author_name||[])[0]||'');
+    if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
+    setIsbnStatus(`✓ Selected: "${doc.title}"`,'ok');
+    toast('Book details filled in!','ok');
+  }
+}
 
 // ══════════════════════════════════════════
 // BARCODE SCANNER
