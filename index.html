@@ -87,7 +87,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .book-card{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:.65rem .8rem;box-shadow:0 2px 8px var(--shadow),inset 0 1px 0 rgba(255,255,255,.7);display:flex;flex-direction:column;gap:.28rem;transition:box-shadow .2s,transform .2s;position:relative;overflow:hidden}
 .book-card:hover{box-shadow:0 5px 20px var(--shadow);transform:translateY(-2px)}
 .book-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:var(--r) 0 0 var(--r)}
-.bc-read::before{background:var(--sage)}.bc-reading::before{background:var(--amber)}.bc-unread::before{background:var(--parchment-dark)}.bc-dnf::before{background:var(--navy)}.bc-loaned::before{background:repeating-linear-gradient(45deg,var(--burgundy),var(--burgundy) 3px,transparent 3px,transparent 7px)}.bc-article::before{background:var(--teal)}
+.bc-read::before{background:var(--sage)}.bc-reading::before{background:var(--amber)}.bc-unread::before{background:var(--parchment-dark)}.bc-dnf::before{background:var(--navy)}.bc-loaned::before{background:repeating-linear-gradient(45deg,var(--burgundy),var(--burgundy) 3px,transparent 3px,transparent 7px)}.bc-article::before{background:var(--teal)}.bc-wishlist::before{background:linear-gradient(180deg,var(--teal),var(--gold))}
 
 .cover-thumb{position:absolute;top:.65rem;right:.65rem;width:76px;height:108px;border-radius:3px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.25);border:1px solid var(--parchment-dark);background:var(--parchment-mid)}
 .cover-ph{position:absolute;top:.65rem;right:.65rem;width:76px;height:108px;border-radius:3px;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 6px rgba(0,0,0,.12)}
@@ -95,7 +95,11 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 
 .badge-row{display:flex;flex-wrap:wrap;gap:.23rem}
 .badge{font-family:'IM Fell English SC',serif;font-size:.56rem;letter-spacing:.07em;padding:.09rem .36rem;border-radius:20px;white-space:nowrap;line-height:1.5}
-.b-read{background:#e6f0e6;color:var(--sage)}.b-reading{background:#fff3d0;color:#7a5500}.b-unread{background:#f4f0ea;color:var(--ink-faint)}.b-dnf{background:#e6eaf4;color:var(--navy)}.b-loaned{background:#fde8e8;color:var(--burgundy)}.b-tbr{background:#fce8f0;color:var(--rose)}.b-fav{background:#fef6d8;color:var(--gold)}.b-fmt{background:var(--parchment-dark);color:var(--ink-light)}.b-article{background:#e4f0ee;color:var(--teal)}
+.b-read{background:#e6f0e6;color:var(--sage)}.b-reading{background:#fff3d0;color:#7a5500}.b-unread{background:#f4f0ea;color:var(--ink-faint)}.b-dnf{background:#e6eaf4;color:var(--navy)}.b-loaned{background:#fde8e8;color:var(--burgundy)}.b-tbr{background:#fce8f0;color:var(--rose)}.b-fav{background:#fef6d8;color:var(--gold)}.b-fmt{background:var(--parchment-dark);color:var(--ink-light)}.b-article{background:#e4f0ee;color:var(--teal)}.b-wishlist{background:#e4f0ee;color:var(--teal)}
+.book-location{font-size:.63rem;color:var(--ink-faint);margin-top:.05rem;display:flex;align-items:center;gap:.22rem}
+.filter-row{display:flex;align-items:center;gap:.38rem;flex-wrap:wrap;margin-top:.42rem;padding-top:.42rem;border-top:1px solid var(--parchment-dark);width:100%}
+.filter-row-label{font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.1em;color:var(--ink-faint);flex-shrink:0;min-width:3rem}
+.wishlist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:.92rem}
 
 .book-title{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:600;line-height:1.27;color:var(--ink)}
 .book-author{font-size:.76rem;color:var(--ink-light);font-style:italic}
@@ -400,6 +404,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
     <div class="nav-tab active" data-view="log" onclick="showView('log')">📖 Today</div>
     <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
+    <div class="nav-tab" data-view="wishlist" onclick="showView('wishlist')">🌿 Wishlist</div>
     <div class="nav-tab" data-view="lists" onclick="showView('lists')">Lists</div>
     <div class="nav-tab" data-view="year" onclick="showView('year')">📅 Reading Year</div>
     <div class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</div>
@@ -437,11 +442,32 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <button class="chip" data-g="fmt" data-v="ebook" onclick="setFilter(this)">eBook</button>
     <button class="chip" data-g="fmt" data-v="audio" onclick="setFilter(this)">Audio</button>
     <button class="chip c-article" data-g="type" data-v="article" onclick="setFilter(this)">Articles</button>
+    <div id="genreFilterRow" style="display:none" class="filter-row">
+      <span class="filter-row-label">Genre</span>
+      <div id="genreChips" style="display:flex;gap:.38rem;flex-wrap:wrap"></div>
+    </div>
+    <div id="locationFilterRow" style="display:none" class="filter-row">
+      <span class="filter-row-label">Room</span>
+      <div id="locationChips" style="display:flex;gap:.38rem;flex-wrap:wrap"></div>
+    </div>
   </div>
   <div class="books-grid" id="booksGrid"></div>
   <div class="empty" id="emptyLib" style="display:none">
     <span class="icon">📚</span><h3>Your shelf is empty</h3>
     <p>Add your first book or article — or look one up by ISBN.</p>
+  </div>
+</div>
+
+<!-- WISHLIST -->
+<div class="view" id="view-wishlist">
+  <div class="sec-head">
+    <h2 class="sec-title">🌿 Wishlist</h2>
+    <button class="btn btn-primary" onclick="openAddWishlist()">＋ Add to Wishlist</button>
+  </div>
+  <div class="wishlist-grid" id="wishlistGrid"></div>
+  <div class="empty" id="emptyWishlist" style="display:none">
+    <span class="icon">🌿</span><h3>Your wishlist is empty</h3>
+    <p>Add books you'd love to read someday — they'll stay separate from your library until you're ready.</p>
   </div>
 </div>
 
@@ -645,6 +671,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <option value="reading">Currently Reading</option>
         <option value="read">Read / Finished</option>
         <option value="dnf">Did Not Finish (DNF)</option>
+        <option value="wishlist">🌿 Wishlist</option>
       </select>
     </div>
   </div>
@@ -735,6 +762,16 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         </div>
       </div>
       <div id="progHistoryEdit" style="margin-top:.65rem"></div>
+    </div>
+  </div>
+
+  <!-- LOCATION -->
+  <div class="fg" id="locationSection">
+    <label>📍 Location in Home <span style="font-size:.68rem;color:var(--ink-faint);font-style:italic">(optional — where does this book live?)</span></label>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <input type="text" id="bLocationRoom" list="roomsList" placeholder="Room (e.g. Office, Bedroom…)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
+      <datalist id="roomsList"></datalist>
+      <input type="text" id="bLocationShelf" placeholder="Shelf / section (optional)" style="flex:1;min-width:140px;padding:.38rem .72rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.82rem">
     </div>
   </div>
 
@@ -863,7 +900,8 @@ const SK={
   cacheQ: 'trr_v1_cq',
   prog:   'trr_v1_prog',
   covers: 'trr_v1_covers',
-  journal:'trr_v1_journal'  // {bookId: [{date,text}]}
+  journal:'trr_v1_journal',  // {bookId: [{date,text}]}
+  rooms:  'trr_v1_rooms'
 };
 
 // Old key prefixes to migrate from
@@ -1077,6 +1115,7 @@ let streakDB   = load(SK.streak)  || {};
 let progressDB = load(SK.prog)    || {};
 let coversDB   = load(SK.covers)  || {};
 let journalDB  = load(SK.journal) || {};
+let rooms      = load(SK.rooms)   || [];
 
 // ══════════════════════════════════════════
 // STATE
@@ -1084,7 +1123,7 @@ let journalDB  = load(SK.journal) || {};
 let editId=null,curRating=0,curDiscId=null,curProgId=null,discQs=[];
 let activeFmts=new Set(),activeLists=new Set();
 let curItemType='book';
-let filters={status:'all',list:null,fmt:null,type:null};
+let filters={status:'all',list:null,fmt:null,type:null,genre:null,room:null};
 let progModalType='pages';
 let pendingCoverUrl='';
 
@@ -1102,6 +1141,7 @@ function showView(n){
   if(n==='log')      renderLogSession();
   if(n==='year')     renderYear();
   if(n==='journal')  renderJournalView();
+  if(n==='wishlist') renderWishlist();
   if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
 }
 
@@ -1127,6 +1167,12 @@ function setFilter(el){
   }else if(g==='type'){
     if(filters.type===v){filters.type=null;el.classList.remove('active');renderLibrary();return;}
     groupChips().forEach(c=>c.classList.remove('active'));filters.type=v;
+  }else if(g==='genre'){
+    if(filters.genre===v){filters.genre=null;el.classList.remove('active');renderLibrary();return;}
+    groupChips().forEach(c=>c.classList.remove('active'));filters.genre=v;
+  }else if(g==='room'){
+    if(filters.room===v){filters.room=null;el.classList.remove('active');renderLibrary();return;}
+    groupChips().forEach(c=>c.classList.remove('active'));filters.room=v;
   }
   el.classList.add('active');renderLibrary();
 }
@@ -1136,16 +1182,19 @@ function setFilter(el){
 // ══════════════════════════════════════════
 function renderLibrary(){
   const q=document.getElementById('searchInput').value.toLowerCase().trim();
-  let list=[...books];
+  let list=[...books].filter(b=>b.status!=='wishlist'); // wishlist lives in its own tab
   if(filters.status&&filters.status!=='all') list=list.filter(b=>b.status===filters.status);
   if(filters.list==='tbr') list=list.filter(b=>(b.lists||[]).includes('tbr'));
   if(filters.list==='fav') list=list.filter(b=>(b.lists||[]).includes('fav'));
   if(filters.list==='loaned') list=list.filter(b=>activeLoan(b));
   if(filters.fmt) list=list.filter(b=>(b.formats||[]).includes(filters.fmt));
   if(filters.type==='article') list=list.filter(b=>b.itemType==='article');
+  if(filters.genre) list=list.filter(b=>b.genre===filters.genre);
+  if(filters.room) list=list.filter(b=>(b.location?.room||'')===filters.room);
   if(q) list=list.filter(b=>
     b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||(b.genre||'').toLowerCase().includes(q)||(b.publication||'').toLowerCase().includes(q)
   );
+  renderGenreChips();renderLocationChips();
   list.sort((a,b)=>{
     const aR=a.status==='reading'?0:1;
     const bR=b.status==='reading'?0:1;
@@ -1160,6 +1209,73 @@ function renderLibrary(){
 }
 
 function activeLoan(b){return(b.loans||[]).find(l=>!l.returnedDate);}
+
+// ══════════════════════════════════════════
+// DYNAMIC FILTER CHIPS
+// ══════════════════════════════════════════
+function renderGenreChips(){
+  const genres=[...new Set(books.filter(b=>b.genre&&b.status!=='wishlist').map(b=>b.genre))].sort();
+  const row=document.getElementById('genreFilterRow');
+  const wrap=document.getElementById('genreChips');
+  if(!row||!wrap)return;
+  if(!genres.length){row.style.display='none';return;}
+  row.style.display='flex';
+  wrap.innerHTML=genres.map(g=>`<button class="chip${filters.genre===g?' active':''}" data-g="genre" data-v="${esc(g)}" onclick="setFilter(this)">${esc(g)}</button>`).join('');
+}
+function renderLocationChips(){
+  const usedRooms=[...new Set(books.filter(b=>b.location?.room&&b.status!=='wishlist').map(b=>b.location.room))].sort();
+  const row=document.getElementById('locationFilterRow');
+  const wrap=document.getElementById('locationChips');
+  if(!row||!wrap)return;
+  if(!usedRooms.length){row.style.display='none';return;}
+  row.style.display='flex';
+  wrap.innerHTML=usedRooms.map(r=>`<button class="chip${filters.room===r?' active':''}" data-g="room" data-v="${esc(r)}" onclick="setFilter(this)">${esc(r)}</button>`).join('');
+}
+function updateRoomsDatalist(){
+  const dl=document.getElementById('roomsList');if(!dl)return;
+  const all=[...new Set([...rooms,...books.filter(b=>b.location?.room).map(b=>b.location.room)])].sort();
+  dl.innerHTML=all.map(r=>`<option value="${esc(r)}">`).join('');
+}
+
+// ══════════════════════════════════════════
+// WISHLIST
+// ══════════════════════════════════════════
+function renderWishlist(){
+  const list=books.filter(b=>b.status==='wishlist').sort((a,b)=>a.title.localeCompare(b.title));
+  document.getElementById('emptyWishlist').style.display=list.length?'none':'block';
+  document.getElementById('wishlistGrid').innerHTML=list.map(wishlistCard).join('');
+}
+function wishlistCard(b){
+  const coverUrl=coversDB[b.id];
+  const grad=bookGradient(b.title,b.author);
+  const coverHtml=coverUrl
+    ?`<img class="cover-thumb" src="${esc(coverUrl)}" alt="" onerror="this.style.display='none'">`
+    :`<div class="cover-ph" style="background:${grad};align-items:flex-end;padding:8px 7px"><span style="font-family:'Playfair Display',serif;font-size:8px;line-height:1.35;color:rgba(255,255,255,.82)">${esc(b.title)}</span></div>`;
+  return `<div class="book-card bc-wishlist card-has-cover" style="cursor:pointer" onclick="openEditModal('${b.id}')">
+    ${coverHtml}
+    <div class="badge-row"><span class="badge b-wishlist">🌿 Wishlist</span></div>
+    <div class="book-title">${esc(b.title)}</div>
+    <div class="book-author">${esc(b.author)}</div>
+    ${b.genre?`<div><span class="book-genre">${esc(b.genre)}</span></div>`:''}
+    ${b.notes?`<div class="book-review">${esc(b.notes)}</div>`:''}
+    <div style="margin-top:auto;padding-top:.55rem;display:flex;gap:.4rem;flex-wrap:wrap" onclick="event.stopPropagation()">
+      <button class="btn btn-sage btn-sm" onclick="moveToLibrary('${b.id}')">📚 Move to Library</button>
+      <button class="btn btn-secondary btn-sm" onclick="openEditModal('${b.id}')">✏︎ Edit</button>
+    </div>
+  </div>`;
+}
+function moveToLibrary(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  b.status='unread';
+  save(SK.books,books);
+  renderWishlist();renderLibrary();
+  toast(`"${b.title}" moved to your library!`,'ok');
+}
+function openAddWishlist(){
+  openAddModal();
+  document.getElementById('bStatus').value='wishlist';
+  handleStatusChange();
+}
 
 function spineClass(b){
   if(b.itemType==='article') return 'bc-article';
@@ -1249,6 +1365,7 @@ function bookCard(b){
       ${b.notes?`<div class="book-review">${esc(b.notes)}</div>`:''}
       ${dateDisplay(b)}
       ${loanLine}
+      ${b.location?.room?`<div class="book-location">📍 ${esc(b.location.room)}${b.location.shelf?' · '+esc(b.location.shelf):''}</div>`:''}
       ${b.articleUrl?`<div style="font-size:.68rem;margin-top:.1rem"><a href="${esc(b.articleUrl)}" target="_blank" style="color:var(--teal)">Read article ↗</a></div>`:''}
       ${fmtBadges(b)?`<div style="position:absolute;top:calc(.65rem + 114px);right:.65rem;width:76px;display:flex;justify-content:center;flex-wrap:wrap;gap:.15rem">${fmtBadges(b)}</div>`:''}
       <div class="card-actions" onclick="event.stopPropagation()">
@@ -1282,7 +1399,7 @@ function openAddModal(){
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
   document.getElementById('deleteBookBtn').style.display='none';
-  setItemType('book');clearForm();
+  setItemType('book');clearForm();updateRoomsDatalist();
   document.getElementById('bookModal').style.display='flex';
   setTimeout(()=>document.getElementById('isbnInput').focus(),60);
 }
@@ -1317,6 +1434,9 @@ function openEditModal(id){
   document.getElementById('srcBorrowed').value=b.srcBorrowed||'';
   document.getElementById('coverUrlInput').value=coversDB[id]||'';
   coversDB[id]?setCoverPreview(coversDB[id]):setCoverPreview(null);
+  document.getElementById('bLocationRoom').value=b.location?.room||'';
+  document.getElementById('bLocationShelf').value=b.location?.shelf||'';
+  updateRoomsDatalist();
 
   const prog=progressDB[id]||[];
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages');
@@ -1355,7 +1475,8 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  updateRoomsDatalist();
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
   document.getElementById('chkYearOnly').checked=false;
   setIsbnStatus('Enter an ISBN to auto-fill, or fill in manually below.','');
@@ -1544,7 +1665,14 @@ async function saveBook(){
     publication:document.getElementById('bPublication').value.trim(),
     wordCount:+document.getElementById('bWordCount').value||null,
     articleUrl:document.getElementById('bArticleUrl').value.trim(),
+    location:{
+      room:document.getElementById('bLocationRoom').value.trim(),
+      shelf:document.getElementById('bLocationShelf').value.trim()
+    },
   };
+  // Save new rooms to the rooms list
+  const newRoom=bk.location.room;
+  if(newRoom&&!rooms.includes(newRoom)){rooms.push(newRoom);rooms.sort();save(SK.rooms,rooms);}
 
   if(status==='reading'&&curItemType==='book'){
     const pt=document.querySelector('#progTypeTabs .prog-tab.active')?.dataset.pt||'pages';
@@ -1572,7 +1700,7 @@ async function saveBook(){
     toast('Added to your library!','ok');
   }
   save(SK.books,books);save(SK.prog,progressDB);save(SK.covers,coversDB);
-  closeM('bookModal');renderLibrary();updateHdrStreak();
+  closeM('bookModal');renderLibrary();renderWishlist();updateHdrStreak();
 }
 
 function deleteBookFromModal(){
