@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Reading Room">
   <meta name="theme-color" content="#190d05">
+  <link rel="manifest" href="manifest.json">
   <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
@@ -3352,6 +3353,13 @@ function saveReadingSession(){
   closeReadingSession();
   renderLibrary();renderLogSession();updateHdrStreak();
   toast('Session saved! 📚','ok');
+}
+
+// ── PWA: register service worker ──────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
 }
 </script>
 
