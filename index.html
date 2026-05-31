@@ -1506,6 +1506,7 @@ function openEditModal(id){
 function clearForm(){
   ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','titleSearchInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const tsr=document.getElementById('titleSearchResults');if(tsr)tsr.style.display='none';
+  const phe=document.getElementById('progHistoryEdit');if(phe)phe.innerHTML='';
   updateRoomsDatalist();
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
   document.getElementById('chkYearOnly').checked=false;
@@ -1546,6 +1547,10 @@ function handleStatusChange(){
       if(dateFinishedLabel) dateFinishedLabel.textContent='Date Stopped';
       if(dateFinishedWrap) dateFinishedWrap.style.display='block';
       if(yearOnlyCheck) yearOnlyCheck.style.display='none';
+      // Sync DNF list chip and auto-fill Date Stopped
+      activeLists.add('dnf_list');updateListChips();
+      const bDate=document.getElementById('bDate');
+      if(bDate&&!bDate.value)bDate.value=localDateStr();
     }
   }
   document.getElementById('progressSection').style.display=(s==='reading'&&curItemType==='book')?'block':'none';
@@ -1557,12 +1562,34 @@ function toggleYearOnly(){
   document.getElementById('bStartDate').disabled=on;
 }
 
-function toggleFmt(el){const f=el.dataset.fmt;activeFmts.has(f)?activeFmts.delete(f):activeFmts.add(f);updateFmtChips();}
+function toggleFmt(el){
+  const f=el.dataset.fmt;
+  const turningOn=!activeFmts.has(f);
+  activeFmts.has(f)?activeFmts.delete(f):activeFmts.add(f);
+  updateFmtChips();
+  // Auto-fill sensible defaults when a format is first selected
+  if(turningOn){
+    const defaults={physical:{id:'srcPhysical',val:'Hardcover'},ebook:{id:'srcEbook',val:'Kindle'},audio:{id:'srcAudio',val:'Audible'}};
+    const d=defaults[f];
+    if(d){const inp=document.getElementById(d.id);if(inp&&!inp.value)inp.value=d.val;}
+  }
+}
 function updateFmtChips(){
   document.querySelectorAll('.fmt-chip[data-fmt]').forEach(el=>el.classList.toggle('on',activeFmts.has(el.dataset.fmt)));
   ['Physical','Ebook','Audio','Borrowed'].forEach(f=>{const w=document.getElementById('src'+f+'Wrap');if(w)w.classList.toggle('show',activeFmts.has(f.toLowerCase()));});
 }
-function toggleListChip(el){const l=el.dataset.list;activeLists.has(l)?activeLists.delete(l):activeLists.add(l);updateListChips();}
+function toggleListChip(el){
+  const l=el.dataset.list;
+  activeLists.has(l)?activeLists.delete(l):activeLists.add(l);
+  updateListChips();
+  // DNF chip toggled ON → sync status to DNF and auto-fill Date Stopped
+  if(l==='dnf_list'&&activeLists.has('dnf_list')){
+    const bStatus=document.getElementById('bStatus');
+    if(bStatus&&bStatus.value!=='dnf'){bStatus.value='dnf';handleStatusChange();}
+    const bDate=document.getElementById('bDate');
+    if(bDate&&!bDate.value)bDate.value=localDateStr();
+  }
+}
 function updateListChips(){document.querySelectorAll('.list-chip').forEach(el=>el.classList.toggle('on',activeLists.has(el.dataset.list)));}
 
 function setProgType(type,el){
