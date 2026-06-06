@@ -1762,6 +1762,16 @@ async function saveBook(){
     else if(curItemType==='book'){fetchCoverByTitle(bk.title,bk.author).then(url=>{if(url){coversDB[bk.id]=url;save(SK.covers,coversDB);renderLibrary();}});}
     toast('Added to your library!','ok');
   }
+  // Auto-commit any pending journal text so "Save Book" doesn't silently discard it
+  const _pendingJournal=document.getElementById('journalNewEntry')?.value.trim();
+  if(_pendingJournal&&editId){
+    const _jnow=new Date();
+    const _jtime=_jnow.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true});
+    if(!journalDB[editId])journalDB[editId]=[];
+    journalDB[editId].push({date:localDateStr(_jnow),time:_jtime,text:_pendingJournal});
+    save(SK.journal,journalDB);
+    logDay(localDateStr(_jnow));
+  }
   save(SK.books,books);save(SK.prog,progressDB);save(SK.covers,coversDB);
   closeM('bookModal');renderLibrary();renderWishlist();updateHdrStreak();
 }
