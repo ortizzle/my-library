@@ -929,7 +929,8 @@ const SK={
   prog:   'trr_v1_prog',
   covers: 'trr_v1_covers',
   journal:'trr_v1_journal',  // {bookId: [{date,text}]}
-  rooms:  'trr_v1_rooms'
+  rooms:  'trr_v1_rooms',
+  goals:  'trr_v1_goals'     // {year: bookCount}
 };
 
 // Old key prefixes to migrate from
@@ -985,7 +986,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 function gistPayload(){
-  return JSON.stringify({v:1,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ},null,2);
+  return JSON.stringify({v:1,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ,rooms,goals},null,2);
 }
 
 async function gistApi(method,path,body){
@@ -1040,6 +1041,8 @@ async function gistPull(){
     if(d.streak){streakDB=d.streak;localStorage.setItem(SK.streak,JSON.stringify(streakDB));}
     if(d.favQ){favQ=d.favQ;localStorage.setItem(SK.favQ,JSON.stringify(favQ));}
     if(d.cacheQ){cacheQ=d.cacheQ;localStorage.setItem(SK.cacheQ,JSON.stringify(cacheQ));}
+    if(d.rooms){rooms=d.rooms;localStorage.setItem(SK.rooms,JSON.stringify(rooms));}
+    if(d.goals){goals=d.goals;localStorage.setItem(SK.goals,JSON.stringify(goals));}
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
@@ -1160,6 +1163,7 @@ let progressDB = load(SK.prog)    || {};
 let coversDB   = load(SK.covers)  || {};
 let journalDB  = load(SK.journal) || {};
 let rooms      = load(SK.rooms)   || [];
+let goals      = load(SK.goals)   || {};   // {year: bookCount}
 
 // ══════════════════════════════════════════
 // STATE
@@ -2549,6 +2553,7 @@ function renderYear(){
       ${isCurrent?`<div style="font-family:'IM Fell English SC',serif;font-size:.58rem;letter-spacing:.07em;color:var(--sage);padding-top:.3rem;flex-shrink:0">NOW</div>`:''}
     </div>`;
   }).join('');
+  const goalCard=buildGoalCard(thisYear,totalReadThisYear);
   const yearCard=`<div class="list-card" style="grid-column:1/-1">
     <div class="list-card-head lh-month" style="cursor:default">
       <h3>📅 ${thisYear} Reading Year</h3>
@@ -2556,7 +2561,54 @@ function renderYear(){
     </div>
     <div>${yearRows}</div>
   </div>`;
-  document.getElementById('yearGrid').innerHTML=yearCard;
+  document.getElementById('yearGrid').innerHTML=goalCard+yearCard;
+}
+
+function buildGoalCard(year,read){
+  const goal=+goals[year]||0;
+  if(!goal){
+    return `<div class="list-card" style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.85rem 1.1rem;flex-wrap:wrap">
+      <div style="font-size:.85rem;color:var(--ink-light)">🎯 Set a reading goal for ${year} and track your pace through the year.</div>
+      <button class="btn btn-gold btn-sm" onclick="setReadingGoal(${year})">Set Goal</button>
+    </div>`;
+  }
+  const now=new Date();
+  const startOfYear=new Date(year,0,1);
+  const daysInYear=(new Date(year+1,0,1)-startOfYear)/864e5;
+  const dayOfYear=Math.max(1,Math.min(daysInYear,Math.floor((now-startOfYear)/864e5)+1));
+  const expected=goal*dayOfYear/daysInYear;
+  const diff=read-expected;
+  const projected=Math.round(read/dayOfYear*daysInYear);
+  const pct=Math.min(100,Math.round(read/goal*100));
+  const done=read>=goal;
+  const paceMsg=done
+    ?`🏆 Goal reached${read>goal?` — and then some!`:'!'}`
+    :Math.abs(diff)<0.5?`Right on pace — on track for ~${projected}`
+    :diff>0?`${diff.toFixed(1).replace('.0','')} book${diff>=1.5?'s':''} ahead of pace — on track for ~${projected}`
+    :`${Math.abs(diff).toFixed(1).replace('.0','')} book${Math.abs(diff)>=1.5?'s':''} behind pace — on track for ~${projected}`;
+  return `<div class="list-card" style="grid-column:1/-1;padding:.9rem 1.1rem">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin-bottom:.45rem;flex-wrap:wrap">
+      <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600">🎯 ${year} Goal: <span style="color:var(--burgundy)">${read} of ${goal}</span> books</div>
+      <button class="btn btn-secondary btn-xs" onclick="setReadingGoal(${year})">Edit</button>
+    </div>
+    <div class="prog-bar" style="height:9px;margin-bottom:.35rem;position:relative">
+      <div class="prog-fill" style="width:${pct}%;${done?'background:var(--sage)':''}"></div>
+      ${!done?`<div title="Where you'd be at an even pace" style="position:absolute;top:-2px;bottom:-2px;left:${Math.min(100,Math.round(expected/goal*100))}%;width:2px;background:var(--ink-faint);opacity:.6"></div>`:''}
+    </div>
+    <div style="font-size:.74rem;color:${done?'var(--sage)':diff>=-0.5?'var(--ink-light)':'var(--amber)'};font-style:italic">${paceMsg}</div>
+  </div>`;
+}
+
+function setReadingGoal(year){
+  const cur=+goals[year]||'';
+  const raw=prompt(`How many books do you want to read in ${year}?\n(Leave blank to remove the goal.)`,cur);
+  if(raw===null)return;
+  const n=parseInt(raw,10);
+  if(!raw.trim()||!n||n<1){delete goals[year];}
+  else{goals[year]=n;}
+  save(SK.goals,goals);
+  renderYear();
+  toast(goals[year]?`Goal set: ${goals[year]} books in ${year} 🎯`:'Goal removed.','ok');
 }
 
 // ══════════════════════════════════════════
@@ -3224,7 +3276,7 @@ async function testKey(){
 function toggleKey(){const i=document.getElementById('apiKeyInput');i.type=i.type==='password'?'text':'password';}
 
 function exportJSON(){
-  const d={version:1,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,exportedAt:new Date().toISOString()};
+  const d={version:1,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,exportedAt:new Date().toISOString()};
   dl(JSON.stringify(d,null,2),'application/json','reading-room-backup.json');toast('JSON exported!','ok');
 }
 
@@ -3265,6 +3317,8 @@ function handleImport(e){
       if(d.progress){progressDB={...progressDB,...d.progress};save(SK.prog,progressDB);}
       if(d.covers){coversDB={...coversDB,...d.covers};save(SK.covers,coversDB);}
       if(d.journal){journalDB={...journalDB,...d.journal};save(SK.journal,journalDB);}
+      if(d.rooms){rooms=[...new Set([...rooms,...d.rooms])].sort();save(SK.rooms,rooms);}
+      if(d.goals){goals={...goals,...d.goals};save(SK.goals,goals);}
       renderLibrary();toast(`Imported ${newBks.length} new items!`,'ok');
     }catch{toast('Invalid file.','err');}
   };
