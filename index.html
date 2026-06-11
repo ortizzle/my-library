@@ -672,6 +672,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         </div>
         <div id="titleSearchResults" class="title-search-results" style="display:none"></div>
         <div class="isbn-status" id="isbnStatus">Search by title, scan, or enter an ISBN to auto-fill.</div>
+        <div id="dupNotice" style="display:none"></div>
         <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
       </div>
       <div class="cover-preview-wrap" id="coverPreviewWrap">
@@ -959,14 +960,29 @@ const GIST_ID_KEY='trr_v1_gist_id';
 const GIST_SYNC_KEY='trr_v1_gist_sync';
 const GIST_FILE='reading-room-library.json';
 
-let _appReady=false,_gistPulling=false,_gistPushTimer=null;
+let _appReady=false,_gistPulling=false,_gistPushTimer=null,_gistPushPending=false;
 
 function scheduleGistPush(){
   if(!_appReady||_gistPulling)return;
   if(!localStorage.getItem(GIST_TOKEN_KEY))return;
   clearTimeout(_gistPushTimer);
+  _gistPushPending=true;
   _gistPushTimer=setTimeout(gistPush,2500);
 }
+
+// Re-pull when the app regains focus after sitting idle (installed PWAs stay
+// in memory, so the load-time pull alone leaves devices stale for days).
+const GIST_STALE_MS=5*60*1000;
+async function gistRefreshIfStale(){
+  if(!localStorage.getItem(GIST_TOKEN_KEY)||!localStorage.getItem(GIST_ID_KEY))return;
+  if(_gistPulling||_gistPushPending)return; // local changes waiting to push — don't clobber them
+  const last=localStorage.getItem(GIST_SYNC_KEY);
+  if(last&&Date.now()-new Date(last).getTime()<GIST_STALE_MS)return;
+  await gistPull();
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')gistRefreshIfStale();
+});
 
 function gistPayload(){
   return JSON.stringify({v:1,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ},null,2);
@@ -992,6 +1008,7 @@ function setGistDot(state){
 }
 
 async function gistPush(){
+  _gistPushPending=false;
   const token=localStorage.getItem(GIST_TOKEN_KEY);
   const id=localStorage.getItem(GIST_ID_KEY);
   if(!token||!id)return;
@@ -1443,8 +1460,9 @@ function openEditModal(id){
   document.querySelector('#bookModal .modal').classList.remove('add-mode');
   setItemType(curItemType);switchModalTab('details');
 
-  document.getElementById('isbnInput').value='';
+  document.getElementById('isbnInput').value=b.isbn||'';
   setIsbnStatus('ISBN lookup available if you want to refresh details.','');
+  showDupNotice(null);
   document.getElementById('bTitle').value=b.title;
   document.getElementById('bAuthor').value=b.author;
   document.getElementById('bGenre').value=b.genre||'';
@@ -1511,6 +1529,7 @@ function clearForm(){
   document.getElementById('bGenre').value='';document.getElementById('bStatus').value='unread';
   document.getElementById('chkYearOnly').checked=false;
   setIsbnStatus('Enter an ISBN to auto-fill, or fill in manually below.','');
+  showDupNotice(null);
   setCoverPreview(null);toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(0);setProgType('pages',null);handleStatusChange();
 }
 
@@ -1709,6 +1728,11 @@ async function saveBook(){
   const title=document.getElementById('bTitle').value.trim();
   const author=document.getElementById('bAuthor').value.trim();
   if(!title||!author){toast('Title and author are required.','err');return;}
+  const isbnVal=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
+  if(!editId){
+    const dup=findDuplicate(isbnVal,title,author,null);
+    if(dup&&!confirm(`${dupDescription(dup)}.\n\nAdd another copy anyway?`))return;
+  }
   const status=document.getElementById('bStatus').value;
   const yearOnly=document.getElementById('chkYearOnly').checked?+document.getElementById('bYearOnly').value||null:null;
 
@@ -1733,6 +1757,8 @@ async function saveBook(){
       shelf:document.getElementById('bLocationShelf').value.trim()
     },
   };
+  // Keep existing ISBN on edit when the field is blank (edit modal doesn't repopulate it)
+  if(isbnVal)bk.isbn=isbnVal;
   // Save new rooms to the rooms list
   const newRoom=bk.location.room;
   if(newRoom&&!rooms.includes(newRoom)){rooms.push(newRoom);rooms.sort();save(SK.rooms,rooms);}
@@ -2108,6 +2134,41 @@ async function fetchCoverByTitle(title,author){
 // ══════════════════════════════════════════
 // ISBN LOOKUP
 // ══════════════════════════════════════════
+// ── Duplicate detection ──
+function normTitle(s){return String(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();}
+function authorSurname(a){const first=String(a||'').split(',')[0].trim();const parts=first.split(' ');return (parts[parts.length-1]||'').toLowerCase();}
+function findDuplicate(isbn,title,author,excludeId){
+  const cleanIsbn=(isbn||'').replace(/[-\s]/g,'');
+  const nt=normTitle(title);
+  const la=authorSurname(author);
+  return books.find(b=>{
+    if(b.id===excludeId)return false;
+    if(cleanIsbn&&b.isbn&&b.isbn===cleanIsbn)return true;
+    if(nt&&normTitle(b.title)===nt&&(!la||!b.author||authorSurname(b.author)===la))return true;
+    return false;
+  });
+}
+function dupDescription(b){
+  if(b.status==='wishlist')return `🌿 "${b.title}" is already on your wishlist`;
+  const loc=b.location?.room?` — 📍 ${b.location.room}${b.location.shelf?` · ${b.location.shelf}`:''}`:'';
+  const st={read:'read',reading:'currently reading',unread:'unread',dnf:'DNF'}[b.status]||b.status;
+  return `📚 You already have "${b.title}" (${st})${loc}`;
+}
+function showDupNotice(existing){
+  const el=document.getElementById('dupNotice');if(!el)return;
+  if(!existing){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='flex';
+  el.style.cssText+=';display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.45rem 0 .2rem;padding:.5rem .7rem;background:#fef6d8;border:1px solid var(--gold);border-radius:6px;font-size:.78rem;color:var(--ink)';
+  el.innerHTML=`<span style="flex:1;min-width:0">${esc(dupDescription(existing))}</span>
+    <button class="btn btn-secondary btn-sm" onclick="openEditModal('${existing.id}')" style="flex-shrink:0">View it</button>`;
+}
+function checkForDuplicate(){
+  const isbn=document.getElementById('isbnInput').value;
+  const title=document.getElementById('bTitle').value;
+  const author=document.getElementById('bAuthor').value;
+  showDupNotice(findDuplicate(isbn,title,author,editId));
+}
+
 async function lookupISBN(){
   const raw=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
   if(!raw){setIsbnStatus('Please enter an ISBN.','err');return;}
@@ -2128,6 +2189,7 @@ async function lookupISBN(){
     const coverUrl=await fetchCoverByISBN(raw)||await fetchCoverByTitle(bk.title,(bk.authors||[]).map(a=>a.name).join(' '));
     if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
     setIsbnStatus(`✓ Found: "${bk.title}"`,'ok');toast('Book details filled in!','ok');
+    checkForDuplicate();
   }catch{setIsbnStatus('Lookup failed — fill in manually.','err');}
 }
 function setIsbnStatus(msg,cls){const el=document.getElementById('isbnStatus');el.textContent=msg;el.className='isbn-status'+(cls?' isbn-'+cls:'');}
@@ -2180,6 +2242,7 @@ async function selectTitleResult(i){
     if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
     setIsbnStatus(`✓ Selected: "${doc.title}"`,'ok');
     toast('Book details filled in!','ok');
+    checkForDuplicate();
   }
 }
 
