@@ -1883,7 +1883,7 @@ function buildProgressPanel(b, prefix='rp'){
       ${showPages?`
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
-        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}')" style="${iStyle}">
+        <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}');syncLinkedProgress('${b.id}','${prefix}','page')" style="${iStyle}">
       </div>
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
@@ -1892,7 +1892,7 @@ function buildProgressPanel(b, prefix='rp'){
       ${showPct?`
       <div style="flex:1;min-width:96px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">🎧 Audio % finished</label>
-        <input type="number" id="${p}apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle}">
+        <input type="number" id="${p}apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" oninput="syncLinkedProgress('${b.id}','${prefix}','pct')" style="${iStyle}">
       </div>`:''}
     </div>
     <div id="${p}pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.3rem">⚠ Page number exceeds total — double-check before saving</div>
@@ -2897,7 +2897,7 @@ function buildLogCard(b){
         ${showPages?`
         <div style="flex:1;min-width:96px">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">CURRENT PAGE</label>
-          <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls')" style="${iStyle}">
+          <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls');syncLinkedProgress('${b.id}','ls','page')" style="${iStyle}">
         </div>
         <div style="flex:1;min-width:96px">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">OF PAGES</label>
@@ -2906,7 +2906,7 @@ function buildLogCard(b){
         ${showPct?`
         <div style="flex:1;min-width:96px">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">🎧 AUDIO %</label>
-          <input type="number" id="ls-apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle}">
+          <input type="number" id="ls-apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" oninput="syncLinkedProgress('${b.id}','ls','pct')" style="${iStyle}">
         </div>`:''}
       </div>
       <div id="ls-pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.4rem">⚠ Page number exceeds total — double-check before saving</div>
@@ -3403,6 +3403,25 @@ function progressFieldsFor(b){
   const isAudio=fmts.includes('audio');
   const hasPrint=fmts.includes('physical')||fmts.includes('ebook')||fmts.includes('borrowed');
   return{showPages:hasPrint||!isAudio,showPct:isAudio||!hasPrint};
+}
+// Both-format books: page and audio-% describe the same position, so typing
+// in one live-converts the other (needs a total page count to do the math)
+function syncLinkedProgress(id,prefix,src){
+  const p=prefix+'-';
+  const pageEl=document.getElementById(p+'page-'+id);
+  const pctEl=document.getElementById(p+'apct-'+id);
+  if(!pageEl||!pctEl)return; // only when both fields are on screen
+  const total=+(document.getElementById(p+'total-'+id)?.value)||0;
+  if(!total)return;
+  if(src==='pct'){
+    if(pctEl.value==='')return;
+    const pct=Math.min(100,Math.max(0,+pctEl.value||0));
+    pageEl.value=Math.min(total,Math.round(pct/100*total));
+  }else{
+    if(pageEl.value==='')return;
+    const page=Math.max(0,+pageEl.value||0);
+    pctEl.value=Math.min(100,Math.round(page/total*100));
+  }
 }
 
 // ══════════════════════════════════════════
