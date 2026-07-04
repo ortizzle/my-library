@@ -1867,6 +1867,7 @@ function buildProgressPanel(b, prefix='rp'){
   const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
   const audioPct=audioPctOf(lastAudio);
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const{showPages,showPct}=progressFieldsFor(b);
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
   const p=prefix+'-';
   const iStyle='width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.82rem;background:var(--parchment);outline:none';
@@ -1879,6 +1880,7 @@ function buildProgressPanel(b, prefix='rp'){
 
     <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.5rem">UPDATE PROGRESS</div>
     <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.3rem">
+      ${showPages?`
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Page</label>
         <input type="number" id="${p}page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}')" style="${iStyle}">
@@ -1886,17 +1888,15 @@ function buildProgressPanel(b, prefix='rp'){
       <div style="flex:1;min-width:80px">
         <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">of Pages</label>
         <input type="number" id="${p}total-${b.id}" value="${stickyPageTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','${prefix}')" style="${iStyle}">
-      </div>
+      </div>`:''}
+      ${showPct?`
+      <div style="flex:1;min-width:96px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">🎧 Audio % finished</label>
+        <input type="number" id="${p}apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle}">
+      </div>`:''}
     </div>
     <div id="${p}pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.3rem">⚠ Page number exceeds total — double-check before saving</div>
-
-    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.35rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
-      <div style="flex:1;min-width:120px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">🎧 Audiobook % finished <span style="font-style:italic">(optional — from your audio app)</span></label>
-        <input type="number" id="${p}apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle};max-width:110px">
-      </div>
-    </div>
-    <button onclick="document.getElementById('${p}nocount-${b.id}').checked=true;document.getElementById('${p}note-${b.id}').value='Listened today';logProgressAndJournalInline('${b.id}','${prefix}')" style="width:100%;margin-bottom:.5rem;padding:.38rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no numbers needed</button>
+    ${showPct?`<button onclick="document.getElementById('${p}nocount-${b.id}').checked=true;document.getElementById('${p}note-${b.id}').value='Listened today';logProgressAndJournalInline('${b.id}','${prefix}')" style="width:100%;margin-bottom:.5rem;padding:.38rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no numbers needed</button>`:''}
     <input type="hidden" id="${p}note-${b.id}" value="">
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
       <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Mark as read today (no page count)
@@ -2022,8 +2022,8 @@ function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
   // log (and count as "saved") when the value actually changed. Comparing
   // against the last pages entry regardless of date prevents phantom sessions
   // from stale prefills re-logging under today's date.
-  const page=+document.getElementById(p+'page-'+id).value||0;
-  const totalRaw=+document.getElementById(p+'total-'+id).value||0;
+  const page=+(document.getElementById(p+'page-'+id)?.value)||0;
+  const totalRaw=+(document.getElementById(p+'total-'+id)?.value)||0;
   const total=totalRaw||stickyPageTotal;
   if(page){
     if(!progressDB[id])progressDB[id]=[];
@@ -2868,7 +2868,10 @@ function buildLogCard(b){
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
   const prog=progressDB[b.id]||[];
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages')||null;
+  const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
+  const audioPct=audioPctOf(lastAudio);
   const stickyTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
+  const{showPages,showPct}=progressFieldsFor(b);
   const today=localDateStr();
   const iStyle='width:100%;padding:.38rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.85rem;background:var(--parchment);outline:none;box-sizing:border-box';
   const stars=[1,2,3,4,5].map(i=>`<span id="lsr-${b.id}-${i}" onclick="setLogRating('${b.id}',${i})" style="font-size:1.3rem;cursor:pointer;color:${i<=(_logRatings[b.id]||0)?'var(--gold)':'var(--parchment-dark)'}">★</span>`).join('');
@@ -2890,15 +2893,21 @@ function buildLogCard(b){
       <button onclick="openReadingSession('${b.id}')" style="padding:.62rem .85rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.88rem;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)" title="Start a timed reading session">⏱</button>
     </div>
     <div id="logexpand-${b.id}" style="display:none;border-top:1px dotted var(--parchment-dark);padding:.75rem 1rem .9rem" onclick="event.stopPropagation()">
-      <div style="display:flex;gap:.5rem;margin-bottom:.5rem">
-        <div style="flex:1">
+      <div style="display:flex;gap:.5rem;margin-bottom:.5rem;flex-wrap:wrap">
+        ${showPages?`
+        <div style="flex:1;min-width:96px">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">CURRENT PAGE</label>
           <input type="number" id="ls-page-${b.id}" value="${lastPage?lastPage.cur:''}" placeholder="e.g. 142" min="0" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls')" style="${iStyle}">
         </div>
-        <div style="flex:1">
+        <div style="flex:1;min-width:96px">
           <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">OF PAGES</label>
           <input type="number" id="ls-total-${b.id}" value="${stickyTotal||''}" placeholder="e.g. 320" min="1" onfocus="this.select()" oninput="checkPageOverflow('${b.id}','ls')" style="${iStyle}">
-        </div>
+        </div>`:''}
+        ${showPct?`
+        <div style="flex:1;min-width:96px">
+          <label style="font-size:.67rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">🎧 AUDIO %</label>
+          <input type="number" id="ls-apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle}">
+        </div>`:''}
       </div>
       <div id="ls-pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.4rem">⚠ Page number exceeds total — double-check before saving</div>
       <textarea id="ls-journal-${b.id}" placeholder="What are you thinking about this book…" rows="4" style="${iStyle};resize:none;margin-bottom:.7rem;line-height:1.6;min-height:80px"></textarea>
@@ -3387,6 +3396,14 @@ function audioPctOf(e){
   return e.total?Math.round(e.cur/e.total*100):null;
 }
 function audioLabel(cur,total){return total===100?`${Math.round(cur)}%`:`${minsToHM(cur)}/${minsToHM(total)}`;}
+// Which progress fields fit this book: audio-only books get just the % field,
+// print/ebook books just pages, both-format (or untagged) books get both
+function progressFieldsFor(b){
+  const fmts=b.formats||[];
+  const isAudio=fmts.includes('audio');
+  const hasPrint=fmts.includes('physical')||fmts.includes('ebook')||fmts.includes('borrowed');
+  return{showPages:hasPrint||!isAudio,showPct:isAudio||!hasPrint};
+}
 
 // ══════════════════════════════════════════
 // INIT
