@@ -11,7 +11,6 @@
   <meta name="apple-mobile-web-app-title" content="Reading Room">
   <meta name="theme-color" content="#190d05">
   <link rel="manifest" href="manifest.json">
-  <script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
 <style>
@@ -441,7 +440,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div class="toolbar">
     <div class="search-wrap">
       <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="Search title, author, genre…" oninput="renderLibrary()">
+      <input type="text" id="searchInput" placeholder="Search title, author, genre…" oninput="searchDebounced()">
     </div>
     <span class="chip-sep">|</span>
     <button class="chip active" data-g="status" data-v="all" onclick="setFilter(this)">All</button>
@@ -562,7 +561,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div id="gistConnectedSection" style="display:none">
       <div style="display:flex;gap:.42rem;flex-wrap:wrap">
-        <button class="btn btn-secondary" onclick="gistPull()">↓ Pull latest</button>
+        <button class="btn btn-secondary" onclick="gistPull(true)">↓ Pull latest</button>
         <button class="btn btn-secondary" onclick="gistPush()">↑ Push now</button>
         <button class="btn btn-secondary" style="color:var(--burgundy)" onclick="gistDisconnect()">Disconnect</button>
       </div>
@@ -930,7 +929,8 @@ const SK={
   covers: 'trr_v1_covers',
   journal:'trr_v1_journal',  // {bookId: [{date,text}]}
   rooms:  'trr_v1_rooms',
-  goals:  'trr_v1_goals'     // {year: bookCount}
+  goals:  'trr_v1_goals',    // {year: bookCount}
+  updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 
 // Old key prefixes to migrate from
@@ -938,7 +938,7 @@ const OLD_PREFIXES=['trr4_','trr3_','trr2_','trr_'];
 const OLD_SUFFIXES={books:'books',api:'api',streak:'streak',favQ:'favq',cacheQ:'cq',prog:'progress',covers:'covers'};
 
 const load=k=>{try{return JSON.parse(localStorage.getItem(k))||null}catch{return null}};
-const save=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));scheduleGistPush();};
+const save=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.setItem(SK.updated,new Date().toISOString());scheduleGistPush();};
 
 function bookGradient(title='',author=''){
   const s=(title+author).toLowerCase();
@@ -986,7 +986,8 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 function gistPayload(){
-  return JSON.stringify({v:1,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ,rooms,goals},null,2);
+  const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
+  return JSON.stringify({v:1,updatedAt,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ,rooms,goals},null,2);
 }
 
 async function gistApi(method,path,body){
@@ -1022,7 +1023,7 @@ async function gistPush(){
   }catch(e){console.warn('Gist push failed:',e);setGistDot('off');}
 }
 
-async function gistPull(){
+async function gistPull(force=false){
   const token=localStorage.getItem(GIST_TOKEN_KEY);
   const id=localStorage.getItem(GIST_ID_KEY);
   if(!token||!id)return;
@@ -1031,10 +1032,24 @@ async function gistPull(){
   try{
     const data=await gistApi('GET',`/gists/${id}`);
     const raw=data.files?.[GIST_FILE]?.content;
-    if(!raw)return;
+    if(!raw){setGistDot('off');return;}
     const d=JSON.parse(raw);
-    // Only overwrite if gist has at least as many books (safety check)
-    if(d.books&&d.books.length>=books.length){books=d.books;localStorage.setItem(SK.books,JSON.stringify(books));}
+    const localUpdated=localStorage.getItem(SK.updated)||'';
+    const remoteUpdated=d.updatedAt||'';
+    // Newest data wins: skip auto-pulls when local changes are newer than the
+    // gist, and push them up instead — this lets deletions propagate (the old
+    // "gist must have >= books" check could resurrect deleted books forever).
+    if(!force&&remoteUpdated&&localUpdated&&remoteUpdated<localUpdated){
+      localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
+      updateGistStatus();
+      setGistDot('synced');
+      _gistPulling=false;
+      scheduleGistPush();
+      return;
+    }
+    // Transitional guard: payloads written before updatedAt existed keep the
+    // old count heuristic so a stale pre-update gist can't clobber newer data.
+    if(d.books&&(remoteUpdated||d.books.length>=books.length)){books=d.books;localStorage.setItem(SK.books,JSON.stringify(books));}
     if(d.prog){progressDB=d.prog;localStorage.setItem(SK.prog,JSON.stringify(progressDB));}
     if(d.covers){coversDB=d.covers;localStorage.setItem(SK.covers,JSON.stringify(coversDB));}
     if(d.journal){journalDB=d.journal;localStorage.setItem(SK.journal,JSON.stringify(journalDB));}
@@ -1043,12 +1058,13 @@ async function gistPull(){
     if(d.cacheQ){cacheQ=d.cacheQ;localStorage.setItem(SK.cacheQ,JSON.stringify(cacheQ));}
     if(d.rooms){rooms=d.rooms;localStorage.setItem(SK.rooms,JSON.stringify(rooms));}
     if(d.goals){goals=d.goals;localStorage.setItem(SK.goals,JSON.stringify(goals));}
+    if(remoteUpdated)localStorage.setItem(SK.updated,remoteUpdated);
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
     renderLibrary();renderLists();renderLogSession();updateHdrStreak();
   }catch(e){console.warn('Gist pull failed:',e);setGistDot('off');}
-  _gistPulling=false;
+  finally{_gistPulling=false;}
 }
 
 async function gistConnect(){
@@ -1228,6 +1244,9 @@ function setFilter(el){
 // ══════════════════════════════════════════
 // LIBRARY RENDER
 // ══════════════════════════════════════════
+let _searchTimer=null;
+function searchDebounced(){clearTimeout(_searchTimer);_searchTimer=setTimeout(renderLibrary,150);}
+
 function renderLibrary(){
   const q=document.getElementById('searchInput').value.toLowerCase().trim();
   let list=[...books].filter(b=>b.status!=='wishlist'); // wishlist lives in its own tab
@@ -1772,7 +1791,13 @@ async function saveBook(){
     const cur=pt==='audio'?readAudioInputs('progCurH','progCurMin'):+document.getElementById('progCurPage').value;
     const total=pt==='audio'?readAudioInputs('progTotalH','progTotalMin'):+document.getElementById('progTotalPage').value;
     const pid=editId||'__new__';
-    if((cur||total)&&!(progressDB[pid]?.length)){if(!progressDB[pid])progressDB[pid]=[];progressDB[pid].push({date:localDateStr(),type:pt,cur,total,note:''});}
+    // Log a new entry when the modal's values differ from the latest entry of
+    // this type (previously edits were silently discarded once history existed)
+    if(cur||total){
+      if(!progressDB[pid])progressDB[pid]=[];
+      const last=progressDB[pid].slice().reverse().find(e=>e.type===pt);
+      if(!last||last.cur!==cur||last.total!==total)progressDB[pid].push({date:localDateStr(),type:pt,cur,total,note:''});
+    }
   }
 
   const coverUrl=document.getElementById('coverUrlInput').value.trim()||pendingCoverUrl;
@@ -2036,33 +2061,35 @@ function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
     } else { saved=true; }
   }
 
-  // Pages progress — skip if same cur already logged today
+  // Pages progress — the input is prefilled with the last logged page, so only
+  // log (and count as "saved") when the value actually changed. Comparing
+  // against the last pages entry regardless of date prevents phantom sessions
+  // from stale prefills re-logging under today's date.
   const page=+document.getElementById(p+'page-'+id).value||0;
   const totalRaw=+document.getElementById(p+'total-'+id).value||0;
   const total=totalRaw||stickyPageTotal;
   if(page){
     if(!progressDB[id])progressDB[id]=[];
-    const lastSameDay=progressDB[id].slice().reverse().find(e=>e.date===sessionDate&&e.type==='pages');
-    if(!lastSameDay||lastSameDay.cur!==page||lastSameDay.total!==total){
+    const lastPages=progressDB[id].slice().reverse().find(e=>e.type==='pages');
+    if(!lastPages||lastPages.cur!==page||lastPages.total!==total){
       progressDB[id].push({date:sessionDate,type:'pages',cur:page,total,note:''});
       save(SK.prog,progressDB);
+      saved=true;
     }
-    saved=true;
   }
 
-  // Audio progress — skip if same cur already logged today
+  // Audio progress — same rule as pages: only log when the value changed
   const aCurrentMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
   const aTotalRaw=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
   const atotal=aTotalRaw||stickyAudioTotal;
-  const amin=aCurrentMins;
-  if(amin||aCurrentMins){
+  if(aCurrentMins){
     if(!progressDB[id])progressDB[id]=[];
-    const lastAudioSameDay=progressDB[id].slice().reverse().find(e=>e.date===sessionDate&&e.type==='audio');
-    if(!lastAudioSameDay||lastAudioSameDay.cur!==amin||lastAudioSameDay.total!==atotal){
-      progressDB[id].push({date:sessionDate,type:'audio',cur:amin,total:atotal,note:''});
+    const lastAudio=progressDB[id].slice().reverse().find(e=>e.type==='audio');
+    if(!lastAudio||lastAudio.cur!==aCurrentMins||lastAudio.total!==atotal){
+      progressDB[id].push({date:sessionDate,type:'audio',cur:aCurrentMins,total:atotal,note:''});
       save(SK.prog,progressDB);
+      saved=true;
     }
-    saved=true;
   }
 
   // Journal — with timestamp
@@ -2253,10 +2280,27 @@ async function selectTitleResult(i){
 // ══════════════════════════════════════════
 // BARCODE SCANNER
 // ══════════════════════════════════════════
-let _scanReader=null;
+let _scanReader=null,_zxingLoad=null;
+// ZXing is ~400KB — load it on first scan instead of blocking every app launch.
+// The service worker caches it after the first fetch, so offline scanning still works.
+function loadZXing(){
+  if(typeof ZXing!=='undefined')return Promise.resolve();
+  if(!_zxingLoad)_zxingLoad=new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js';
+    s.onload=res;
+    s.onerror=()=>{_zxingLoad=null;rej(new Error('scanner load failed'));};
+    document.head.appendChild(s);
+  });
+  return _zxingLoad;
+}
 async function openScanner(){
-  if(typeof ZXing==='undefined'){toast('Scanner library not loaded — try refreshing.','err');return;}
   document.getElementById('scannerModal').style.display='flex';
+  document.getElementById('scannerStatus').textContent='Loading scanner…';
+  try{await loadZXing();}catch{
+    document.getElementById('scannerStatus').textContent='Scanner failed to load — check your connection, or use Manual Entry.';
+    return;
+  }
   document.getElementById('scannerStatus').textContent='Starting camera…';
   try{
     const hints=new Map();
@@ -2863,7 +2907,7 @@ function buildLogCard(b){
       <span id="logchev-${b.id}" style="font-size:.8rem;color:var(--ink-faint);flex-shrink:0;margin-left:.25rem">▾</span>
     </div>
     <div style="padding:0 1rem .85rem;display:flex;gap:.55rem" onclick="event.stopPropagation()">
-      <button onclick="logQuick('${b.id}','Listened today')" style="flex:1;padding:.62rem .5rem;${doneToday?'background:var(--parchment-dark);color:var(--ink-faint);box-shadow:none;':'background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18);'}border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;cursor:pointer;letter-spacing:.02em">${doneToday?'✓ Listened / Read Today':'🎧 Listened / Read Today'}</button>
+      <button onclick="logQuick('${b.id}','Read / listened today')" style="flex:1;padding:.62rem .5rem;${doneToday?'background:var(--parchment-dark);color:var(--ink-faint);box-shadow:none;':'background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.18);'}border:none;border-radius:6px;font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;cursor:pointer;letter-spacing:.02em">${doneToday?'✓ Listened / Read Today':'🎧 Listened / Read Today'}</button>
       <button onclick="openReadingSession('${b.id}')" style="padding:.62rem .85rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.88rem;cursor:pointer;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.15)" title="Start a timed reading session">⏱</button>
     </div>
     <div id="logexpand-${b.id}" style="display:none;border-top:1px dotted var(--parchment-dark);padding:.75rem 1rem .9rem" onclick="event.stopPropagation()">
@@ -3328,7 +3372,7 @@ function handleImport(e){
 function clearAll(){
   if(!confirm('Delete ALL data permanently?'))return;
   Object.values(SK).forEach(k=>localStorage.removeItem(k));
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};
   renderLibrary();updateHdrStreak();toast('Cleared.','ok');
 }
 
@@ -3486,8 +3530,9 @@ function saveReadingSession(){
   const stickyTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
   const pageToLog=endPage||startPage;
   if(pageToLog){
-    const lastSameDay=prog.slice().reverse().find(e=>e.date===today&&e.type==='pages');
-    if(!lastSameDay||lastSameDay.cur!==pageToLog)
+    // Start page is prefilled from the last entry — don't re-log an unchanged value
+    const lastPages=prog.slice().reverse().find(e=>e.type==='pages');
+    if(!lastPages||lastPages.cur!==pageToLog)
       prog.push({date:today,type:'pages',cur:pageToLog,total:stickyTotal,note:''});
   }
   const elapsed=_sessDuration>0?Math.min(_sessSeconds,_sessDuration):_sessSeconds;

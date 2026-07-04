@@ -1,13 +1,18 @@
 // Reading Room — Service Worker
 // Cache version: bump this string to force all clients to update
-const CACHE = 'reading-room-v1';
+const CACHE = 'reading-room-v2';
 
-// App shell: files we cache on install for offline use
+// App shell: local files that MUST cache on install for offline use
 const SHELL = [
   './',
   './index.html',
   './icon.svg',
   './manifest.json',
+];
+
+// External extras: cache if reachable, but never fail the install over them
+// (they're also picked up by the cache-first fetch handler on first use)
+const SHELL_EXTERNAL = [
   // Fonts
   'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Lora:ital,wght@0,400;0,500;1,400&family=IM+Fell+English+SC&display=swap',
   // Barcode scanner library
@@ -17,7 +22,12 @@ const SHELL = [
 // ── Install: cache the app shell ──────────────────────────────────────────
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(async c => {
+        await c.addAll(SHELL);
+        await Promise.allSettled(SHELL_EXTERNAL.map(u => c.add(u)));
+      })
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -47,7 +57,25 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for everything else (app shell, fonts CSS, ZXing)
+  // Network-first for the page itself so new deploys reach installed clients
+  // without a cache-version bump; fall back to the cached copy when offline.
+  const isShellPage = e.request.mode === 'navigate' || url.pathname.endsWith('/index.html');
+  if (isShellPage) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() =>
+        caches.match(e.request).then(cached => cached || caches.match('./index.html'))
+      )
+    );
+    return;
+  }
+
+  // Cache-first for static assets (icon, manifest, fonts CSS, ZXing)
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
