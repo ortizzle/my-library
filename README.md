@@ -30,8 +30,9 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Ownership type defaults: Physical → Hardcover, eBook → Kindle, Audiobook → Audible
 
 ### Reading Tracker
-- Log today's reading by pages or minutes listened
-- **Reading streaks** tracked daily — shown in the header
+- Log today's reading by page number, audiobook % finished, or a one-tap "listened today"
+- **Reading streaks** tracked daily — shown in the header, with a last-7-days
+  strip and a browsable month calendar on the Stats page
 - Progress history per book with timestamps
 - Inline warning if you enter a page number beyond the book's total
 - Undo toast (5 seconds) if you accidentally log a session or mark a book finished

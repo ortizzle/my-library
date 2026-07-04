@@ -181,16 +181,34 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .bar-rect:hover{opacity:.75}
 .chart-empty{font-size:.78rem;color:var(--ink-faint);font-style:italic;text-align:center;padding:1.5rem 0}
 
-/* CAL */
-.cal-wrap{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:var(--r);padding:1.1rem;box-shadow:0 2px 8px var(--shadow);margin-bottom:1.2rem}
-.cal-lbl-row{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
-.cal-lbl{text-align:center;font-family:'IM Fell English SC',serif;font-size:.55rem;color:var(--ink-faint)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
-.cal-day{aspect-ratio:1;border-radius:3px;background:var(--parchment-dark);position:relative;cursor:default;transition:transform .13s}
-.cal-day.on{background:var(--burgundy);opacity:.8}.cal-day.today{box-shadow:0 0 0 2px var(--gold)}
-.cal-day:hover{transform:scale(1.18);z-index:1}
-.cal-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--parchment);font-size:.6rem;padding:.2rem .38rem;border-radius:4px;white-space:nowrap;pointer-events:none;display:none;z-index:10;font-family:'Lora',serif}
-.cal-day:hover .cal-tip{display:block}
+/* STREAK BANNER */
+.streak-banner{background:linear-gradient(135deg,#2c1a0c,#190d05);color:var(--parchment);border:1px solid rgba(200,160,60,.3);border-radius:10px;padding:1rem 1.2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;box-shadow:0 4px 16px var(--shadow-deep);margin-bottom:1.2rem}
+.sb-left{display:flex;align-items:center;gap:.75rem}
+.sb-flame{font-size:2.1rem;line-height:1}
+.sb-num{font-family:'Playfair Display',serif;font-size:2.1rem;font-weight:700;color:var(--gold-lt);line-height:1}
+.sb-unit{font-size:.85rem;margin-left:.35rem;color:var(--parchment);font-weight:400;font-family:'Lora',serif;font-style:italic}
+.sb-sub{font-size:.66rem;color:rgba(244,237,216,.6);font-family:'IM Fell English SC',serif;letter-spacing:.09em;margin-top:.3rem}
+.sb-right{display:flex;flex-direction:column;gap:.45rem;align-items:flex-end}
+.s7-strip{display:flex;gap:.42rem}
+.s7-day{display:flex;flex-direction:column;align-items:center;gap:.24rem}
+.s7-lbl{font-size:.58rem;color:rgba(244,237,216,.55);font-family:'IM Fell English SC',serif}
+.s7-dot{width:27px;height:27px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:.72rem;color:var(--ink)}
+.s7-dot.on{background:linear-gradient(135deg,var(--gold),var(--gold-lt));border-color:var(--gold-lt);font-weight:700}
+.s7-dot.today{box-shadow:0 0 0 2px var(--gold-lt)}
+.sb-meta{font-size:.68rem;color:rgba(244,237,216,.55);font-style:italic}
+
+/* MONTH CALENDAR */
+.mcal-lbls{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;margin-bottom:.3rem}
+.mcal-lbls div{text-align:center;font-family:'IM Fell English SC',serif;font-size:.6rem;color:var(--ink-faint)}
+.mcal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem}
+.mcal-day{aspect-ratio:1;max-width:44px;width:100%;margin:0 auto;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:.8rem;color:var(--ink-light)}
+.mcal-day.read{background:var(--burgundy);color:#fff;font-weight:600;box-shadow:0 2px 6px rgba(110,34,51,.35)}
+.mcal-day.today{box-shadow:0 0 0 2px var(--gold)}
+.mcal-day.read.today{box-shadow:0 0 0 2px var(--gold),0 2px 6px rgba(110,34,51,.35)}
+.mcal-day.future{color:var(--parchment-dark)}
+.mcal-nav{width:27px;height:27px;border-radius:50%;border:1px solid var(--parchment-dark);background:var(--parchment);cursor:pointer;font-size:.95rem;line-height:1;color:var(--ink-light);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.mcal-nav:hover:not(:disabled){border-color:var(--burgundy);color:var(--burgundy)}
+.mcal-nav:disabled{opacity:.35;cursor:default}
 
 /* PACE TABLE */
 .pace-table{width:100%;border-collapse:collapse;font-size:.78rem}
@@ -401,6 +419,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   .charts-grid{grid-template-columns:1fr}
   .nav-tabs{justify-content:space-between}
   .nav-tab{padding:.66rem .45rem;font-size:.72rem;flex:1;text-align:center}
+  .sb-right{align-items:flex-start;width:100%}
+  .s7-strip{width:100%;justify-content:space-between}
 }
 </style>
 </head>
@@ -528,14 +548,11 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <h2 class="sec-title">Stats &amp; Reading Streak</h2>
     <button class="btn btn-secondary" onclick="showView('keepsake')">📜 Keepsake</button>
   </div>
+  <div id="streakSection"></div>
   <div class="stats-hero" id="statsHero"></div>
   <div class="lists-grid" id="yearGrid" style="margin-bottom:1.2rem"></div>
+  <div class="chart-card" id="monthCalCard" style="margin-bottom:1.2rem"></div>
   <div class="charts-grid" id="chartsGrid"></div>
-  <div class="cal-wrap">
-    <p style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.5rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">Past 70 days — filled squares are days you logged reading activity</p>
-    <div class="cal-lbl-row" id="calLbls"></div>
-    <div class="cal-grid" id="calGrid"></div>
-  </div>
   <div class="chart-card" style="margin-top:1rem" id="paceSection"></div>
   <div id="genreSection" style="margin-top:1rem"></div>
 </div>
@@ -775,22 +792,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         </div>
         <div id="ptAudio" class="prog-fields" style="display:none">
           <div class="fg">
-            <label>Current position</label>
-            <div style="display:flex;gap:.4rem;align-items:center">
-              <input type="number" id="progCurH" placeholder="0" min="0" style="width:60px">
-              <span style="color:var(--ink-faint);font-size:.8rem">h</span>
-              <input type="number" id="progCurMin" placeholder="0" min="0" max="59" style="width:60px">
-              <span style="color:var(--ink-faint);font-size:.8rem">min</span>
-            </div>
-          </div>
-          <div class="fg">
-            <label>Total length</label>
-            <div style="display:flex;gap:.4rem;align-items:center">
-              <input type="number" id="progTotalH" placeholder="0" min="0" style="width:60px">
-              <span style="color:var(--ink-faint);font-size:.8rem">h</span>
-              <input type="number" id="progTotalMin" placeholder="0" min="0" max="59" style="width:60px">
-              <span style="color:var(--ink-faint);font-size:.8rem">min</span>
-            </div>
+            <label>% Finished <span style="font-style:italic;font-size:.65rem;color:var(--ink-faint)">(from your audio app)</span></label>
+            <input type="number" id="progAudioPct" placeholder="e.g. 45" min="0" max="100" style="max-width:120px">
           </div>
         </div>
         <div id="progHistoryEdit" style="margin-top:.65rem"></div>
@@ -862,40 +865,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <button class="btn btn-secondary" onclick="closeM('bookModal')">Cancel</button>
       <button class="btn btn-primary" onclick="saveBook()">Save Book</button>
     </div>
-  </div>
-</div>
-</div>
-
-<!-- PROGRESS MODAL -->
-<div class="overlay" id="progModal" style="display:none" onclick="ovc(event,'progModal')">
-<div class="modal">
-  <div class="modal-hdr">
-    <div>
-      <h2 class="modal-title" id="progModalTitle">Reading Progress</h2>
-      <div style="font-size:.72rem;color:var(--ink-faint);font-style:italic;margin-top:.1rem" id="progModalAuthor"></div>
-    </div>
-    <button class="modal-close" onclick="closeM('progModal')">✕</button>
-  </div>
-  <div class="big-pct" id="progBigPct">—</div>
-  <div class="big-sub" id="progBigSub">No progress logged yet</div>
-  <hr style="border:none;border-top:1px dashed var(--parchment-dark);margin:.8rem 0">
-  <div class="prog-type-tabs" id="progModalTypeTabs">
-    <button type="button" class="prog-tab active" data-pt="pages" onclick="setProgModalType('pages',this)">By Pages</button>
-    <button type="button" class="prog-tab" data-pt="audio" onclick="setProgModalType('audio',this)">By Time (Audio)</button>
-  </div>
-  <div id="pmPages" class="prog-fields">
-    <div class="fg"><label>Current Page</label><input type="number" id="pmCurPage" min="0"></div>
-    <div class="fg"><label>Total Pages</label><input type="number" id="pmTotalPage" min="1"></div>
-  </div>
-  <div id="pmAudio" class="prog-fields" style="display:none">
-    <div class="fg"><label>Current (mins)</label><input type="number" id="pmCurMin" min="0"></div>
-    <div class="fg"><label>Total (mins)</label><input type="number" id="pmTotalMin" min="1"></div>
-  </div>
-  <div class="fg" style="margin-top:.56rem"><label>Session note (optional)</label><input type="text" id="pmNote" placeholder="Great chapter today…"></div>
-  <div class="prog-history" id="progHistory"></div>
-  <div class="modal-foot">
-    <button class="btn btn-secondary" onclick="closeM('progModal')">Close</button>
-    <button class="btn btn-gold" onclick="saveProgress()">Log Progress</button>
   </div>
 </div>
 </div>
@@ -1191,11 +1160,10 @@ let goals      = load(SK.goals)   || {};   // {year: bookCount}
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-let editId=null,curRating=0,curDiscId=null,curProgId=null,discQs=[];
+let editId=null,curRating=0,curDiscId=null,discQs=[];
 let activeFmts=new Set(),activeLists=new Set();
 let curItemType='book';
 let filters={status:'all',list:null,fmt:null,type:null,genre:null,room:null};
-let progModalType='pages';
 let pendingCoverUrl='';
 
 // ══════════════════════════════════════════
@@ -1426,7 +1394,7 @@ function progressBar(b){
     return '';
   }
   const pct=Math.min(100,Math.round((best.cur/best.total)*100));
-  const lbl=best.type==='audio'?minsToHM(best.cur)+'/'+minsToHM(best.total):`p.${best.cur}/${best.total}`;
+  const lbl=best.type==='audio'?'🎧 '+audioLabel(best.cur,best.total):`p.${best.cur}/${best.total}`;
   return `<div class="prog-wrap"><div class="prog-label"><span>${lbl}</span><strong>${pct}%</strong></div><div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div></div>`;
 }
 
@@ -1542,17 +1510,13 @@ function openEditModal(id){
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages');
   const lastAudio=prog.slice().reverse().find(e=>e.type==='audio');
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
-  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
   // Populate pages
   if(lastPage||stickyPageTotal){
     document.getElementById('progCurPage').value=lastPage?lastPage.cur:'';
     document.getElementById('progTotalPage').value=stickyPageTotal||'';
   }
-  // Populate audio
-  if(lastAudio||stickyAudioTotal){
-    fillAudioInputs('progCurH','progCurMin',lastAudio?lastAudio.cur:0);
-    fillAudioInputs('progTotalH','progTotalMin',stickyAudioTotal||0);
-  }
+  // Populate audio percent (legacy minute entries convert to a percent)
+  document.getElementById('progAudioPct').value=audioPctOf(lastAudio)??'';
   // Set active tab to whichever was logged most recently
   const lastEntry=prog[prog.length-1];
   if(lastEntry?.type==='audio') setProgType('audio',null);
@@ -1575,7 +1539,7 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','titleSearchInput','progCurPage','progTotalPage','progCurH','progCurMin','progTotalH','progTotalMin','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','titleSearchInput','progCurPage','progTotalPage','progAudioPct','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const tsr=document.getElementById('titleSearchResults');if(tsr)tsr.style.display='none';
   const phe=document.getElementById('progHistoryEdit');if(phe)phe.innerHTML='';
   updateRoomsDatalist();
@@ -1669,14 +1633,6 @@ function setProgType(type,el){
   else{document.querySelectorAll('#progTypeTabs .prog-tab').forEach(t=>t.classList.toggle('active',t.dataset.pt===type));}
   document.getElementById('ptPages').style.display=type==='pages'?'flex':'none';
   document.getElementById('ptAudio').style.display=type==='audio'?'flex':'none';
-}
-
-function setProgModalType(type,el){
-  progModalType=type;
-  document.querySelectorAll('#progModalTypeTabs .prog-tab').forEach(t=>t.classList.toggle('active',t.dataset.pt===type));
-  document.getElementById('pmPages').style.display=type==='pages'?'flex':'none';
-  document.getElementById('pmAudio').style.display=type==='audio'?'flex':'none';
-  updateProgBig();
 }
 
 function setRating(v){curRating=v;updateRatingDisplay(v);}
@@ -1818,8 +1774,8 @@ async function saveBook(){
 
   if(status==='reading'&&curItemType==='book'){
     const pt=document.querySelector('#progTypeTabs .prog-tab.active')?.dataset.pt||'pages';
-    const cur=pt==='audio'?readAudioInputs('progCurH','progCurMin'):+document.getElementById('progCurPage').value;
-    const total=pt==='audio'?readAudioInputs('progTotalH','progTotalMin'):+document.getElementById('progTotalPage').value;
+    const cur=pt==='audio'?Math.min(100,Math.max(0,+document.getElementById('progAudioPct').value||0)):+document.getElementById('progCurPage').value;
+    const total=pt==='audio'?(cur?100:0):+document.getElementById('progTotalPage').value;
     const pid=editId||'__new__';
     // Log a new entry when the modal's values differ from the latest entry of
     // this type (previously edits were silently discarded once history existed)
@@ -1894,16 +1850,6 @@ function deleteBook(id){
 
 // Shared panel HTML used by both Library cards and Lists
 
-function syncAudioPct(id, prefix){
-  const p=prefix+'-';
-  const curMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
-  const totalMins=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
-  const el=document.getElementById(p+'audio-pct-'+id);
-  if(!el)return;
-  if(!totalMins){el.textContent='';return;}
-  const pct=Math.min(100,Math.round((curMins/totalMins)*100));
-  el.textContent=pct+'%';
-}
 function checkPageOverflow(id, prefix){
   const p=prefix+'-';
   const page=+(document.getElementById(p+'page-'+id)||{}).value||0;
@@ -1919,8 +1865,8 @@ function buildProgressPanel(b, prefix='rp'){
   const bestPct=best?Math.min(100,Math.round((best.cur/best.total)*100)):null;
   const lastPage=prog.slice().reverse().find(e=>e.type==='pages')||null;
   const lastAudio=prog.slice().reverse().find(e=>e.type==='audio')||null;
+  const audioPct=audioPctOf(lastAudio);
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
-  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
   const recentJournal=(journalDB[b.id]||[]).slice(-3).reverse();
   const p=prefix+'-';
   const iStyle='width:100%;padding:.33rem .5rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:\'Lora\',serif;font-size:.82rem;background:var(--parchment);outline:none';
@@ -1944,31 +1890,13 @@ function buildProgressPanel(b, prefix='rp'){
     </div>
     <div id="${p}pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.72rem;margin-bottom:.3rem">⚠ Page number exceeds total — double-check before saving</div>
 
-    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.25rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
-      <div style="flex:0 0 100%;margin-bottom:.25rem">
-        <span style="font-size:.67rem;color:var(--ink-faint)">🎧 AUDIOBOOK — time listened so far</span>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.35rem;padding-top:.45rem;border-top:1px dotted var(--parchment-dark)">
+      <div style="flex:1;min-width:120px">
+        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">🎧 Audiobook % finished <span style="font-style:italic">(optional — from your audio app)</span></label>
+        <input type="number" id="${p}apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" style="${iStyle};max-width:110px">
       </div>
-      <div style="flex:1;min-width:100px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Current position</label>
-        <div style="display:flex;gap:.3rem">
-          <input type="number" id="${p}ah-${b.id}" value="${lastAudio?Math.floor(lastAudio.cur/60):''}" placeholder="0" min="0" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
-          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">h</span>
-          <input type="number" id="${p}am-${b.id}" value="${lastAudio?lastAudio.cur%60:''}" placeholder="0" min="0" max="59" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
-          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">min</span>
-        </div>
-      </div>
-      <div style="flex:1;min-width:100px">
-        <label style="display:block;font-size:.67rem;color:var(--ink-faint);margin-bottom:.2rem">Total length</label>
-        <div style="display:flex;gap:.3rem">
-          <input type="number" id="${p}ath-${b.id}" value="${stickyAudioTotal?Math.floor(stickyAudioTotal/60):''}" placeholder="0" min="0" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
-          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">h</span>
-          <input type="number" id="${p}atm-${b.id}" value="${stickyAudioTotal?stickyAudioTotal%60:''}" placeholder="0" min="0" max="59" style="width:52px;padding:.33rem .4rem;border:1px solid var(--parchment-dark);border-radius:5px;font-family:'Lora',serif;font-size:.82rem;background:var(--parchment);outline:none" oninput="syncAudioPct('${b.id}','${prefix}')">
-          <span style="align-self:center;font-size:.72rem;color:var(--ink-faint)">min</span>
-        </div>
-      </div>
-      <div id="${p}audio-pct-${b.id}" style="font-size:.75rem;color:var(--amber);font-family:'Playfair Display',serif;font-weight:600;align-self:center;white-space:nowrap;min-width:36px"></div>
     </div>
-    <button onclick="document.getElementById('${p}nocount-${b.id}').checked=true;document.getElementById('${p}note-${b.id}').value='Listened today';logProgressAndJournalInline('${b.id}','${prefix}')" style="width:100%;margin-bottom:.5rem;padding:.38rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no page count</button>
+    <button onclick="document.getElementById('${p}nocount-${b.id}').checked=true;document.getElementById('${p}note-${b.id}').value='Listened today';logProgressAndJournalInline('${b.id}','${prefix}')" style="width:100%;margin-bottom:.5rem;padding:.38rem;border:1px dashed var(--parchment-dark);border-radius:5px;background:transparent;font-family:'Lora',serif;font-size:.78rem;color:var(--ink-light);cursor:pointer;text-align:center">🎧 Listened today — quick log, no numbers needed</button>
     <input type="hidden" id="${p}note-${b.id}" value="">
     <label style="display:flex;align-items:center;gap:.42rem;cursor:pointer;font-family:'Lora',serif;font-size:.76rem;color:var(--ink-light);margin-bottom:.6rem;user-select:none">
       <input type="checkbox" id="${p}nocount-${b.id}" style="cursor:pointer;accent-color:var(--amber)"> Mark as read today (no page count)
@@ -2075,7 +2003,6 @@ function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
   // Sticky totals — use whatever was ever entered, ignore blank reads
   const prog=progressDB[id]||[];
   const stickyPageTotal=Math.max(0,...prog.filter(e=>e.type==='pages'&&e.total).map(e=>e.total));
-  const stickyAudioTotal=Math.max(0,...prog.filter(e=>e.type==='audio'&&e.total).map(e=>e.total));
 
   // "Just mark today" — log a no-count entry (once per day)
   const noCount=document.getElementById(p+'nocount-'+id);
@@ -2108,15 +2035,15 @@ function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
     }
   }
 
-  // Audio progress — same rule as pages: only log when the value changed
-  const aCurrentMins=readAudioInputs(p+'ah-'+id, p+'am-'+id);
-  const aTotalRaw=readAudioInputs(p+'ath-'+id, p+'atm-'+id);
-  const atotal=aTotalRaw||stickyAudioTotal;
-  if(aCurrentMins){
+  // Audio progress — single optional "% finished" field (stored as cur/100);
+  // same rule as pages: only log when the value actually changed
+  const apctEl=document.getElementById(p+'apct-'+id);
+  const apct=apctEl?Math.min(100,Math.max(0,+apctEl.value||0)):0;
+  if(apct){
     if(!progressDB[id])progressDB[id]=[];
     const lastAudio=progressDB[id].slice().reverse().find(e=>e.type==='audio');
-    if(!lastAudio||lastAudio.cur!==aCurrentMins||lastAudio.total!==atotal){
-      progressDB[id].push({date:sessionDate,type:'audio',cur:aCurrentMins,total:atotal,note:''});
+    if(audioPctOf(lastAudio)!==apct){
+      progressDB[id].push({date:sessionDate,type:'audio',cur:apct,total:100,note:''});
       save(SK.prog,progressDB);
       saved=true;
     }
@@ -2245,7 +2172,7 @@ async function lookupISBN(){
     const gmap={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
     let genre='';for(const s of subjects){const sl=s.toLowerCase();for(const[k,v]of Object.entries(gmap)){if(sl.includes(k)){genre=v;break;}}if(genre)break;}
     if(genre)document.getElementById('bGenre').value=genre;
-    if(bk.number_of_pages){document.getElementById('progTotalPage').value=bk.number_of_pages;document.getElementById('pmTotalPage').value=bk.number_of_pages;}
+    if(bk.number_of_pages)document.getElementById('progTotalPage').value=bk.number_of_pages;
     setIsbnStatus(`✓ Found: "${bk.title}" — fetching cover…`,'ok');
     const coverUrl=await fetchCoverByISBN(raw)||await fetchCoverByTitle(bk.title,(bk.authors||[]).map(a=>a.name).join(' '));
     if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
@@ -2289,10 +2216,7 @@ async function selectTitleResult(i){
   document.getElementById('titleSearchInput').value='';
   document.getElementById('bTitle').value=doc.title||'';
   document.getElementById('bAuthor').value=(doc.author_name||[]).slice(0,2).join(', ')||'';
-  if(doc.number_of_pages_median){
-    document.getElementById('progTotalPage').value=doc.number_of_pages_median;
-    const pmEl=document.getElementById('pmTotalPage');if(pmEl)pmEl.value=doc.number_of_pages_median;
-  }
+  if(doc.number_of_pages_median)document.getElementById('progTotalPage').value=doc.number_of_pages_median;
   const isbn=(doc.isbn||[])[0];
   if(isbn){
     document.getElementById('isbnInput').value=isbn;
@@ -2360,64 +2284,8 @@ function closeScanner(){
 }
 
 // ══════════════════════════════════════════
-// PROGRESS MODAL
+// PROGRESS HISTORY (edit modal)
 // ══════════════════════════════════════════
-function openProgModal(bookId){
-  const b=books.find(x=>x.id===bookId);if(!b)return;
-  curProgId=bookId;
-  document.getElementById('progModalTitle').textContent=b.title;
-  document.getElementById('progModalAuthor').textContent='by '+b.author;
-  const prog=progressDB[bookId]||[];const last=prog[prog.length-1]||{};
-  const type=last.type||'pages';progModalType=type;
-  document.querySelectorAll('#progModalTypeTabs .prog-tab').forEach(t=>t.classList.toggle('active',t.dataset.pt===type));
-  document.getElementById('pmPages').style.display=type==='pages'?'flex':'none';
-  document.getElementById('pmAudio').style.display=type==='audio'?'flex':'none';
-  if(type==='audio'){document.getElementById('pmCurMin').value=last.cur||'';document.getElementById('pmTotalMin').value=last.total||'';}
-  else{document.getElementById('pmCurPage').value=last.cur||'';document.getElementById('pmTotalPage').value=last.total||'';}
-  document.getElementById('pmNote').value='';
-  renderProgHistory(bookId);updateProgBig();
-  document.getElementById('progModal').style.display='flex';
-}
-
-function updateProgBig(){
-  const prog=progressDB[curProgId]||[];const last=prog[prog.length-1];
-  if(!last||!last.total){document.getElementById('progBigPct').textContent='—';document.getElementById('progBigSub').textContent='No progress logged yet';return;}
-  const pct=Math.min(100,Math.round((last.cur/last.total)*100));
-  document.getElementById('progBigPct').textContent=pct+'%';
-  document.getElementById('progBigSub').textContent=last.type==='audio'?`${minsToHM(last.cur)} of ${minsToHM(last.total)}`:`Page ${last.cur} of ${last.total}`;
-}
-
-function saveProgress(){
-  const type=progModalType;
-  const cur=type==='audio'?+document.getElementById('pmCurMin').value:+document.getElementById('pmCurPage').value;
-  const total=type==='audio'?+document.getElementById('pmTotalMin').value:+document.getElementById('pmTotalPage').value;
-  const note=document.getElementById('pmNote').value.trim();
-  if(!cur&&!total){toast('Enter current and total.','err');return;}
-  if(!progressDB[curProgId])progressDB[curProgId]=[];
-  progressDB[curProgId].push({date:localDateStr(),type,cur,total,note});
-  save(SK.prog,progressDB);logDay(localDateStr());
-  renderProgHistory(curProgId);updateProgBig();renderLibrary();updateHdrStreak();
-  toast('Progress logged!','ok');
-}
-
-function renderProgHistory(bookId){
-  const entries=(progressDB[bookId]||[]).slice().reverse();
-  const el=document.getElementById('progHistory');
-  if(!entries.length){el.innerHTML='';return;}
-  el.innerHTML=`<h4>Recent Sessions</h4>`+entries.slice(0,8).map((e,i)=>{
-    const actualIdx=(progressDB[bookId]||[]).length-1-i;
-    const lbl=e.type==='audio'?`${minsToHM(e.cur)} / ${minsToHM(e.total)}`:`p.${e.cur}/${e.total}`;
-    const pct=e.total?Math.round((e.cur/e.total)*100):0;
-    return `<div class="prog-entry">
-      <span class="prog-entry-date">${fmtDate(e.date)}</span>
-      <span class="prog-entry-val">${lbl} · ${pct}%</span>
-      ${e.note?`<span class="prog-entry-note">${esc(e.note)}</span>`:'<span class="prog-entry-note"></span>'}
-      <button class="prog-entry-del" onclick="delProgEntry('${bookId}',${actualIdx})">✕</button>
-    </div>`;
-  }).join('');
-}
-function delProgEntry(bookId,idx){progressDB[bookId].splice(idx,1);save(SK.prog,progressDB);renderProgHistory(bookId);updateProgBig();renderLibrary();}
-
 function renderProgHistoryEdit(bookId, showAll=false){
   const el=document.getElementById('progHistoryEdit');
   if(!el)return;
@@ -2438,7 +2306,7 @@ function renderProgHistoryEdit(bookId, showAll=false){
 
   const rows=visible.map((e,ri)=>{
     const idx=entries.length-1-ri;
-    const typeLabel=e.type==='audio'?'h:mm':'p.';
+    const typeLabel=e.type==='audio'?(e.total===100?'%':'mins'):'p.';
     return `<div style="display:flex;align-items:center;gap:.4rem;padding:.28rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.78rem">
       <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
         style="padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.72rem;background:var(--parchment);outline:none;width:112px">
@@ -2747,7 +2615,8 @@ function buildDailyMap(){
       if(!map[d])map[d]={pages:0,mins:0};
       const prev=i>0?prog[i-1]:null;
       if(entry.type==='audio'){
-        const delta=prev&&prev.type==='audio'?Math.max(0,entry.cur-prev.cur):entry.cur;
+        if(entry.total===100)return; // percent-based entry — no minutes to count
+        const delta=prev&&prev.type==='audio'&&prev.total!==100?Math.max(0,entry.cur-prev.cur):entry.cur;
         map[d].mins+=delta;
       }else{
         const delta=prev&&prev.type!=='audio'?Math.max(0,entry.cur-prev.cur):entry.cur;
@@ -2759,7 +2628,6 @@ function buildDailyMap(){
 }
 
 function renderStats(){
-  const{cur,longest}=computeStreak();
   const bookOnly=books.filter(b=>b.itemType!=='article');
   const readBks=bookOnly.filter(b=>b.status==='read');
   const ownCnt=bookOnly.filter(b=>(b.formats||[]).some(f=>['physical','ebook','audio'].includes(f))).length;
@@ -2775,15 +2643,18 @@ function renderStats(){
   const totalPages=Object.values(dailyMap).reduce((s,v)=>s+v.pages,0);
   const totalMins=Object.values(dailyMap).reduce((s,v)=>s+v.mins,0);
 
-  document.getElementById('statsHero').innerHTML=[
-    [cur?`🔥 ${cur}`:'—','Current Streak',longest?`Best: ${longest} days`:''],
+  renderStreakBanner();
+
+  const tiles=[
     [readBks.length,'Books Finished',''],
     [books.length,'Items Logged',`${articleCnt} article${articleCnt!==1?'s':''}`],
     [ownCnt,'Books Owned',`${activeLoanCnt} loaned out`],
     [avgRating,'Avg Rating','out of 5'],
-    [totalPages?totalPages.toLocaleString():'—','Total Pages Read','across logged sessions'],
-    [totalMins?Math.round(totalMins/60)+'h':'—','Audio Hours','approx'],
-  ].map(([n,l,s])=>`<div class="stat-card"><div class="stat-n">${n}</div><div class="stat-l">${l}</div>${s?`<div class="stat-sub">${s}</div>`:''}</div>`).join('');
+  ];
+  if(totalPages)tiles.push([totalPages.toLocaleString(),'Total Pages Read','across logged sessions']);
+  if(totalMins)tiles.push([Math.round(totalMins/60)+'h','Audio Hours','approx']);
+  document.getElementById('statsHero').innerHTML=tiles
+    .map(([n,l,s])=>`<div class="stat-card"><div class="stat-n">${n}</div><div class="stat-l">${l}</div>${s?`<div class="stat-sub">${s}</div>`:''}</div>`).join('');
 
   // Genre breakdown
   const genreCounts={};
@@ -2800,21 +2671,83 @@ function renderStats(){
   // Charts
   renderCharts(dailyMap,readBks,rated);
 
-  // Calendar
-  document.getElementById('calLbls').innerHTML=['S','M','T','W','T','F','S'].map(d=>`<div class="cal-lbl">${d}</div>`).join('');
-  const{days}=computeStreak();const activeDays=new Set(days);
-  const today=new Date();const todayStr=localDateStr(today);const cells=[];
-  for(let i=69;i>=0;i--){
-    const d=new Date(today);d.setDate(d.getDate()-i);
-    const iso=localDateStr(d);
-    const lbl=d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-    cells.push(`<div class="cal-day ${activeDays.has(iso)?'on':''} ${iso===todayStr?'today':''}"><div class="cal-tip">${lbl}${activeDays.has(iso)?' ✓':''}</div></div>`);
-  }
-  const first=new Date(today);first.setDate(first.getDate()-69);
-  document.getElementById('calGrid').innerHTML=Array(first.getDay()).fill('<div class="cal-day" style="opacity:0"></div>').join('')+cells.join('');
+  // Month calendar
+  renderMonthCal();
 
   // Pace table
   renderPaceTable(readBks);
+}
+
+// ── Streak banner: big flame + the last 7 days as labeled check-circles ──
+function renderStreakBanner(){
+  const el=document.getElementById('streakSection');if(!el)return;
+  const{cur,longest,total,days}=computeStreak();
+  const active=new Set(days);
+  const today=new Date();
+  const cells=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(today);d.setDate(d.getDate()-i);
+    const iso=localDateStr(d);
+    const read=active.has(iso);
+    cells.push(`<div class="s7-day">
+      <span class="s7-lbl">${d.toLocaleDateString('en-US',{weekday:'narrow'})}</span>
+      <span class="s7-dot${read?' on':''}${i===0?' today':''}">${read?'✓':''}</span>
+    </div>`);
+  }
+  el.innerHTML=`<div class="streak-banner">
+    <div class="sb-left">
+      <div class="sb-flame">🔥</div>
+      <div>
+        <div class="sb-num">${cur}<span class="sb-unit">day${cur!==1?'s':''}</span></div>
+        <div class="sb-sub">${cur?'CURRENT STREAK':'READ TODAY TO START A STREAK'}</div>
+      </div>
+    </div>
+    <div class="sb-right">
+      <div class="s7-strip">${cells.join('')}</div>
+      <div class="sb-meta">Best ${longest} day${longest!==1?'s':''} · ${total} day${total!==1?'s':''} read all-time</div>
+    </div>
+  </div>`;
+}
+
+// ── Month calendar: real day numbers, browsable with ‹ › ──
+let _calYM=null; // [year, month 1-12] currently shown
+function shiftMonthCal(delta){
+  let[y,m]=_calYM;m+=delta;
+  if(m<1){m=12;y--;}if(m>12){m=1;y++;}
+  _calYM=[y,m];renderMonthCal();
+}
+function renderMonthCal(){
+  const el=document.getElementById('monthCalCard');if(!el)return;
+  const now=new Date();
+  if(!_calYM)_calYM=[now.getFullYear(),now.getMonth()+1];
+  const[y,m]=_calYM;
+  const{days}=computeStreak();const active=new Set(days);
+  const pad2=n=>String(n).padStart(2,'0');
+  const daysInMonth=new Date(y,m,0).getDate();
+  const firstDow=new Date(y,m-1,1).getDay();
+  const todayStr=localDateStr();
+  const isCurMonth=y===now.getFullYear()&&m===now.getMonth()+1;
+  let readCount=0;
+  const cells=[];
+  for(let i=0;i<firstDow;i++)cells.push('<div></div>');
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=`${y}-${pad2(m)}-${pad2(d)}`;
+    const read=active.has(iso);if(read)readCount++;
+    cells.push(`<div class="mcal-day${read?' read':''}${iso===todayStr?' today':''}${iso>todayStr?' future':''}">${d}</div>`);
+  }
+  const monthName=new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long'});
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.7rem;flex-wrap:wrap">
+      <div class="chart-title" style="margin-bottom:0">📖 Days I Read</div>
+      <div style="display:flex;align-items:center;gap:.45rem">
+        <button class="mcal-nav" onclick="shiftMonthCal(-1)" aria-label="Previous month">‹</button>
+        <span style="font-family:'Playfair Display',serif;font-size:.85rem;font-weight:600;min-width:118px;text-align:center">${monthName} ${y}</span>
+        <button class="mcal-nav" onclick="shiftMonthCal(1)" ${isCurMonth?'disabled':''} aria-label="Next month">›</button>
+      </div>
+    </div>
+    <div class="mcal-lbls">${['S','M','T','W','T','F','S'].map(d=>`<div>${d}</div>`).join('')}</div>
+    <div class="mcal-grid">${cells.join('')}</div>
+    <div style="font-size:.72rem;color:var(--ink-faint);font-style:italic;margin-top:.55rem">${readCount} day${readCount!==1?'s':''} read in ${monthName}</div>`;
 }
 
 function renderCharts(dailyMap,readBks,rated){
@@ -2830,13 +2763,14 @@ function renderCharts(dailyMap,readBks,rated){
     charts.push(`<div class="chart-card"><div class="chart-title">📄 Pages Read — Last 30 Days</div>${hasData?svgBarChart(vals,days30,'#c47a1a',v=>v+'p'):'<div class="chart-empty">Log reading progress to see pages per day.</div>'}</div>`);
   }
 
-  // Minutes per day — last 30 days
+  // Minutes per day — last 30 days (legacy minute-based audio logs only;
+  // percent-based logging has no minutes to chart, so skip when empty)
   {
     const days30=[];const today=new Date();
     for(let i=29;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);days30.push(localDateStr(d));}
     const vals=days30.map(d=>(dailyMap[d]||{mins:0}).mins);
-    const hasData=vals.some(v=>v>0);
-    charts.push(`<div class="chart-card"><div class="chart-title">🎧 Minutes Listened — Last 30 Days</div>${hasData?svgBarChart(vals,days30,'#4a6050',v=>v+'m'):'<div class="chart-empty">Log audiobook progress to see minutes per day.</div>'}</div>`);
+    if(vals.some(v=>v>0))
+      charts.push(`<div class="chart-card"><div class="chart-title">🎧 Minutes Listened — Last 30 Days</div>${svgBarChart(vals,days30,'#4a6050',v=>v+'m')}</div>`);
   }
 
   // Books finished per month — last 12 months
@@ -3439,21 +3373,20 @@ function toastUndo(msg,undoFn,duration=5000){
   setTimeout(()=>el.remove(),duration);
 }
 
-// Audio time helpers — all values stored as total minutes internally
+// Audio helpers — new entries store percent (cur/100); older entries stored
+// a position in minutes (cur/total mins). Both shapes display correctly.
 function minsToHM(mins){
   if(!mins&&mins!==0)return'';
   const h=Math.floor(mins/60),m=mins%60;
   return h>0?`${h}h ${m}m`:`${m}m`;
 }
-function hmToMins(h,m){return(+h||0)*60+(+m||0);}
-// Read h+m inputs and return total minutes
-function readAudioInputs(hId,mId){return hmToMins(document.getElementById(hId)?.value||0,document.getElementById(mId)?.value||0);}
-// Populate h+m inputs from total minutes
-function fillAudioInputs(hId,mId,totalMins){
-  const h=Math.floor(totalMins/60),m=totalMins%60;
-  const hEl=document.getElementById(hId),mEl=document.getElementById(mId);
-  if(hEl)hEl.value=h||'';if(mEl)mEl.value=m||'';
+// Percent complete of an audio entry, whichever shape it is (null if unknowable)
+function audioPctOf(e){
+  if(!e)return null;
+  if(e.total===100)return e.cur;
+  return e.total?Math.round(e.cur/e.total*100):null;
 }
+function audioLabel(cur,total){return total===100?`${Math.round(cur)}%`:`${minsToHM(cur)}/${minsToHM(total)}`;}
 
 // ══════════════════════════════════════════
 // INIT
@@ -3472,7 +3405,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     setGistDot('pushing');
     await gistPull();
   }
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeM('progModal');closeScanner();closeReadingSession();}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeScanner();closeReadingSession();}});
 });
 
 // ── Reading Session ──────────────────────────────────────────────
