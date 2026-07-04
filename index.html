@@ -44,8 +44,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;ba
 .hdr-btn:hover{background:rgba(255,255,255,.18);border-color:var(--gold)}
 .nav-tabs{background:#261508;display:flex;padding:0 1.75rem;overflow-x:auto;border-bottom:2px solid var(--gold);position:relative;z-index:5;scrollbar-width:none}
 .nav-tabs::-webkit-scrollbar{display:none}
-.nav-tab{padding:.66rem 1.22rem;color:rgba(244,237,216,.52);cursor:pointer;font-family:'IM Fell English SC',serif;font-size:.79rem;letter-spacing:.07em;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;user-select:none}
+.nav-tab{padding:.66rem 1.22rem;color:rgba(244,237,216,.52);cursor:pointer;font-family:'IM Fell English SC',serif;font-size:.79rem;letter-spacing:.07em;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;user-select:none}
 .nav-tab:hover{color:var(--parchment)}.nav-tab.active{color:var(--gold-lt);border-bottom-color:var(--gold-lt)}
+.nav-tab:focus-visible{outline:2px solid var(--gold-lt);outline-offset:-3px}
 
 main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .view{display:none}.view.active{display:block}
@@ -147,6 +148,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .lh-dnf{background:linear-gradient(135deg,#eaeef8,#f0f4fc);border-bottom:2px solid var(--navy)}
 .lh-article{background:linear-gradient(135deg,#e4f0ee,#eef8f5);border-bottom:2px solid var(--teal)}
 .lh-wishlist{background:linear-gradient(135deg,#e4f0ee,#f4f8ed);border-bottom:2px solid var(--teal)}
+.lh-loaned{background:linear-gradient(135deg,#fde8e8,#fdf0f0);border-bottom:2px solid var(--burgundy)}
 .lh-finished{background:linear-gradient(135deg,#e6f0e6,#eef6ee);border-bottom:2px solid var(--sage)}
 .list-rows{padding:.42rem 0;max-height:300px;overflow-y:auto}
 .list-row{display:flex;align-items:center;gap:.52rem;padding:.42rem 1.02rem;border-bottom:1px dotted var(--parchment-dark);transition:background .14s;cursor:pointer}
@@ -397,6 +399,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   main{padding:1rem}.row2,.row3{grid-template-columns:1fr}.books-grid{grid-template-columns:1fr}
   .stats-hero{grid-template-columns:repeat(2,1fr)}.brand h1{font-size:1.38rem}.modal{padding:1.08rem}
   .charts-grid{grid-template-columns:1fr}
+  .nav-tabs{justify-content:space-between}
+  .nav-tab{padding:.66rem .45rem;font-size:.72rem;flex:1;text-align:center}
 }
 </style>
 </head>
@@ -417,15 +421,11 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
   </div>
   <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
-    <div class="nav-tab active" data-view="log" onclick="showView('log')">📖 Today</div>
-    <div class="nav-tab" data-view="library" onclick="showView('library')">My Library</div>
-    <div class="nav-tab" data-view="wishlist" onclick="showView('wishlist')">🌿 Wishlist</div>
-    <div class="nav-tab" data-view="lists" onclick="showView('lists')">Lists</div>
-    <div class="nav-tab" data-view="year" onclick="showView('year')">📅 Reading Year</div>
-    <div class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</div>
-    <div class="nav-tab" data-view="loaned" onclick="showView('loaned')">Loaned Out</div>
-    <div class="nav-tab" data-view="stats" onclick="showView('stats')">Stats &amp; Streak</div>
-    <div class="nav-tab" data-view="keepsake" onclick="showView('keepsake')">Keepsake</div>
+    <button class="nav-tab active" data-view="log" onclick="showView('log')">📖 Today</button>
+    <button class="nav-tab" data-view="library" onclick="showView('library')">My Library</button>
+    <button class="nav-tab" data-view="lists" onclick="showView('lists')">Lists</button>
+    <button class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</button>
+    <button class="nav-tab" data-view="stats" onclick="showView('stats')">Stats</button>
   </nav>
 </header>
 
@@ -477,7 +477,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view" id="view-wishlist">
   <div class="sec-head">
     <h2 class="sec-title">🌿 Wishlist</h2>
-    <button class="btn btn-primary" onclick="openAddWishlist()">＋ Add to Wishlist</button>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="showView('lists')">‹ Lists</button>
+      <button class="btn btn-primary" onclick="openAddWishlist()">＋ Add to Wishlist</button>
+    </div>
   </div>
   <div class="wishlist-grid" id="wishlistGrid"></div>
   <div class="empty" id="emptyWishlist" style="display:none">
@@ -490,12 +493,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view" id="view-lists">
   <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
   <div class="lists-grid" id="listsGrid"></div>
-</div>
-
-<!-- READING YEAR -->
-<div class="view" id="view-year">
-  <div class="sec-head"><h2 class="sec-title">📅 Reading Year</h2></div>
-  <div class="lists-grid" id="yearGrid"></div>
 </div>
 
 <!-- READING LOG -->
@@ -517,15 +514,22 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view" id="view-loaned">
   <div class="sec-head">
     <h2 class="sec-title">Loaned Out</h2>
-    <span style="font-size:.76rem;color:var(--ink-faint);font-style:italic">Books currently with someone else</span>
+    <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">
+      <span style="font-size:.76rem;color:var(--ink-faint);font-style:italic">Books currently with someone else</span>
+      <button class="btn btn-secondary" onclick="showView('lists')">‹ Lists</button>
+    </div>
   </div>
   <div id="loanedContent"></div>
 </div>
 
 <!-- STATS & STREAK -->
 <div class="view" id="view-stats">
-  <div class="sec-head"><h2 class="sec-title">Stats &amp; Reading Streak</h2></div>
+  <div class="sec-head">
+    <h2 class="sec-title">Stats &amp; Reading Streak</h2>
+    <button class="btn btn-secondary" onclick="showView('keepsake')">📜 Keepsake</button>
+  </div>
   <div class="stats-hero" id="statsHero"></div>
+  <div class="lists-grid" id="yearGrid" style="margin-bottom:1.2rem"></div>
   <div class="charts-grid" id="chartsGrid"></div>
   <div class="cal-wrap">
     <p style="font-size:.7rem;color:var(--ink-faint);margin-bottom:.5rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">Past 70 days — filled squares are days you logged reading activity</p>
@@ -540,7 +544,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view keepsake-view" id="view-keepsake">
   <div class="sec-head">
     <h2 class="sec-title">Keepsake</h2>
-    <button class="btn btn-secondary" onclick="window.print()">🖨 Print / Save PDF</button>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="showView('stats')">‹ Stats</button>
+      <button class="btn btn-secondary" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
   </div>
   <div class="ks-wrap" id="ksContent"></div>
 </div>
@@ -1194,16 +1201,39 @@ let pendingCoverUrl='';
 // ══════════════════════════════════════════
 // VIEWS
 // ══════════════════════════════════════════
+// Views that no longer have their own page redirect to where they live now
+const VIEW_ALIAS={year:'stats'};
+// Sub-pages highlight the tab they're reached from
+const TAB_FOR={wishlist:'lists',loaned:'lists',keepsake:'stats',settings:null};
+
+function resolveView(n){
+  n=VIEW_ALIAS[n]||n;
+  return document.getElementById('view-'+n)?n:'log';
+}
+
+// Navigation goes through the URL hash so the browser/system Back button
+// moves between views (an installed PWA used to just exit on Back).
 function showView(n){
+  n=resolveView(n);
+  if(location.hash.slice(1)===n)renderView(n); // re-click on active tab still refreshes
+  else location.hash=n;                        // hashchange fires renderView
+}
+window.addEventListener('hashchange',()=>renderView(resolveView(location.hash.slice(1)||'log')));
+
+function renderView(n){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.toggle('active',t.dataset.view===n));
+  const hl=Object.prototype.hasOwnProperty.call(TAB_FOR,n)?TAB_FOR[n]:n;
+  document.querySelectorAll('.nav-tab').forEach(t=>{
+    const on=!!hl&&t.dataset.view===hl;
+    t.classList.toggle('active',on);
+    if(on)t.setAttribute('aria-current','page');else t.removeAttribute('aria-current');
+  });
   const el=document.getElementById('view-'+n);if(el)el.classList.add('active');
-  if(n==='stats')    renderStats();
+  if(n==='stats'){renderStats();renderYear();}
   if(n==='keepsake') renderKeepsake();
   if(n==='loaned')   renderLoaned();
   if(n==='lists')    renderLists();
   if(n==='log')      renderLogSession();
-  if(n==='year')     renderYear();
   if(n==='journal')  renderJournalView();
   if(n==='wishlist') renderWishlist();
   if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
@@ -2549,7 +2579,21 @@ function renderLists(){
       </div>
     </div>`;
   }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">Your wishlist is empty — add books you'd love to read.</div>`;
-  const wishlistCard=`<div class="list-card"><div class="list-card-head lh-wishlist"><h3>🌿 Wishlist</h3><span class="list-count">${wishlistBks.length} book${wishlistBks.length!==1?'s':''}</span></div><div class="list-rows">${wishlistRows}</div></div>`;
+  const wishlistCard=`<div class="list-card"><div class="list-card-head lh-wishlist" style="cursor:pointer" onclick="showView('wishlist')" title="Open Wishlist"><h3>🌿 Wishlist</h3><span class="list-count">${wishlistBks.length} book${wishlistBks.length!==1?'s':''} ›</span></div><div class="list-rows">${wishlistRows}</div></div>`;
+
+  // Loaned Out — books currently with someone else (header opens the full page)
+  const loanedBks=books.filter(b=>activeLoan(b));
+  const loanedRows=loanedBks.length?loanedBks.map(b=>{
+    const al=activeLoan(b);
+    return `<div class="list-row" onclick="openEditModal('${b.id}')">
+      ${rowCover(b)}
+      <div class="list-row-info">
+        <div class="list-row-title">${esc(b.title)}</div>
+        <div class="list-row-author">with ${esc(al.to)}${al.date?' · since '+fmtDate(al.date):''}</div>
+      </div>
+    </div>`;
+  }).join(''):`<div style="padding:1rem;font-size:.78rem;color:var(--ink-faint);font-style:italic">Nothing loaned out — log a loan when editing any book.</div>`;
+  const loanedCard=`<div class="list-card"><div class="list-card-head lh-loaned" style="cursor:pointer" onclick="showView('loaned')" title="Open Loaned Out"><h3>📤 Loaned Out</h3><span class="list-count">${loanedBks.length} out ›</span></div><div class="list-rows">${loanedRows}</div></div>`;
 
   document.getElementById('listsGrid').innerHTML=
     readingCard+
@@ -2558,7 +2602,8 @@ function renderLists(){
     makeList('⭐ Favorites','lh-fav',fav,'No favorites yet — rate a book 5 stars or tag it ⭐.')+
     makeList('📕 Did Not Finish','lh-dnf',dnfL,'No DNF books.')+
     makeList('📰 Articles Read','lh-article',articles,'No articles logged yet.')+
-    wishlistCard;
+    wishlistCard+
+    loanedCard;
 }
 
 function renderYear(){
@@ -3415,7 +3460,12 @@ function fillAudioInputs(hId,mId,totalMins){
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
-  renderLists();renderLibrary();renderLogSession();updateHdrStreak();
+  renderLibrary();updateHdrStreak();
+  // Land on the view in the URL hash (refresh keeps your place); replaceState
+  // avoids an extra history entry so Back still exits from the initial view
+  const initial=resolveView(location.hash.slice(1)||'log');
+  if(location.hash.slice(1)!==initial)history.replaceState(null,'','#'+initial);
+  renderView(initial);
   updateGistStatus();
   _appReady=true;
   if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){

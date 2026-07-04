@@ -44,7 +44,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 ### Lists & Favorites
 - **Favorites** — automatically includes any 5-star book; also taggable manually
 - **To Be Read, DNF Shelf, Articles, Loaned Out** — curated lists
-- **Wishlist** — separate tab and list section for books you want but don't own yet
+- **Wishlist** — its own page (open it from the Lists tab) for books you want but don't own yet
 - DNF tag and DNF status stay in sync — set one and the other updates automatically
 
 ### Physical Location Tracking
@@ -54,9 +54,11 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Filter the library by room to find books fast
 
 ### Stats & More
-- Reading stats and charts
-- Keepsake / print view
+- Reading stats, charts, and the Reading Year month-by-month view with goal pace
+- Keepsake / print view (from the Stats page)
 - GitHub Gist sync — pull or push your data to stay in sync across devices
+- Five top-level tabs (Today · My Library · Lists · Journal · Stats); Wishlist and
+  Loaned Out open from their cards in Lists. The Back button moves between views.
 
 ---
 
