@@ -1,12 +1,13 @@
 // Reading Room — Service Worker
 // Cache version: bump this string to force all clients to update
-const CACHE = 'reading-room-v2';
+const CACHE = 'reading-room-v3';
 
 // App shell: local files that MUST cache on install for offline use
 const SHELL = [
   './',
   './index.html',
   './icon.svg',
+  './icon-maskable.svg',
   './manifest.json',
 ];
 
