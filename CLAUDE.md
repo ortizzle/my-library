@@ -5,10 +5,14 @@ worker; there is no build step. Follow the `family-app-standards` skill.
 
 ## Target device
 
-**Chris uses a Google Pixel — Android, Chrome.** Not an iPhone. Audit and test
-against Android Chrome at 412px. Material minimum tap target is 48px. iOS-specific
-concerns (Safari's sub-16px input auto-zoom, `apple-touch-icon`, `-webkit-fill-available`
-viewport hacks) do not apply here.
+**Chris uses a Google Pixel 8 Pro — Android, Chrome.** Not an iPhone. Audit and
+test against Android Chrome at 412px. iOS-specific concerns (Safari's sub-16px
+input auto-zoom, `apple-touch-icon`, `-webkit-fill-available` viewport hacks) do
+not apply here.
+
+Tap targets in this app work well on his device — confirmed. Don't flag control
+sizes as defects or propose a resize pass. 48px is a default for new controls,
+not a reason to touch what ships.
 
 ## Verifying changes
 
