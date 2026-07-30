@@ -12,9 +12,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, extname } from 'node:path';
 import { chromium } from 'playwright';
+
+// Some sandboxes ship a preinstalled Chromium at a fixed path and block the
+// download that `playwright install` would do. Use it when it's there, and
+// otherwise let Playwright resolve its own browser (which is what CI has).
+const PREINSTALLED = '/opt/pw-browsers/chromium';
+const LAUNCH_OPTS = existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {};
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml' };
@@ -63,7 +70,7 @@ let browser, server, base;
 
 test.before(async () => {
   ({ server, base } = await startServer());
-  browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+  browser = await chromium.launch(LAUNCH_OPTS);
 });
 
 test.after(async () => {
