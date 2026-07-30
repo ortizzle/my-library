@@ -1,0 +1,46 @@
+name: Tests
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium for the smoke test
+        run: npx playwright install --with-deps chromium
+
+      - name: Run tests
+        run: node --test tests/*.test.mjs
+
+      # The checks from references/smoke-test.md that are pure greps. These are
+      # advisory for now: the app still uses native dialogs and inline onclick
+      # handlers, which are being replaced in a separate pass.
+      - name: Code hygiene
+        continue-on-error: true
+        run: |
+          echo "::group::native dialogs"
+          grep -nE "alert\(|confirm\(|prompt\(" index.html || echo "none"
+          echo "::endgroup::"
+          echo "::group::inline onclick"
+          grep -c "onclick=" index.html
+          echo "::endgroup::"
+
+      - name: No committed secrets
+        run: |
+          if grep -nE "ghp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9-]{20,}" index.html; then
+            echo "::error::A token or API key appears to be committed"
+            exit 1
+          fi
+          echo "clean"

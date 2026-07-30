@@ -906,15 +906,56 @@ const SK={
   journal:'trr_v1_journal',  // {bookId: [{date,text}]}
   rooms:  'trr_v1_rooms',
   goals:  'trr_v1_goals',    // {year: bookCount}
+  deleted:'trr_v1_deleted',  // {bookId: deletedAtMs} — tombstones, so deletes survive sync
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
+// NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
+// and what clearAll() wipes. Anything iterating SK must decide about them explicitly.
 
 // Old key prefixes to migrate from
 const OLD_PREFIXES=['trr4_','trr3_','trr2_','trr_'];
 const OLD_SUFFIXES={books:'books',api:'api',streak:'streak',favQ:'favq',cacheQ:'cq',prog:'progress',covers:'covers'};
 
-const load=k=>{try{return JSON.parse(localStorage.getItem(k))||null}catch{return null}};
-const save=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.setItem(SK.updated,new Date().toISOString());scheduleGistPush();};
+// Shape-checked load. A valid-JSON-but-wrong-shape value (e.g. a hand-edited gist
+// that turned `books` into an object) used to be assigned straight into state and
+// then thrown on at render time, bricking the app on every subsequent reload.
+function load(k,shape){
+  let v;
+  try{v=JSON.parse(localStorage.getItem(k));}catch{return null;}
+  if(v===null||v===undefined)return null;
+  if(shape==='array'&&!Array.isArray(v))return null;
+  if(shape==='object'&&(typeof v!=='object'||Array.isArray(v)))return null;
+  return v;
+}
+
+// localStorage can throw (quota, private mode). Callers used to assume it never
+// did, so a failed write left the in-memory state and storage silently diverged.
+let _storageWarned=false;
+function save(k,v){
+  try{
+    localStorage.setItem(k,JSON.stringify(v));
+    localStorage.setItem(SK.updated,new Date().toISOString());
+  }catch(e){
+    console.error('localStorage write failed for',k,e);
+    if(!_storageWarned){
+      _storageWarned=true;
+      try{toast('Storage is full — your last change was NOT saved. Export a backup from Settings, then remove some books.','err');}catch{}
+    }
+    return false;
+  }
+  scheduleGistPush();
+  return true;
+}
+
+// Persist books, stamping the records that changed. Always use this instead of
+// save(SK.books,books) for edits: the sync merge resolves per-book conflicts on
+// `updatedAt`, so a mutation that doesn't bump it can be silently reverted by
+// the other device's older copy.
+function saveBooks(...changed){
+  const now=Date.now();
+  for(const b of changed)if(b&&typeof b==='object')b.updatedAt=now;
+  return save(SK.books,books);
+}
 
 function bookGradient(title='',author=''){
   const s=(title+author).toLowerCase();
@@ -961,9 +1002,158 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible')gistRefreshIfStale();
 });
 
-function gistPayload(){
+// ══════════════════════════════════════════
+// SYNC MERGE
+// ══════════════════════════════════════════
+// Sync used to be a wholesale replace: whichever side carried the newer global
+// timestamp overwrote the other side's entire library. Two devices edited
+// between syncs and one side's work was destroyed, silently. Everything below
+// merges per record instead. Apart from books (where a later edit must win)
+// every merge is additive, so it cannot lose data.
+
+const TOMBSTONE_TTL=60*86400000; // forget deletions after 60 days
+
+// Deletes are tombstones, not absences — otherwise the other device still has
+// the book and pushes it straight back ("deletion resurrection").
+function mergeDeleted(a,b){
+  const out={...(a||{})};
+  for(const[id,ts]of Object.entries(b||{}))out[id]=Math.max(out[id]||0,ts||0);
+  const cutoff=Date.now()-TOMBSTONE_TTL;
+  for(const[id,ts]of Object.entries(out))if(ts<cutoff)delete out[id];
+  return out;
+}
+
+// Newest edit wins per id; a tombstone newer than the edit removes the book.
+// Books written before `updatedAt` existed count as oldest, so a fresh edit
+// from either device always beats them.
+function mergeBooks(local,remote,deleted){
+  const by=new Map();
+  for(const b of [...(remote||[]),...(local||[])]){
+    if(!b||typeof b!=='object'||!b.id)continue;
+    const prev=by.get(b.id);
+    if(!prev||(b.updatedAt||0)>=(prev.updatedAt||0))by.set(b.id,b);
+  }
+  const out=[];
+  for(const b of by.values()){
+    const del=deleted[b.id];
+    if(del&&del>=(b.updatedAt||0))continue;
+    out.push(b);
+  }
+  // Deterministic order (newest first, matching the old unshift behaviour) so
+  // the same inputs always produce the same payload and sync converges.
+  out.sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)||String(a.id).localeCompare(String(b.id)));
+  return out;
+}
+
+// Per-book history arrays (progress, journal). Union, deduped on content.
+// These were previously spread-replaced by both sync and import, so restoring
+// a backup wiped every entry newer than the backup.
+function entryKey(e){return [e.date||'',e.time||'',e.type||'',e.cur??'',e.total??'',e.text||e.note||''].join('');}
+function mergeEntryMap(a,b){
+  const out={};
+  for(const id of new Set([...Object.keys(a||{}),...Object.keys(b||{})])){
+    const la=Array.isArray((a||{})[id])?a[id]:[];
+    const lb=Array.isArray((b||{})[id])?b[id]:[];
+    const seen=new Set(),merged=[];
+    for(const e of [...la,...lb]){
+      if(!e||typeof e!=='object')continue;
+      const k=entryKey(e);
+      if(seen.has(k))continue;
+      seen.add(k);merged.push(e);
+    }
+    merged.sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
+    out[id]=merged;
+  }
+  return out;
+}
+
+// Flat id->value maps (covers, cached questions, starred questions).
+function mergeIdMap(local,remote,deleted){
+  const out={...(remote||{}),...(local||{})};
+  for(const id of Object.keys(out))if(deleted[id])delete out[id];
+  return out;
+}
+
+function mergeState(local,remote){
+  const deleted=mergeDeleted(local.deleted,remote.deleted);
+  const streak={...(remote.streak||{})};
+  for(const[d,n]of Object.entries(local.streak||{}))streak[d]=Math.max(streak[d]||0,n||0);
+  const merged={
+    deleted,
+    books:  mergeBooks(local.books,remote.books,deleted),
+    prog:   mergeEntryMap(local.prog,remote.prog),
+    journal:mergeEntryMap(local.journal,remote.journal),
+    covers: mergeIdMap(local.covers,remote.covers,deleted),
+    cacheQ: mergeIdMap(local.cacheQ,remote.cacheQ,deleted),
+    favQ:   mergeIdMap(local.favQ,remote.favQ,deleted),
+    streak,
+    rooms:  [...new Set([...(remote.rooms||[]),...(local.rooms||[])])].sort(),
+    goals:  {...(remote.goals||{}),...(local.goals||{})}
+  };
+  for(const id of Object.keys(deleted)){delete merged.prog[id];delete merged.journal[id];}
+  return merged;
+}
+
+function currentState(){
+  return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
+          streak:streakDB,rooms,goals,deleted:deletedDB};
+}
+
+// Coerce anything off the wire into the shape the merge expects. A hand-edited
+// gist used to be assigned into state as-is and bricked the app on next load.
+function remoteState(d){
+  if(!d||typeof d!=='object'||Array.isArray(d))return null;
+  const arr=v=>Array.isArray(v)?v:[];
+  const obj=v=>(v&&typeof v==='object'&&!Array.isArray(v))?v:{};
+  return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
+          cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
+          goals:obj(d.goals),deleted:obj(d.deleted)};
+}
+
+// Assign merged state and persist it. Deliberately does not call save(): that
+// would re-stamp SK.updated and schedule another push on every pull.
+function applyState(s){
+  books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
+  cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
+  const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
+               [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
+               [SK.goals,goals],[SK.deleted,deletedDB]];
+  try{
+    for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
+    return true;
+  }catch(e){
+    console.error('Failed to persist merged state:',e);
+    toast('Synced, but storage is full — the merge is in memory only.','err');
+    return false;
+  }
+}
+
+function gistPayload(state){
+  const s=state||currentState();
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
-  return JSON.stringify({v:1,updatedAt,books,prog:progressDB,covers:coversDB,journal:journalDB,streak:streakDB,favQ,cacheQ,rooms,goals},null,2);
+  return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
+    journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
+    goals:s.goals,deleted:s.deleted},null,2);
+}
+
+// Gists over ~1MB come back truncated; the full text lives at raw_url.
+async function gistFileContent(data){
+  const f=data&&data.files&&data.files[GIST_FILE];
+  if(!f)return null;
+  if(f.truncated&&f.raw_url){
+    try{const r=await fetch(f.raw_url);if(r.ok)return await r.text();}catch(e){console.warn('raw_url fetch failed',e);}
+  }
+  return f.content||null;
+}
+
+async function fetchRemoteState(id){
+  const data=await gistApi('GET',`/gists/${id}`);
+  const raw=await gistFileContent(data);
+  if(!raw)return null;
+  let parsed;
+  try{parsed=JSON.parse(raw);}
+  catch(e){console.warn('Gist contains invalid JSON — ignoring it rather than overwriting local data');return null;}
+  return remoteState(parsed);
 }
 
 async function gistApi(method,path,body){
@@ -985,18 +1175,40 @@ function setGistDot(state){
   dot.title=state==='synced'?'Gist synced':state==='pushing'?'Syncing…':'Gist not connected';
 }
 
+// Retry schedule for failed pushes. Previously a failed push was logged and
+// forgotten, and because _gistPushPending was cleared up front the next pull
+// treated the unpushed work as "nothing pending" and overwrote it.
+const GIST_RETRY_DELAYS=[2000,5000,15000,45000];
+let _gistRetry=0;
+
 async function gistPush(){
-  _gistPushPending=false;
   const token=localStorage.getItem(GIST_TOKEN_KEY);
   const id=localStorage.getItem(GIST_ID_KEY);
-  if(!token||!id)return;
+  if(!token||!id){_gistPushPending=false;return;}
   setGistDot('pushing');
   try{
-    await gistApi('PATCH',`/gists/${id}`,{files:{[GIST_FILE]:{content:gistPayload()}}});
+    // Fetch, merge, then write. A blind PATCH discarded whatever the other
+    // device had pushed since our last pull.
+    let state=currentState();
+    try{
+      const remote=await fetchRemoteState(id);
+      if(remote){state=mergeState(state,remote);applyState(state);}
+    }catch(e){/* offline, or the gist has no file yet — write what we have */}
+    await gistApi('PATCH',`/gists/${id}`,{files:{[GIST_FILE]:{content:gistPayload(state)}}});
+    _gistPushPending=false;_gistRetry=0;
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
-  }catch(e){console.warn('Gist push failed:',e);setGistDot('off');}
+  }catch(e){
+    // Leave _gistPushPending set so gistRefreshIfStale won't pull over us.
+    console.warn('Gist push failed:',e);
+    setGistDot('off');
+    if(_gistRetry<GIST_RETRY_DELAYS.length){
+      const delay=GIST_RETRY_DELAYS[_gistRetry++];
+      clearTimeout(_gistPushTimer);
+      _gistPushTimer=setTimeout(gistPush,delay);
+    }
+  }
 }
 
 async function gistPull(force=false){
@@ -1005,42 +1217,29 @@ async function gistPull(force=false){
   if(!token||!id)return;
   _gistPulling=true;
   setGistDot('pushing');
+  let pushBack=false;
   try{
-    const data=await gistApi('GET',`/gists/${id}`);
-    const raw=data.files?.[GIST_FILE]?.content;
-    if(!raw){setGistDot('off');return;}
-    const d=JSON.parse(raw);
-    const localUpdated=localStorage.getItem(SK.updated)||'';
-    const remoteUpdated=d.updatedAt||'';
-    // Newest data wins: skip auto-pulls when local changes are newer than the
-    // gist, and push them up instead — this lets deletions propagate (the old
-    // "gist must have >= books" check could resurrect deleted books forever).
-    if(!force&&remoteUpdated&&localUpdated&&remoteUpdated<localUpdated){
-      localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
-      updateGistStatus();
-      setGistDot('synced');
-      _gistPulling=false;
-      scheduleGistPush();
-      return;
+    const remote=await fetchRemoteState(id);
+    if(!remote){setGistDot('off');return;}
+    // Merge, never replace. There is no timestamp race to lose any more —
+    // both sides' records survive, and tombstones carry the deletions.
+    const before=JSON.stringify(currentState());
+    const merged=mergeState(currentState(),remote);
+    applyState(merged);
+    // If the merge produced anything the gist doesn't have (local-only edits,
+    // local tombstones), send it back up so the other device converges.
+    pushBack=JSON.stringify(mergeState(remote,remote))!==JSON.stringify(merged);
+    if(JSON.stringify(merged)!==before){
+      renderLibrary();renderLists();renderLogSession();updateHdrStreak();
     }
-    // Transitional guard: payloads written before updatedAt existed keep the
-    // old count heuristic so a stale pre-update gist can't clobber newer data.
-    if(d.books&&(remoteUpdated||d.books.length>=books.length)){books=d.books;localStorage.setItem(SK.books,JSON.stringify(books));}
-    if(d.prog){progressDB=d.prog;localStorage.setItem(SK.prog,JSON.stringify(progressDB));}
-    if(d.covers){coversDB=d.covers;localStorage.setItem(SK.covers,JSON.stringify(coversDB));}
-    if(d.journal){journalDB=d.journal;localStorage.setItem(SK.journal,JSON.stringify(journalDB));}
-    if(d.streak){streakDB=d.streak;localStorage.setItem(SK.streak,JSON.stringify(streakDB));}
-    if(d.favQ){favQ=d.favQ;localStorage.setItem(SK.favQ,JSON.stringify(favQ));}
-    if(d.cacheQ){cacheQ=d.cacheQ;localStorage.setItem(SK.cacheQ,JSON.stringify(cacheQ));}
-    if(d.rooms){rooms=d.rooms;localStorage.setItem(SK.rooms,JSON.stringify(rooms));}
-    if(d.goals){goals=d.goals;localStorage.setItem(SK.goals,JSON.stringify(goals));}
-    if(remoteUpdated)localStorage.setItem(SK.updated,remoteUpdated);
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
-    renderLibrary();renderLists();renderLogSession();updateHdrStreak();
   }catch(e){console.warn('Gist pull failed:',e);setGistDot('off');}
-  finally{_gistPulling=false;}
+  finally{
+    _gistPulling=false;
+    if(pushBack)scheduleGistPush();
+  }
 }
 
 async function gistConnect(){
@@ -1119,9 +1318,9 @@ function runMigration(){
   const msg=[];
 
   // Only migrate if we have no books under new keys yet
-  if(!load(SK.books)){
+  if(!load(SK.books,'array')){
     for(const prefix of OLD_PREFIXES){
-      const oldBooks=load(prefix+'books');
+      const oldBooks=load(prefix+'books','array');
       if(oldBooks&&oldBooks.length){
         save(SK.books,oldBooks);
         msg.push(`${oldBooks.length} books`);
@@ -1138,24 +1337,44 @@ function runMigration(){
   }
 
   if(migrated){
+    // The in-memory state was initialised at parse time, before this ran, so
+    // it still holds the pre-migration (empty) values. Without this reload the
+    // library rendered empty, the next save() persisted that empty array over
+    // the data just migrated, and the following push wrote it to the gist.
+    reloadStateFromStorage();
     const b=document.getElementById('migrationBanner');
     b.style.display='block';
-    b.innerHTML=`<strong>✓ Your data was migrated from an older version</strong> — ${msg.join(', ')} restored automatically. You can dismiss this by refreshing.`;
+    b.innerHTML=`<strong>✓ Your data was migrated from an older version</strong> — ${msg.join(', ')} restored automatically.`;
   }
+}
+
+// Re-read every in-memory collection from localStorage.
+function reloadStateFromStorage(){
+  books      = load(SK.books,'array')    || [];
+  favQ       = load(SK.favQ,'object')    || {};
+  cacheQ     = load(SK.cacheQ,'object')  || {};
+  streakDB   = load(SK.streak,'object')  || {};
+  progressDB = load(SK.prog,'object')    || {};
+  coversDB   = load(SK.covers,'object')  || {};
+  journalDB  = load(SK.journal,'object') || {};
+  rooms      = load(SK.rooms,'array')    || [];
+  goals      = load(SK.goals,'object')   || {};
+  deletedDB  = load(SK.deleted,'object') || {};
 }
 
 // ══════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════
-let books      = load(SK.books)   || [];
-let favQ       = load(SK.favQ)    || {};
-let cacheQ     = load(SK.cacheQ)  || {};
-let streakDB   = load(SK.streak)  || {};
-let progressDB = load(SK.prog)    || {};
-let coversDB   = load(SK.covers)  || {};
-let journalDB  = load(SK.journal) || {};
-let rooms      = load(SK.rooms)   || [];
-let goals      = load(SK.goals)   || {};   // {year: bookCount}
+let books      = load(SK.books,'array')    || [];
+let favQ       = load(SK.favQ,'object')    || {};
+let cacheQ     = load(SK.cacheQ,'object')  || {};
+let streakDB   = load(SK.streak,'object')  || {};
+let progressDB = load(SK.prog,'object')    || {};
+let coversDB   = load(SK.covers,'object')  || {};
+let journalDB  = load(SK.journal,'object') || {};
+let rooms      = load(SK.rooms,'array')    || [];
+let goals      = load(SK.goals,'object')   || {};   // {year: bookCount}
+let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tombstones
 
 // ══════════════════════════════════════════
 // STATE
@@ -1332,7 +1551,7 @@ function wishlistCard(b){
 function moveToLibrary(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   b.status='unread';
-  save(SK.books,books);
+  saveBooks(b);
   renderWishlist();renderLibrary();
   toast(`"${b.title}" moved to your library!`,'ok');
 }
@@ -1690,7 +1909,7 @@ function addLoan(){
   const b=books.find(x=>x.id===editId);if(!b)return;
   if(!b.loans)b.loans=[];
   b.loans.push({to,date,note,returnedDate:''});
-  save(SK.books,books);renderLoanEntries(editId);
+  saveBooks(b);renderLoanEntries(editId);
   document.getElementById('newLoanTo').value='';document.getElementById('newLoanNote').value='';
   document.getElementById('loanAddForm').style.display='none';
   toast('Loan logged!','ok');
@@ -1699,13 +1918,13 @@ function addLoan(){
 function markLoanReturned(bookId,loanIdx){
   const b=books.find(x=>x.id===bookId);if(!b||!b.loans)return;
   b.loans[loanIdx].returnedDate=localDateStr();
-  save(SK.books,books);renderLoanEntries(bookId);renderLibrary();renderLoaned();toast('Marked returned.','ok');
+  saveBooks(b);renderLoanEntries(bookId);renderLibrary();renderLoaned();toast('Marked returned.','ok');
 }
 
 function deleteLoan(bookId,loanIdx){
   const b=books.find(x=>x.id===bookId);if(!b||!b.loans)return;
   if(!confirm('Remove this loan record?'))return;
-  b.loans.splice(loanIdx,1);save(SK.books,books);renderLoanEntries(bookId);
+  b.loans.splice(loanIdx,1);saveBooks(b);renderLoanEntries(bookId);
 }
 
 function renderLoanEntries(bookId){
@@ -1791,12 +2010,20 @@ async function saveBook(){
   if(editId){
     const idx=books.findIndex(x=>x.id===editId);
     if(progressDB['__new__']){progressDB[editId]=progressDB['__new__'];delete progressDB['__new__'];}
+    // idx can be -1 when the book was deleted on another device while this
+    // modal was open. books[-1] sets a string property that JSON.stringify
+    // drops, so the edit used to vanish behind a cheerful "Updated!".
+    if(idx===-1){
+      toast('That book was removed on another device — your edit was not saved.','err');
+      closeM('bookModal');renderLibrary();return;
+    }
+    bk.updatedAt=Date.now();
     books[idx]={...books[idx],...bk};
     if(coverUrl)coversDB[editId]=coverUrl;else if(!document.getElementById('coverUrlInput').value.trim())delete coversDB[editId];
     toast('Updated!','ok');
   }else{
     bk.id='b_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    bk.addedAt=Date.now();bk.loans=[];
+    bk.addedAt=Date.now();bk.updatedAt=Date.now();bk.loans=[];
     if(progressDB['__new__']){progressDB[bk.id]=progressDB['__new__'];delete progressDB['__new__'];}
     books.unshift(bk);logDay(bk.date||localDateStr());
     if(coverUrl){coversDB[bk.id]=coverUrl;}
@@ -1819,9 +2046,11 @@ async function saveBook(){
 
 function deleteBookFromModal(){
   if(!editId)return;
-  if(!confirm('Remove this book from your library?'))return;
+  const id=editId;
+  // deleteBook() asks for its own confirmation — asking here too meant every
+  // delete from this modal prompted twice with near-identical wording.
   closeM('bookModal');
-  deleteBook(editId);
+  deleteBook(id);
 }
 
 function openBookJournal(id){
@@ -1839,12 +2068,16 @@ function openBookJournal(id){
 }
 
 function deleteBook(id){
-  if(!confirm('Remove this from your library?'))return;
+  if(!confirm('Remove this book from your library?'))return;
+  // Record a tombstone before removing. Without one the other device still has
+  // the book and pushes it straight back on the next sync.
+  deletedDB[id]=Date.now();save(SK.deleted,deletedDB);
   books=books.filter(b=>b.id!==id);save(SK.books,books);
   delete cacheQ[id];save(SK.cacheQ,cacheQ);
   delete progressDB[id];save(SK.prog,progressDB);
   delete coversDB[id];save(SK.covers,coversDB);
   delete journalDB[id];save(SK.journal,journalDB);
+  delete favQ[id];save(SK.favQ,favQ);   // was leaked, growing every export and push
   renderLibrary();toast('Removed.','ok');
 }
 
@@ -1966,7 +2199,7 @@ function markDone(id){
     const last=prog[prog.length-1];
     if(last.total){prog.push({date:b.date,type:last.type,cur:last.total,total:last.total,note:'Finished!'});save(SK.prog,progressDB);}
   }
-  save(SK.books,books);
+  saveBooks(b);
   renderLibrary();renderLists();updateHdrStreak();
   toastUndo(`"${b.title}" finished 🎉 — tap to undo`,()=>{
     b.status=prevStatus;
@@ -1976,7 +2209,7 @@ function markDone(id){
     Object.keys(streakDB).forEach(k=>delete streakDB[k]);
     Object.assign(streakDB,prevStreak);
     save(SK.streak,streakDB);
-    save(SK.books,books);
+    saveBooks(b);
     renderLibrary();renderLists();renderLogSession();updateHdrStreak();
     toast('Undone','ok');
   });
@@ -2613,13 +2846,20 @@ function buildDailyMap(){
     prog.forEach((entry,i)=>{
       const d=entry.date;if(!d)return;
       if(!map[d])map[d]={pages:0,mins:0};
-      const prev=i>0?prog[i-1]:null;
+      // Compare against the previous entry *of the same kind*. Using the
+      // immediately-preceding element meant a `nocount` marker (cur:0, written
+      // by every reading session) reset the baseline, so the next page entry
+      // counted its full page number instead of the delta.
       if(entry.type==='audio'){
         if(entry.total===100)return; // percent-based entry — no minutes to count
-        const delta=prev&&prev.type==='audio'&&prev.total!==100?Math.max(0,entry.cur-prev.cur):entry.cur;
+        const prev=prog.slice(0,i).reverse().find(e=>e.type==='audio'&&e.total!==100);
+        const delta=prev?Math.max(0,entry.cur-prev.cur):entry.cur;
         map[d].mins+=delta;
-      }else{
-        const delta=prev&&prev.type!=='audio'?Math.max(0,entry.cur-prev.cur):entry.cur;
+      }else if(entry.type!=='nocount'){
+        // legacy entries predate `type` and are page entries
+        const isPages=e=>e.type!=='audio'&&e.type!=='nocount';
+        const prev=prog.slice(0,i).reverse().find(isPages);
+        const delta=prev?Math.max(0,entry.cur-prev.cur):entry.cur;
         map[d].pages+=delta;
       }
     });
@@ -2955,7 +3195,7 @@ function loggedToday(id){
 
 function logSessionSave(id){
   const rating=_logRatings[id]||0;
-  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;saveBooks(b);}}
   logProgressAndJournalInline(id,'ls');
   renderLogSession();
 }
@@ -2983,7 +3223,7 @@ function confettiBurst(originEl){
 
 function logSessionFinish(id, el){
   const rating=_logRatings[id]||0;
-  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;saveBooks(b);}}
   const doneChk=document.getElementById('ls-done-'+id);
   if(doneChk)doneChk.checked=true;
   confettiBurst(el);
@@ -3001,7 +3241,7 @@ function logQuick(id, note){
   const ni=document.getElementById('ls-note-'+id);
   if(ni)ni.value=note;
   const rating=_logRatings[id]||0;
-  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;save(SK.books,books);}}
+  if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;saveBooks(b);}}
   logProgressAndJournalInline(id,'ls',true); // suppress internal toast
   renderLogSession();
 
@@ -3083,14 +3323,19 @@ function regenQs(){const b=books.find(x=>x.id===curDiscId);if(b){delete cacheQ[b
 
 function renderDiscQs(b){
   const fq=favQ[curDiscId]||{};
-  const items=discQs.map((q,i)=>`<li class="q-item"><span class="q-num">${i+1}.</span><span class="q-text">${esc(q)}</span><button class="fav-btn ${fq[i]?'on':''}" onclick="toggleFavQ(${i},'${esc(q).replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">★</button></li>`).join('');
+  // Pass the index only and look the text up from discQs. Hand-building a JS
+  // string literal inside an HTML attribute stored the *escaped* text, which
+  // the Keepsake then escaped a second time — "author's" rendered as
+  // "author&#039;s" — and broke outright on a backslash.
+  const items=discQs.map((q,i)=>`<li class="q-item"><span class="q-num">${i+1}.</span><span class="q-text">${esc(q)}</span><button class="fav-btn ${fq[i]?'on':''}" aria-pressed="${fq[i]?'true':'false'}" aria-label="Star this question" onclick="toggleFavQ(${i})">★</button></li>`).join('');
   document.getElementById('discContent').innerHTML=`<div class="disc-panel"><h4>✦ Discussion Questions</h4><ul class="q-list">${items}</ul><p style="font-size:.65rem;color:var(--ink-faint);margin-top:.56rem;font-style:italic">★ Star a question to save it to your Keepsake.</p></div>`;
   document.getElementById('regenBtn').style.display='inline-flex';
 }
 
-function toggleFavQ(idx,qText){
+function toggleFavQ(idx){
   const id=curDiscId;if(!favQ[id])favQ[id]={};
-  favQ[id][idx]?delete favQ[id][idx]:(favQ[id][idx]=qText);
+  // Store the raw question text; the Keepsake escapes it at render time.
+  favQ[id][idx]?delete favQ[id][idx]:(favQ[id][idx]=discQs[idx]);
   save(SK.favQ,favQ);const b=books.find(x=>x.id===id);if(b)renderDiscQs(b);
 }
 
@@ -3284,7 +3529,9 @@ function renderKeepsake(){
 
   const allFavs=[];
   for(const[bid,qMap]of Object.entries(favQ)){const bk=books.find(x=>x.id===bid);if(!bk)continue;for(const[,q]of Object.entries(qMap))allFavs.push({bk,q});}
-  if(allFavs.length){html+=`<div class="ks-sec">★ Favorite Discussion Questions</div>`;html+=allFavs.map(({bk,q})=>`<div class="ks-q">${esc(q)}<div class="ks-q-src">— ${esc(bk.title)} by ${esc(bk.author)}</div></div>`).join('');}
+  // unesc() undoes the double-escaping of questions starred by older versions,
+  // which stored already-escaped text. Harmless on plain text.
+  if(allFavs.length){html+=`<div class="ks-sec">★ Favorite Discussion Questions</div>`;html+=allFavs.map(({bk,q})=>`<div class="ks-q">${esc(unesc(q))}<div class="ks-q-src">— ${esc(bk.title)} by ${esc(bk.author)}</div></div>`).join('');}
   if(!books.length)html+=`<div class="empty"><span class="icon">📖</span><h3>Your library is empty</h3></div>`;
   document.getElementById('ksContent').innerHTML=html;
 }
@@ -3308,7 +3555,7 @@ async function testKey(){
 function toggleKey(){const i=document.getElementById('apiKeyInput');i.type=i.type==='password'?'text':'password';}
 
 function exportJSON(){
-  const d={version:1,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,exportedAt:new Date().toISOString()};
+  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,exportedAt:new Date().toISOString()};
   dl(JSON.stringify(d,null,2),'application/json','reading-room-backup.json');toast('JSON exported!','ok');
 }
 
@@ -3330,44 +3577,87 @@ function exportCSV(){
   dl([headers.map(h=>'"'+h+'"').join(','),...rows].join('\n'),'text/csv','reading-room-library.csv');toast('CSV exported!','ok');
 }
 
-function dl(content,type,filename){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=filename;a.click();}
+function dl(content,type,filename){
+  const a=document.createElement('a');
+  const url=URL.createObjectURL(new Blob([content],{type}));
+  a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),10000); // was leaked on every export
+}
 
 function triggerImport(){document.getElementById('importFile').click();}
 function handleImport(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
   r.onload=ev=>{
+    let d;
+    try{d=JSON.parse(ev.target.result);}
+    catch{toast('That file isn’t valid JSON.','err');return;}
+    if(!d||typeof d!=='object'||!Array.isArray(d.books)){
+      toast('That doesn’t look like a Reading Room backup.','err');return;
+    }
     try{
-      const d=JSON.parse(ev.target.result);if(!d.books)throw new Error();
-      if(!confirm(`Merge ${d.books.length} items into your library?`))return;
-      const ids=new Set(books.map(b=>b.id));
-      const newBks=d.books.filter(b=>!ids.has(b.id));
-      books=[...books,...newBks];save(SK.books,books);
-      if(d.favQ){favQ={...favQ,...d.favQ};save(SK.favQ,favQ);}
-      if(d.cacheQ){cacheQ={...cacheQ,...d.cacheQ};save(SK.cacheQ,cacheQ);}
-      if(d.streak){streakDB={...streakDB,...d.streak};save(SK.streak,streakDB);}
-      if(d.progress){progressDB={...progressDB,...d.progress};save(SK.prog,progressDB);}
-      if(d.covers){coversDB={...coversDB,...d.covers};save(SK.covers,coversDB);}
-      if(d.journal){journalDB={...journalDB,...d.journal};save(SK.journal,journalDB);}
-      if(d.rooms){rooms=[...new Set([...rooms,...d.rooms])].sort();save(SK.rooms,rooms);}
-      if(d.goals){goals={...goals,...d.goals};save(SK.goals,goals);}
-      renderLibrary();toast(`Imported ${newBks.length} new items!`,'ok');
-    }catch{toast('Invalid file.','err');}
+      const known=new Set(books.map(b=>b.id));
+      const newCount=d.books.filter(b=>b&&b.id&&!known.has(b.id)).length;
+      if(!confirm(`Merge this backup into your library?\n\n${newCount} new book(s), and reading history will be combined with what you already have. Nothing will be overwritten.`))return;
+      // Run the backup through the same per-record merge sync uses. This used
+      // to spread-replace progress/journal/covers, so restoring an old backup
+      // to recover one book destroyed every newer entry on every other book.
+      const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
+        covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
+        goals:d.goals,deleted:d.deleted});
+      const merged=mergeState(currentState(),incoming);
+      applyState(merged);
+      localStorage.setItem(SK.updated,new Date().toISOString());
+      scheduleGistPush();
+      renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+      toast(`Imported — ${newCount} new book(s), history merged.`,'ok');
+    }catch(err){console.error('Import failed:',err);toast('Import failed — your library is unchanged.','err');}
   };
   r.readAsText(f);e.target.value='';
 }
 
-function clearAll(){
-  if(!confirm('Delete ALL data permanently?'))return;
+// "Delete ALL data" used to leave Gist sync connected while wiping the keys it
+// syncs. The next pull then either restored everything (making the dialog a
+// lie) or, if anything was touched first, pushed the empty library and wiped
+// the gist for every device. The Gist now has to be dealt with explicitly.
+async function clearAll(){
+  if(!confirm('Delete ALL data permanently?\n\nThis erases every book, journal entry and reading record stored in this browser.'))return;
+  const connected=!!(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY));
+  let wipeRemote=false;
+  if(connected){
+    wipeRemote=confirm('Gist sync is connected.\n\nOK — also erase the synced copy (affects every device).\n\nCancel — leave the Gist untouched and just disconnect this browser from it.');
+  }
+  // Stop any queued or retrying push from firing with the emptied state.
+  clearTimeout(_gistPushTimer);_gistPushPending=false;_gistRetry=0;
+
+  if(connected&&wipeRemote){
+    const id=localStorage.getItem(GIST_ID_KEY);
+    const empty={books:[],prog:{},journal:{},covers:{},cacheQ:{},favQ:{},streak:{},rooms:[],goals:{},
+                 deleted:mergeDeleted(deletedDB,Object.fromEntries(books.map(b=>[b.id,Date.now()])))};
+    try{
+      localStorage.setItem(SK.updated,new Date().toISOString());
+      await gistApi('PATCH',`/gists/${id}`,{files:{[GIST_FILE]:{content:gistPayload(empty)}}});
+    }catch(e){
+      console.error('Could not clear the gist:',e);
+      toast('Could not reach the Gist — nothing was deleted. Try again when online.','err');
+      return;
+    }
+  }
   Object.values(SK).forEach(k=>localStorage.removeItem(k));
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};
-  renderLibrary();updateHdrStreak();toast('Cleared.','ok');
+  if(connected&&!wipeRemote){
+    [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
+  }
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};
+  updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
+  renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+  toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');
 }
 
 // ══════════════════════════════════════════
 // UTILS
 // ══════════════════════════════════════════
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');}
+function unesc(s){return String(s||'').replace(/&#0?39;/g,"'").replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');}
 function fmtDate(s){if(!s)return'';try{return new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch{return s;}}
 function toast(msg,type='ok'){const wrap=document.getElementById('toastWrap');const el=document.createElement('div');el.className=`toast ${type}`;el.textContent=msg;wrap.appendChild(el);setTimeout(()=>el.remove(),3000);}
 
@@ -3376,7 +3666,9 @@ function toastUndo(msg,undoFn,duration=5000){
   const el=document.createElement('div');
   el.className='toast ok';
   el.style.cssText='display:flex;align-items:center;gap:.7rem;padding-right:.6rem;overflow:hidden;position:relative';
-  el.innerHTML=`<span style="flex:1">${msg}</span><button style="background:none;border:1px solid rgba(255,255,255,.45);color:inherit;padding:.18rem .6rem;border-radius:4px;cursor:pointer;font-family:'Lora',serif;font-size:.72rem;white-space:nowrap;flex-shrink:0">Undo</button><div style="position:absolute;bottom:0;left:0;height:2px;background:rgba(255,255,255,.35);width:100%;transform-origin:left;animation:toastBar ${duration}ms linear forwards"></div>`;
+  // esc(msg) — callers interpolate book titles into this, and it is the one
+  // toast path that uses innerHTML.
+  el.innerHTML=`<span style="flex:1">${esc(msg)}</span><button style="background:none;border:1px solid rgba(255,255,255,.45);color:inherit;padding:.18rem .6rem;border-radius:4px;cursor:pointer;font-family:'Lora',serif;font-size:.72rem;white-space:nowrap;flex-shrink:0">Undo</button><div style="position:absolute;bottom:0;left:0;height:2px;background:rgba(255,255,255,.35);width:100%;transform-origin:left;animation:toastBar ${duration}ms linear forwards"></div>`;
   el.querySelector('button').onclick=()=>{undoFn();el.remove();};
   wrap.appendChild(el);
   setTimeout(()=>el.remove(),duration);
@@ -3441,7 +3733,17 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     setGistDot('pushing');
     await gistPull();
   }
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeM('bookModal');closeM('discModal');closeScanner();closeReadingSession();}});
+  // Close only what's actually open. This used to fire all four unconditionally,
+  // so Escape while any modal was open also called closeReadingSession() and
+  // silently killed a running session timer.
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Escape')return;
+    const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
+    if(vis('sessionModal')){closeReadingSession();return;}
+    if(vis('scannerModal')){closeScanner();return;}
+    if(vis('discModal')){closeM('discModal');return;}
+    if(vis('bookModal')){closeM('bookModal');}
+  });
 });
 
 // ── Reading Session ──────────────────────────────────────────────
@@ -3568,6 +3870,9 @@ function saveReadingSession(){
   if(!prog.some(e=>e.date===today&&e.type==='nocount'))
     prog.push({date:today,type:'nocount',cur:0,total:0,note:'Reading session'});
   save(SK.prog,progressDB);
+  // computeStreak reads streakDB, not progressDB — without this a finished
+  // timed session showed "Session saved!" and left the streak untouched.
+  logDay(today);
   closeReadingSession();
   renderLibrary();renderLogSession();updateHdrStreak();
   toast('Session saved! 📚','ok');

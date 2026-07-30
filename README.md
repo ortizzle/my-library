@@ -67,6 +67,18 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 All data lives in your browser's **localStorage** — nothing is sent to any server. Gist sync is optional; if configured, your data is stored in a **private GitHub Gist** under your own account.
 
+### How sync resolves conflicts
+
+Sync **merges** rather than overwrites. Each device's changes are combined record by record:
+
+- **Books** — the most recently edited version of each book wins.
+- **Deletions** — recorded as tombstones so a deleted book can't come back from another device. Tombstones are forgotten after 60 days.
+- **Reading history, journal entries and streak days** — always combined, never replaced. Nothing you've logged on one device is dropped because another device synced later.
+
+A push fetches and merges the remote copy before writing, and retries with backoff if it fails, so edits made offline aren't lost when you come back online.
+
+Importing a backup goes through the same merge — restoring an old export adds what's missing without overwriting anything newer.
+
 ---
 
 ## Tech
@@ -97,6 +109,25 @@ No build step needed. Open `index.html` directly in a browser, or serve it with 
 ```bash
 npx serve .
 ```
+
+### Tests
+
+The app ships as a single dependency-free HTML file. The `package.json` and
+`node_modules` are for the test suite only — they aren't served to the browser
+and aren't needed to deploy.
+
+```bash
+npm install     # once
+npm test        # merge + stats unit tests, plus a Chromium smoke test
+npm run test:unit    # fast — no browser needed
+```
+
+`tests/merge.test.mjs` covers the sync merge (each case is a bug that actually
+shipped), `tests/stats.test.mjs` covers the daily page/minute rollup, and
+`tests/smoke.test.mjs` drives the real app in Chromium. Tests run in CI on every
+push via `.github/workflows/test.yml`.
+
+Target device is a **Google Pixel (Android / Chrome)** — see `CLAUDE.md`.
 
 ---
 
