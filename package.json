@@ -5,7 +5,7 @@
   "description": "Test harness only. The app itself is a single dependency-free HTML file; nothing here is served to the browser or needed to deploy.",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "test:unit": "node --test tests/merge.test.mjs tests/stats.test.mjs",
+    "test:unit": "node --test tests/merge.test.mjs tests/stats.test.mjs tests/lookup.test.mjs",
     "test:smoke": "node --test tests/smoke.test.mjs",
     "serve": "python3 -m http.server 8123 --bind 127.0.0.1"
   },

@@ -2338,18 +2338,129 @@ function setCoverPreview(url){
   else{img.style.display='none';ph.style.display='flex';st.textContent='No cover found — paste a URL below if you have one.';pendingCoverUrl='';}
 }
 function previewCoverUrl(){const url=document.getElementById('coverUrlInput').value.trim();if(url)setCoverPreview(url);}
+// ══════════════════════════════════════════
+// BOOK LOOKUP PROVIDERS
+// ══════════════════════════════════════════
+// OpenLibrary is a volunteer wiki and its coverage of recent releases is thin —
+// thinner still for 979-prefix ISBNs, which is why a 2025 hardback can scan
+// fine and still come back "not found". Every lookup now falls through to
+// Google Books, which catalogues new titles far sooner, instead of giving up.
+//
+// Both providers normalise to one record shape so nothing downstream has to
+// know which catalogue answered:
+//   {title, authors[], year, pages, subjects[], isbn, cover, source}
+
+const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
+
+function genreFromSubjects(subjects){
+  // Longest key first. These are substring matches, so in map order 'fiction'
+  // swallowed 'science fiction' and 'young adult fiction' — every sci-fi book
+  // was being filed as Literary Fiction.
+  const keys=Object.keys(GENRE_MAP).sort((a,b)=>b.length-a.length);
+  for(const s of subjects||[]){
+    const sl=String(s&&s.name?s.name:s).toLowerCase();
+    for(const k of keys)if(sl.includes(k))return GENRE_MAP[k];
+  }
+  return '';
+}
+
+// Google Books hands back http:// URLs with a page-curl overlay baked in.
+// http:// images are blocked as mixed content on the deployed https page.
+function gbCover(v){
+  const raw=v&&v.imageLinks&&(v.imageLinks.thumbnail||v.imageLinks.smallThumbnail);
+  if(!raw)return '';
+  return String(raw).replace(/^http:/,'https:').replace(/&edge=curl/g,'');
+}
+
+function gbNormalize(item){
+  const v=item&&item.volumeInfo;
+  if(!v||!v.title)return null;
+  const ids=v.industryIdentifiers||[];
+  const pick=ids.find(x=>x.type==='ISBN_13')||ids.find(x=>x.type==='ISBN_10')||ids[0];
+  return {
+    title:v.subtitle?`${v.title}: ${v.subtitle}`:v.title,
+    authors:v.authors||[],
+    year:parseInt(String(v.publishedDate||'').slice(0,4),10)||null,
+    pages:v.pageCount||null,
+    subjects:v.categories||[],
+    isbn:String((pick&&pick.identifier)||'').replace(/[-\s]/g,''),
+    cover:gbCover(v),
+    source:'google'
+  };
+}
+
+async function gbQuery(q,limit=8){
+  try{
+    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}`);
+    if(!r.ok)return [];
+    const d=await r.json();
+    return (d.items||[]).map(gbNormalize).filter(Boolean);
+  }catch{return [];}
+}
+
+async function gbByIsbn(isbn){
+  // `isbn:` is the exact index but misses some 979-prefix records; a bare term
+  // query picks those up.
+  let hits=await gbQuery(`isbn:${isbn}`,1);
+  if(!hits.length)hits=await gbQuery(isbn,3);
+  return hits.find(h=>h.isbn===isbn)||hits[0]||null;
+}
+
+async function olByIsbn(isbn){
+  try{
+    const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
+    if(!r.ok)return null;
+    const d=await r.json();
+    const bk=d[`ISBN:${isbn}`];
+    if(!bk||!bk.title)return null;
+    return {
+      title:bk.title,
+      authors:(bk.authors||[]).map(a=>a.name),
+      year:parseInt(String(bk.publish_date||'').slice(-4),10)||null,
+      pages:bk.number_of_pages||null,
+      subjects:bk.subjects||[],
+      isbn,cover:'',source:'openlibrary'
+    };
+  }catch{return null;}
+}
+
+async function olSearch(q,limit=8){
+  try{
+    const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median&limit=${limit}`);
+    if(!r.ok)return [];
+    const d=await r.json();
+    return (d.docs||[]).filter(x=>x&&x.title).map(doc=>({
+      title:doc.title,
+      authors:doc.author_name||[],
+      year:doc.first_publish_year||null,
+      pages:doc.number_of_pages_median||null,
+      subjects:[],
+      isbn:String((doc.isbn||[])[0]||'').replace(/[-\s]/g,''),
+      cover:doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`:'',
+      source:'openlibrary'
+    }));
+  }catch{return [];}
+}
+
 async function fetchCoverByISBN(isbn){
+  if(!isbn)return null;
   const url=`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
   return new Promise(res=>{const img=new Image();img.onload=()=>res(url);img.onerror=()=>res(null);img.src=url;});
 }
+
 async function fetchCoverByTitle(title,author){
+  const q=`${title||''} ${author||''}`.trim();
+  if(!q)return null;
   try{
-    const q=encodeURIComponent(`${title} ${author}`);
-    const r=await fetch(`https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`);
-    const d=await r.json();const coverId=d.docs?.[0]?.cover_i;
-    if(!coverId)return null;
-    return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
-  }catch{return null;}
+    const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=1&fields=cover_i`);
+    if(r.ok){
+      const d=await r.json();const coverId=d.docs?.[0]?.cover_i;
+      if(coverId)return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+    }
+  }catch{}
+  const hits=await gbQuery(q,3);
+  const withCover=hits.find(h=>h.cover);
+  return withCover?withCover.cover:null;
 }
 
 // ══════════════════════════════════════════
@@ -2394,24 +2505,25 @@ async function lookupISBN(){
   const raw=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
   if(!raw){setIsbnStatus('Please enter an ISBN.','err');return;}
   setIsbnStatus('Looking up…','');
-  try{
-    const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${raw}&format=json&jscmd=data`);
-    const d=await r.json();const key=`ISBN:${raw}`;
-    if(!d[key]){setIsbnStatus('Not found — fill in manually.','err');return;}
-    const bk=d[key];
-    document.getElementById('bTitle').value=bk.title||'';
-    document.getElementById('bAuthor').value=(bk.authors||[]).map(a=>a.name).join(', ')||'';
-    const subjects=(bk.subjects||[]).map(s=>typeof s==='string'?s:s.name);
-    const gmap={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
-    let genre='';for(const s of subjects){const sl=s.toLowerCase();for(const[k,v]of Object.entries(gmap)){if(sl.includes(k)){genre=v;break;}}if(genre)break;}
-    if(genre)document.getElementById('bGenre').value=genre;
-    if(bk.number_of_pages)document.getElementById('progTotalPage').value=bk.number_of_pages;
-    setIsbnStatus(`✓ Found: "${bk.title}" — fetching cover…`,'ok');
-    const coverUrl=await fetchCoverByISBN(raw)||await fetchCoverByTitle(bk.title,(bk.authors||[]).map(a=>a.name).join(' '));
-    if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
-    setIsbnStatus(`✓ Found: "${bk.title}"`,'ok');toast('Book details filled in!','ok');
-    checkForDuplicate();
-  }catch{setIsbnStatus('Lookup failed — fill in manually.','err');}
+  let bk=await olByIsbn(raw);
+  if(!bk){
+    setIsbnStatus('Not in OpenLibrary — trying Google Books…','');
+    bk=await gbByIsbn(raw);
+  }
+  if(!bk){setIsbnStatus('Not found in either catalogue — fill in manually.','err');return;}
+
+  document.getElementById('bTitle').value=bk.title||'';
+  document.getElementById('bAuthor').value=bk.authors.join(', ');
+  const genre=genreFromSubjects(bk.subjects);
+  if(genre)document.getElementById('bGenre').value=genre;
+  if(bk.pages)document.getElementById('progTotalPage').value=bk.pages;
+
+  setIsbnStatus(`✓ Found: "${bk.title}" — fetching cover…`,'ok');
+  const coverUrl=bk.cover||await fetchCoverByISBN(raw)||await fetchCoverByTitle(bk.title,bk.authors[0]||'');
+  setCoverPreview(coverUrl||null);
+  setIsbnStatus(`✓ Found: "${bk.title}"${bk.source==='google'?' · via Google Books':''}`,'ok');
+  toast('Book details filled in!','ok');
+  checkForDuplicate();
 }
 function setIsbnStatus(msg,cls){const el=document.getElementById('isbnStatus');el.textContent=msg;el.className='isbn-status'+(cls?' isbn-'+cls:'');}
 
@@ -2421,47 +2533,58 @@ async function searchByTitle(){
   if(!q){setIsbnStatus('Enter a title or author to search.','err');return;}
   setIsbnStatus('Searching…','');
   document.getElementById('titleSearchResults').style.display='none';
-  try{
-    const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median&limit=8`);
-    const d=await r.json();
-    _titleDocs=(d.docs||[]).filter(x=>x.title);
-    if(!_titleDocs.length){setIsbnStatus('No results — try different keywords.','err');return;}
-    setIsbnStatus('','');
-    const wrap=document.getElementById('titleSearchResults');
-    wrap.style.display='block';
-    wrap.innerHTML=_titleDocs.map((doc,i)=>{
-      const coverUrl=doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-S.jpg`:'';
-      const author=(doc.author_name||[]).slice(0,2).join(', ');
-      const year=doc.first_publish_year?` · ${doc.first_publish_year}`:'';
-      return `<div onclick="selectTitleResult(${i})" style="display:flex;align-items:center;gap:.6rem;padding:.48rem .72rem;border-bottom:1px dotted var(--parchment-dark);cursor:pointer;transition:background .12s" onmouseenter="this.style.background='var(--parchment)'" onmouseleave="this.style.background='transparent'">
-        ${coverUrl?`<img src="${esc(coverUrl)}" style="width:28px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:28px;height:40px;border-radius:2px;background:var(--parchment-dark);flex-shrink:0"></div>'}
-        <div style="flex:1;min-width:0">
-          <div style="font-family:\'Playfair Display\',serif;font-size:.82rem;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(doc.title)}</div>
-          <div style="font-size:.69rem;color:var(--ink-light);font-style:italic">${esc(author)}${esc(year)}</div>
-        </div>
-      </div>`;
-    }).join('');
-  }catch{setIsbnStatus('Search failed — check connection and try again.','err');}
+
+  _titleDocs=await olSearch(q,8);
+  if(!_titleDocs.length){
+    setIsbnStatus('Nothing in OpenLibrary — trying Google Books…','');
+    _titleDocs=await gbQuery(q,8);
+  }
+  if(!_titleDocs.length){setIsbnStatus('No results — try different keywords.','err');return;}
+
+  const viaGoogle=_titleDocs[0].source==='google';
+  setIsbnStatus(viaGoogle?'Results from Google Books':'','');
+  const wrap=document.getElementById('titleSearchResults');
+  wrap.style.display='block';
+  wrap.innerHTML=_titleDocs.map((doc,i)=>{
+    const author=doc.authors.slice(0,2).join(', ');
+    const year=doc.year?` · ${doc.year}`:'';
+    return `<div onclick="selectTitleResult(${i})" style="display:flex;align-items:center;gap:.6rem;padding:.48rem .72rem;border-bottom:1px dotted var(--parchment-dark);cursor:pointer;transition:background .12s" onmouseenter="this.style.background='var(--parchment)'" onmouseleave="this.style.background='transparent'">
+      ${doc.cover?`<img src="${esc(doc.cover)}" alt="" style="width:28px;height:40px;object-fit:cover;border-radius:2px;flex-shrink:0" onerror="this.style.display='none'">`:'<div style="width:28px;height:40px;border-radius:2px;background:var(--parchment-dark);flex-shrink:0"></div>'}
+      <div style="flex:1;min-width:0">
+        <div style="font-family:\'Playfair Display\',serif;font-size:.82rem;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(doc.title)}</div>
+        <div style="font-size:.69rem;color:var(--ink-light);font-style:italic">${esc(author)}${esc(year)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 async function selectTitleResult(i){
   const doc=_titleDocs[i];if(!doc)return;
   document.getElementById('titleSearchResults').style.display='none';
   document.getElementById('titleSearchInput').value='';
   document.getElementById('bTitle').value=doc.title||'';
-  document.getElementById('bAuthor').value=(doc.author_name||[]).slice(0,2).join(', ')||'';
-  if(doc.number_of_pages_median)document.getElementById('progTotalPage').value=doc.number_of_pages_median;
-  const isbn=(doc.isbn||[])[0];
-  if(isbn){
-    document.getElementById('isbnInput').value=isbn;
+  document.getElementById('bAuthor').value=doc.authors.slice(0,2).join(', ');
+  if(doc.pages)document.getElementById('progTotalPage').value=doc.pages;
+
+  // Enrich from the ISBN when we have one, but treat it as best-effort: the
+  // search result is already good data, so a failed lookup must not clobber it
+  // or report "not found" over a book the user just picked.
+  let cover=doc.cover;
+  if(doc.isbn){
+    document.getElementById('isbnInput').value=doc.isbn;
     setIsbnStatus('Fetching full details…','');
-    await lookupISBN();
-  }else{
-    const coverUrl=doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`:await fetchCoverByTitle(doc.title,(doc.author_name||[])[0]||'');
-    if(coverUrl)setCoverPreview(coverUrl);else setCoverPreview(null);
-    setIsbnStatus(`✓ Selected: "${doc.title}"`,'ok');
-    toast('Book details filled in!','ok');
-    checkForDuplicate();
+    const full=await olByIsbn(doc.isbn)||await gbByIsbn(doc.isbn);
+    if(full){
+      if(full.pages)document.getElementById('progTotalPage').value=full.pages;
+      const genre=genreFromSubjects(full.subjects);
+      if(genre)document.getElementById('bGenre').value=genre;
+      if(!cover&&full.cover)cover=full.cover;
+    }
   }
+  if(!cover)cover=await fetchCoverByISBN(doc.isbn)||await fetchCoverByTitle(doc.title,doc.authors[0]||'');
+  setCoverPreview(cover||null);
+  setIsbnStatus(`✓ Selected: "${doc.title}"`,'ok');
+  toast('Book details filled in!','ok');
+  checkForDuplicate();
 }
 
 // ══════════════════════════════════════════

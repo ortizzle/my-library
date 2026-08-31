@@ -17,7 +17,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 ## Features
 
 ### Library
-- Book cards with cover art pulled from OpenLibrary
+- Book cards with cover art pulled from OpenLibrary, falling back to Google Books
 - Status tracking: **Unread · Reading · Read · DNF · Wishlist**
 - Filter by status, format, genre, room, or list
 - Search your library by title or author
@@ -25,6 +25,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 ### Adding Books
 - **Scan a barcode** — point your camera at any ISBN
 - **Search by title** — pull from OpenLibrary and auto-fill details
+- Lookups fall back to **Google Books** when OpenLibrary doesn't have the book — its coverage of recent releases (and 979-prefix ISBNs) is patchy
 - **Enter manually** — for anything not in the database
 - Auto-fills title, author, page count, cover image, and ISBN
 - Ownership type defaults: Physical → Hardcover, eBook → Kindle, Audiobook → Audible
@@ -86,8 +87,8 @@ Importing a backup goes through the same merge — restoring an old export adds 
 - Single HTML file — no build step, no dependencies to install
 - Vanilla JavaScript and CSS
 - Barcode scanning via [ZXing](https://github.com/zxing-js/library)
-- Book data from [OpenLibrary API](https://openlibrary.org/developers)
-- Cover images from [OpenLibrary Covers](https://covers.openlibrary.org)
+- Book data from [OpenLibrary API](https://openlibrary.org/developers), with [Google Books](https://developers.google.com/books) as a fallback (no API key needed)
+- Cover images from [OpenLibrary Covers](https://covers.openlibrary.org) and Google Books thumbnails
 - PWA: `manifest.json` + service worker for offline support and installability
 
 ---
@@ -123,8 +124,10 @@ npm run test:unit    # fast — no browser needed
 ```
 
 `tests/merge.test.mjs` covers the sync merge (each case is a bug that actually
-shipped), `tests/stats.test.mjs` covers the daily page/minute rollup, and
-`tests/smoke.test.mjs` drives the real app in Chromium. Tests run in CI on every
+shipped), `tests/stats.test.mjs` the daily page/minute rollup,
+`tests/lookup.test.mjs` the OpenLibrary/Google Books record normalisation, and
+`tests/smoke.test.mjs` drives the real app in Chromium with both catalogues
+stubbed at the network layer. Tests run in CI on every
 push via `.github/workflows/test.yml`.
 
 Target device is a **Google Pixel (Android / Chrome)** — see `CLAUDE.md`.

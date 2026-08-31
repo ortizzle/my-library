@@ -1,6 +1,6 @@
 // Reading Room — Service Worker
 // Cache version: bump this string to force all clients to update
-const CACHE = 'reading-room-v4';
+const CACHE = 'reading-room-v5';
 
 // App shell: local files that MUST cache on install for offline use
 const SHELL = [
@@ -48,7 +48,11 @@ self.addEventListener('fetch', e => {
   // Cover images are immutable once fetched — cache them so the library still
   // has its artwork offline. They used to fall into the API branch below and
   // 503 whenever the network was gone, leaving every card blank.
-  if (url.hostname === 'covers.openlibrary.org') {
+  // books.google.com serves the Google Books thumbnails used as a cover
+  // fallback, so it gets the same treatment.
+  if (url.hostname === 'covers.openlibrary.org' ||
+      url.hostname === 'books.google.com' ||
+      url.hostname === 'books.googleusercontent.com') {
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
@@ -64,8 +68,12 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Always go to network for live API calls (book lookups, Gist sync)
+  // Always go to network for live API calls (book lookups, Gist sync).
+  // Match www.googleapis.com exactly — a substring match on 'googleapis.com'
+  // would also catch fonts.googleapis.com and make the font stylesheet
+  // network-only, which breaks fonts offline.
   const isApi = url.hostname.includes('openlibrary.org') ||
+                url.hostname === 'www.googleapis.com' || // Google Books lookup
                 url.hostname.includes('api.github.com') ||
                 url.hostname.includes('fonts.gstatic.com'); // font files vary
 
