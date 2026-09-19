@@ -2389,47 +2389,64 @@ function gbNormalize(item){
   };
 }
 
+// Every provider returns {hits|book, error}. "The catalogue has no record" and
+// "the request failed" are different facts: collapsing them into an empty array
+// made a rate-limited or rejected lookup look exactly like an uncatalogued
+// book, and reported "not found in either catalogue" for both.
+function httpErr(r){return `HTTP ${r.status}`;}
+function netErr(e){
+  // A blocked/CORS-rejected fetch throws TypeError with no useful message.
+  if(e&&e.name==='TypeError')return 'network or CORS blocked';
+  return String((e&&e.message)||e||'unknown error');
+}
+
 async function gbQuery(q,limit=8){
   try{
-    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}`);
-    if(!r.ok)return [];
+    // country is required in some regions; without it the API can answer 403.
+    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}&country=US`);
+    if(!r.ok)return {hits:[],error:httpErr(r)};
     const d=await r.json();
-    return (d.items||[]).map(gbNormalize).filter(Boolean);
-  }catch{return [];}
+    return {hits:(d.items||[]).map(gbNormalize).filter(Boolean),error:null};
+  }catch(e){return {hits:[],error:netErr(e)};}
 }
 
 async function gbByIsbn(isbn){
   // `isbn:` is the exact index but misses some 979-prefix records; a bare term
-  // query picks those up.
-  let hits=await gbQuery(`isbn:${isbn}`,1);
-  if(!hits.length)hits=await gbQuery(isbn,3);
-  return hits.find(h=>h.isbn===isbn)||hits[0]||null;
+  // query picks those up. A failure on either attempt is reported, not retried
+  // into a false "no results".
+  let r=await gbQuery(`isbn:${isbn}`,1);
+  if(r.error)return {book:null,error:r.error};
+  if(!r.hits.length){
+    r=await gbQuery(isbn,3);
+    if(r.error)return {book:null,error:r.error};
+  }
+  return {book:r.hits.find(h=>h.isbn===isbn)||r.hits[0]||null,error:null};
 }
 
 async function olByIsbn(isbn){
   try{
     const r=await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&format=json&jscmd=data`);
-    if(!r.ok)return null;
+    if(!r.ok)return {book:null,error:httpErr(r)};
     const d=await r.json();
     const bk=d[`ISBN:${isbn}`];
-    if(!bk||!bk.title)return null;
-    return {
+    if(!bk||!bk.title)return {book:null,error:null};
+    return {book:{
       title:bk.title,
       authors:(bk.authors||[]).map(a=>a.name),
       year:parseInt(String(bk.publish_date||'').slice(-4),10)||null,
       pages:bk.number_of_pages||null,
       subjects:bk.subjects||[],
       isbn,cover:'',source:'openlibrary'
-    };
-  }catch{return null;}
+    },error:null};
+  }catch(e){return {book:null,error:netErr(e)};}
 }
 
 async function olSearch(q,limit=8){
   try{
     const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,isbn,cover_i,first_publish_year,number_of_pages_median&limit=${limit}`);
-    if(!r.ok)return [];
+    if(!r.ok)return {hits:[],error:httpErr(r)};
     const d=await r.json();
-    return (d.docs||[]).filter(x=>x&&x.title).map(doc=>({
+    return {hits:(d.docs||[]).filter(x=>x&&x.title).map(doc=>({
       title:doc.title,
       authors:doc.author_name||[],
       year:doc.first_publish_year||null,
@@ -2438,8 +2455,8 @@ async function olSearch(q,limit=8){
       isbn:String((doc.isbn||[])[0]||'').replace(/[-\s]/g,''),
       cover:doc.cover_i?`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`:'',
       source:'openlibrary'
-    }));
-  }catch{return [];}
+    })),error:null};
+  }catch(e){return {hits:[],error:netErr(e)};}
 }
 
 async function fetchCoverByISBN(isbn){
@@ -2458,8 +2475,7 @@ async function fetchCoverByTitle(title,author){
       if(coverId)return `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
     }
   }catch{}
-  const hits=await gbQuery(q,3);
-  const withCover=hits.find(h=>h.cover);
+  const withCover=(await gbQuery(q,3)).hits.find(h=>h.cover);
   return withCover?withCover.cover:null;
 }
 
@@ -2505,12 +2521,24 @@ async function lookupISBN(){
   const raw=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
   if(!raw){setIsbnStatus('Please enter an ISBN.','err');return;}
   setIsbnStatus('Looking up…','');
-  let bk=await olByIsbn(raw);
+  const problems=[];
+  const ol=await olByIsbn(raw);
+  if(ol.error)problems.push(`OpenLibrary ${ol.error}`);
+  let bk=ol.book;
   if(!bk){
-    setIsbnStatus('Not in OpenLibrary — trying Google Books…','');
-    bk=await gbByIsbn(raw);
+    setIsbnStatus(ol.error?'OpenLibrary unavailable — trying Google Books…':'Not in OpenLibrary — trying Google Books…','');
+    const gb=await gbByIsbn(raw);
+    if(gb.error)problems.push(`Google Books ${gb.error}`);
+    bk=gb.book;
   }
-  if(!bk){setIsbnStatus('Not found in either catalogue — fill in manually.','err');return;}
+  if(!bk){
+    // Say which it was. A rejected request and an uncatalogued book used to
+    // produce the same message, so there was no way to tell them apart.
+    setIsbnStatus(problems.length
+      ? `Lookup failed — ${problems.join('; ')}. Fill in manually.`
+      : 'Not in either catalogue — fill in manually.','err');
+    return;
+  }
 
   document.getElementById('bTitle').value=bk.title||'';
   document.getElementById('bAuthor').value=bk.authors.join(', ');
@@ -2534,12 +2562,22 @@ async function searchByTitle(){
   setIsbnStatus('Searching…','');
   document.getElementById('titleSearchResults').style.display='none';
 
-  _titleDocs=await olSearch(q,8);
+  const problems=[];
+  const ol=await olSearch(q,8);
+  if(ol.error)problems.push(`OpenLibrary ${ol.error}`);
+  _titleDocs=ol.hits;
   if(!_titleDocs.length){
-    setIsbnStatus('Nothing in OpenLibrary — trying Google Books…','');
-    _titleDocs=await gbQuery(q,8);
+    setIsbnStatus(ol.error?'OpenLibrary unavailable — trying Google Books…':'Nothing in OpenLibrary — trying Google Books…','');
+    const gb=await gbQuery(q,8);
+    if(gb.error)problems.push(`Google Books ${gb.error}`);
+    _titleDocs=gb.hits;
   }
-  if(!_titleDocs.length){setIsbnStatus('No results — try different keywords.','err');return;}
+  if(!_titleDocs.length){
+    setIsbnStatus(problems.length
+      ? `Search failed — ${problems.join('; ')}.`
+      : 'No results — try different keywords.','err');
+    return;
+  }
 
   const viaGoogle=_titleDocs[0].source==='google';
   setIsbnStatus(viaGoogle?'Results from Google Books':'','');
@@ -2572,7 +2610,7 @@ async function selectTitleResult(i){
   if(doc.isbn){
     document.getElementById('isbnInput').value=doc.isbn;
     setIsbnStatus('Fetching full details…','');
-    const full=await olByIsbn(doc.isbn)||await gbByIsbn(doc.isbn);
+    const full=(await olByIsbn(doc.isbn)).book||(await gbByIsbn(doc.isbn)).book;
     if(full){
       if(full.pages)document.getElementById('progTotalPage').value=full.pages;
       const genre=genreFromSubjects(full.subjects);

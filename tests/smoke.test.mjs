@@ -277,7 +277,89 @@ test('a miss in both catalogues reports it instead of half-filling the form', as
   const r = await isbnLookup(page, '9999999999999');
 
   assert.equal(r.title, '');
-  assert.match(r.status, /Not found in either/);
+  assert.match(r.status, /Not in either catalogue/, 'a genuine miss still reads as a miss');
+  await ctx.close();
+});
+
+test('a rate-limited Google Books reports the rate limit, not "not found"', async () => {
+  // This is the bug that made the live failure undiagnosable: gbQuery returned
+  // [] for a 429 exactly as it did for zero results, so a throttled lookup was
+  // indistinguishable from a book no catalogue has.
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route =>
+    route.fulfill({ status: 429, contentType: 'application/json', body: '{"error":{"code":429}}' }));
+  await page.route('**://covers.openlibrary.org/**', route => route.fulfill({ status: 404, body: '' }));
+
+  const r = await isbnLookup(page, '9798217177530');
+
+  assert.match(r.status, /Lookup failed/, 'a failure is reported as a failure');
+  assert.match(r.status, /Google Books HTTP 429/, 'and names the actual cause');
+  assert.doesNotMatch(r.status, /Not in either catalogue/);
+  await ctx.close();
+});
+
+test('a 403 from Google Books is reported too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route =>
+    route.fulfill({ status: 403, contentType: 'application/json', body: '{}' }));
+  await page.route('**://covers.openlibrary.org/**', route => route.fulfill({ status: 404, body: '' }));
+
+  const r = await isbnLookup(page, '9798217177530');
+  assert.match(r.status, /Google Books HTTP 403/);
+  await ctx.close();
+});
+
+test('both catalogues failing names both', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://openlibrary.org/**', route => route.fulfill({ status: 500, body: '' }));
+  await page.route('**://www.googleapis.com/books/**', route => route.abort('failed'));
+  await page.route('**://covers.openlibrary.org/**', route => route.fulfill({ status: 404, body: '' }));
+
+  const r = await isbnLookup(page, '9798217177530');
+  assert.match(r.status, /OpenLibrary HTTP 500/);
+  assert.match(r.status, /Google Books network or CORS blocked/);
+  await ctx.close();
+});
+
+test('the Google Books request carries a country so it is not 403d', async () => {
+  // Google Books answers 403 in some regions when country is absent.
+  const { ctx, page } = await openApp(browser, base);
+  const urls = [];
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route => {
+    urls.push(route.request().url());
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ALGORITHM_GB) });
+  });
+  await page.route('**://books.google.com/**', route => route.fulfill({ status: 404, body: '' }));
+
+  await isbnLookup(page, '9798217177530');
+  assert.ok(urls.length > 0);
+  assert.ok(urls.every(u => u.includes('country=US')), 'every Google Books call sets country');
+  await ctx.close();
+});
+
+test('a failed title search reports why instead of "no results"', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{"docs":[]}' }));
+  await page.route('**://www.googleapis.com/books/**', route =>
+    route.fulfill({ status: 429, contentType: 'application/json', body: '{}' }));
+
+  const status = await page.evaluate(async () => {
+    showView('library');
+    openAddModal();
+    document.getElementById('titleSearchInput').value = 'the algorithm mcneill';
+    await searchByTitle();
+    return document.getElementById('isbnStatus').textContent;
+  });
+
+  assert.match(status, /Search failed/);
+  assert.match(status, /Google Books HTTP 429/);
   await ctx.close();
 });
 
