@@ -94,3 +94,52 @@ test('a more specific genre wins over a substring of it', () => {
 test('the first recognised subject wins', () => {
   assert.equal(P.genreFromSubjects(['Unmapped topic', 'Poetry', 'Romance']), 'Poetry');
 });
+
+// ── Amazon cover fallback ────────────────────────────────────────────────
+// Amazon serves cover art keyed on the ISBN-10, derivable from any 978-prefix
+// ISBN-13. It needs no API or key, so a cover can be found even when the
+// catalogue lookup failed and the rest of the record is typed by hand.
+
+const C = loadFunctions(['isbn13to10', 'amazonCoverUrl']);
+
+test('ISBN-13 converts to the ISBN-10 Amazon keys covers on', () => {
+  // The Disappearers — Marlon James. Amazon's own ASIN for it is 0593717201.
+  assert.equal(C.isbn13to10('9780593717202'), '0593717201');
+  // Dune — 9780441013593 / 0441013597.
+  assert.equal(C.isbn13to10('9780441013593'), '0441013597');
+});
+
+test('hyphens and spaces are tolerated', () => {
+  assert.equal(C.isbn13to10('978-0-593-71720-2'), '0593717201');
+  assert.equal(C.isbn13to10(' 9780593717202 '), '0593717201');
+});
+
+test('a check digit of 10 becomes X', () => {
+  // Harry Potter and the Deathly Hallows: 9780439420891 -> 043942089X.
+  assert.equal(C.isbn13to10('9780439420891'), '043942089X');
+});
+
+test('check digits of 0 and 2 come out as digits', () => {
+  assert.equal(C.isbn13to10('9789971502100'), '9971502100', 'check digit 0');
+  assert.equal(C.isbn13to10('9780306406157'), '0306406152', 'the classic worked example');
+});
+
+test('979-prefix ISBNs have no ISBN-10 and are refused', () => {
+  // "The Algorithm" is 9798217177530 — this is why Amazon cannot be keyed
+  // from it, and why the fallback has to decline rather than guess.
+  assert.equal(C.isbn13to10('9798217177530'), null);
+  assert.equal(C.amazonCoverUrl('9798217177530'), null);
+});
+
+test('malformed input is refused rather than producing a bogus URL', () => {
+  for (const bad of ['', null, undefined, '12345', '978059371720', 'abcdefghijklm', '97805937172029']) {
+    assert.equal(C.isbn13to10(bad), null, `should refuse: ${bad}`);
+    assert.equal(C.amazonCoverUrl(bad), null);
+  }
+});
+
+test('the cover URL is https and carries the ISBN-10', () => {
+  const url = C.amazonCoverUrl('9780593717202');
+  assert.ok(url.startsWith('https://'), 'http would be blocked as mixed content');
+  assert.ok(url.includes('0593717201'));
+});

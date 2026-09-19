@@ -2350,6 +2350,11 @@ function previewCoverUrl(){const url=document.getElementById('coverUrlInput').va
 // know which catalogue answered:
 //   {title, authors[], year, pages, subjects[], isbn, cover, source}
 
+// Model for the book-club discussion questions. Named here rather than inline
+// so there is one place to change it. Sonnet 5 is the current default for
+// quality generation; claude-haiku-4-5-20251001 is the cheaper, faster option.
+const CLAUDE_MODEL='claude-sonnet-5';
+
 const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
 
 function genreFromSubjects(subjects){
@@ -2459,10 +2464,43 @@ async function olSearch(q,limit=8){
   }catch(e){return {hits:[],error:netErr(e)};}
 }
 
+// Amazon serves cover art keyed on the ISBN-10, which is derivable from any
+// 978-prefix ISBN-13. No API and no key, so a cover can still be found when
+// the catalogue lookup itself failed and the rest is being typed by hand.
+// 979-prefix ISBNs have no ISBN-10 equivalent and are skipped.
+function isbn13to10(isbn13){
+  const s=String(isbn13||'').replace(/[-\s]/g,'');
+  if(s.length!==13||!s.startsWith('978')||!/^\d{13}$/.test(s))return null;
+  const core=s.slice(3,12);
+  let sum=0;
+  for(let i=0;i<9;i++)sum+=Number(core[i])*(10-i);
+  const check=(11-(sum%11))%11;
+  return core+(check===10?'X':String(check));
+}
+
+function amazonCoverUrl(isbn){
+  const i10=isbn13to10(isbn);
+  return i10?`https://m.media-amazon.com/images/P/${i10}.01._SCLZZZZZZZ_.jpg`:null;
+}
+
+// Probe an image URL. Amazon answers a 1x1 placeholder rather than a 404 for
+// covers it doesn't have, so a load alone isn't proof — check the size too.
+function probeImage(url,minWidth=2){
+  return new Promise(res=>{
+    if(!url)return res(null);
+    const img=new Image();
+    img.onload=()=>res((img.naturalWidth||0)>=minWidth?url:null);
+    img.onerror=()=>res(null);
+    img.src=url;
+  });
+}
+
 async function fetchCoverByISBN(isbn){
   if(!isbn)return null;
-  const url=`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`;
-  return new Promise(res=>{const img=new Image();img.onload=()=>res(url);img.onerror=()=>res(null);img.src=url;});
+  const ol=await probeImage(`https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg?default=false`);
+  if(ol)return ol;
+  // Amazon's placeholder is 1x1, so require something plausibly cover-sized.
+  return probeImage(amazonCoverUrl(isbn),50);
 }
 
 async function fetchCoverByTitle(title,author){
@@ -2532,11 +2570,16 @@ async function lookupISBN(){
     bk=gb.book;
   }
   if(!bk){
+    // No record, but the ISBN alone can still yield cover art — so the manual
+    // path isn't left typing everything AND hunting for an image.
+    const cover=await fetchCoverByISBN(raw);
+    if(cover)setCoverPreview(cover);
     // Say which it was. A rejected request and an uncatalogued book used to
     // produce the same message, so there was no way to tell them apart.
-    setIsbnStatus(problems.length
-      ? `Lookup failed — ${problems.join('; ')}. Fill in manually.`
-      : 'Not in either catalogue — fill in manually.','err');
+    const why=problems.length
+      ? `Lookup failed — ${problems.join('; ')}.`
+      : 'Not in either catalogue.';
+    setIsbnStatus(`${why} Fill in manually${cover?' — found a cover, though.':'.'}`,'err');
     return;
   }
 
@@ -3470,7 +3513,7 @@ async function generateQs(b){
 Questions should span themes, character, craft, and personal resonance. Include one about the author's style. Feel warm and conversational.
 Return ONLY a JSON array of 7 strings with no markdown or preamble.`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(`[${res.status}] ${e.error?.message||JSON.stringify(e)}`);}
     const data=await res.json();
     const qs=JSON.parse(data.content.map(c=>c.text||'').join('').trim().replace(/```json|```/g,'').trim());

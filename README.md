@@ -88,7 +88,7 @@ Importing a backup goes through the same merge — restoring an old export adds 
 - Vanilla JavaScript and CSS
 - Barcode scanning via [ZXing](https://github.com/zxing-js/library)
 - Book data from [OpenLibrary API](https://openlibrary.org/developers), with [Google Books](https://developers.google.com/books) as a fallback (no API key needed)
-- Cover images from [OpenLibrary Covers](https://covers.openlibrary.org) and Google Books thumbnails
+- Cover images from [OpenLibrary Covers](https://covers.openlibrary.org), Google Books thumbnails, and Amazon keyed on the ISBN-10 derived from a 978 ISBN-13 (no API or key)
 - PWA: `manifest.json` + service worker for offline support and installability
 
 ---

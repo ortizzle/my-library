@@ -52,7 +52,8 @@ self.addEventListener('fetch', e => {
   // fallback, so it gets the same treatment.
   if (url.hostname === 'covers.openlibrary.org' ||
       url.hostname === 'books.google.com' ||
-      url.hostname === 'books.googleusercontent.com') {
+      url.hostname === 'books.googleusercontent.com' ||
+      url.hostname === 'm.media-amazon.com') {
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
