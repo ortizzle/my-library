@@ -594,6 +594,22 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
 
   <div class="settings-card">
+    <h3>Google Books API Key</h3>
+    <div class="key-wrap">
+      <div class="fg"><input type="password" id="gbKeyInput" placeholder="AIza…"></div>
+      <button class="eye-btn" onclick="toggleGbKey()" aria-label="Show or hide the key">👁</button>
+    </div>
+    <p class="hint">Optional. Book lookups work without it, but Google's free quota is shared across everyone on your network — on mobile data that runs out constantly and lookups fail with a rate-limit error. A key gives you your own quota (~1,000 lookups a day, free).</p>
+    <p class="hint" style="margin-top:.3rem">Get one at <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--sage)">console.cloud.google.com</a> — create a project, enable the <em>Books API</em>, then create an API key. Stored only in this browser.</p>
+    <div style="margin-top:.65rem;display:flex;gap:.42rem;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="saveGbKey()">Save Key</button>
+      <button class="btn btn-secondary" onclick="clearGbKey()">Clear</button>
+      <button class="btn btn-secondary" onclick="testGbKey()">✦ Test Key</button>
+    </div>
+    <div id="gbKeyStatus" style="margin-top:.55rem;font-size:.78rem;font-style:italic"></div>
+  </div>
+
+  <div class="settings-card">
     <h3>Anthropic API Key</h3>
     <div class="key-wrap">
       <div class="fg"><input type="password" id="apiKeyInput" placeholder="sk-ant-…"></div>
@@ -906,6 +922,7 @@ const SK={
   journal:'trr_v1_journal',  // {bookId: [{date,text}]}
   rooms:  'trr_v1_rooms',
   goals:  'trr_v1_goals',    // {year: bookCount}
+  gbkey:  'trr_v1_gbkey',    // Google Books API key (optional, raises the quota)
   deleted:'trr_v1_deleted',  // {bookId: deletedAtMs} — tombstones, so deletes survive sync
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
@@ -1423,7 +1440,10 @@ function renderView(n){
   if(n==='log')      renderLogSession();
   if(n==='journal')  renderJournalView();
   if(n==='wishlist') renderWishlist();
-  if(n==='settings') document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
+  if(n==='settings'){
+    document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
+    document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
+  }
 }
 
 // ══════════════════════════════════════════
@@ -2405,14 +2425,30 @@ function netErr(e){
   return String((e&&e.message)||e||'unknown error');
 }
 
+// Unauthenticated Google Books quota is per IP address, and mobile carriers put
+// thousands of subscribers behind one — so you inherit strangers' usage and get
+// 429s constantly. A key moves the quota onto the key instead. Optional: the
+// app works without one, it just gets throttled more.
+function gbKey(){return (localStorage.getItem(SK.gbkey)||'').trim();}
+
 async function gbQuery(q,limit=8){
   try{
+    const key=gbKey();
     // country is required in some regions; without it the API can answer 403.
-    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}&country=US`);
+    const url=`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=${limit}&country=US`
+      +(key?`&key=${encodeURIComponent(key)}`:'');
+    const r=await fetch(url);
     if(!r.ok)return {hits:[],error:httpErr(r)};
     const d=await r.json();
     return {hits:(d.items||[]).map(gbNormalize).filter(Boolean),error:null};
   }catch(e){return {hits:[],error:netErr(e)};}
+}
+
+// A 429 with no key set is a fixable problem, not a dead end — say so.
+function quotaHint(problems){
+  return (problems.some(p=>/Google Books HTTP 429/.test(p))&&!gbKey())
+    ? ' Add a free Google Books API key in Settings to stop the throttling.'
+    : '';
 }
 
 async function gbByIsbn(isbn){
@@ -2579,7 +2615,7 @@ async function lookupISBN(){
     const why=problems.length
       ? `Lookup failed — ${problems.join('; ')}.`
       : 'Not in either catalogue.';
-    setIsbnStatus(`${why} Fill in manually${cover?' — found a cover, though.':'.'}`,'err');
+    setIsbnStatus(`${why} Fill in manually${cover?' — found a cover, though.':'.'}${quotaHint(problems)}`,'err');
     return;
   }
 
@@ -2617,7 +2653,7 @@ async function searchByTitle(){
   }
   if(!_titleDocs.length){
     setIsbnStatus(problems.length
-      ? `Search failed — ${problems.join('; ')}.`
+      ? `Search failed — ${problems.join('; ')}.${quotaHint(problems)}`
       : 'No results — try different keywords.','err');
     return;
   }
@@ -3757,6 +3793,45 @@ async function testKey(){
   }catch(e){el.style.color='var(--burgundy)';el.textContent=`✦ ${e.message}`;}
 }
 function toggleKey(){const i=document.getElementById('apiKeyInput');i.type=i.type==='password'?'text':'password';}
+
+function saveGbKey(){
+  const k=document.getElementById('gbKeyInput').value.replace(/[^\x20-\x7E]/g,'').trim();
+  if(!k){toast('Enter a Google Books API key.','err');return;}
+  localStorage.setItem(SK.gbkey,k);
+  document.getElementById('gbKeyInput').value=k;
+  toast('Google Books key saved!','ok');
+}
+function clearGbKey(){
+  localStorage.removeItem(SK.gbkey);
+  document.getElementById('gbKeyInput').value='';
+  document.getElementById('gbKeyStatus').textContent='';
+  toast('Google Books key cleared.','ok');
+}
+function toggleGbKey(){const i=document.getElementById('gbKeyInput');i.type=i.type==='password'?'text':'password';}
+async function testGbKey(){
+  const el=document.getElementById('gbKeyStatus');
+  el.textContent='Testing…';el.style.color='var(--ink-faint)';
+  // Uses the field's current value so a key can be checked before saving.
+  const k=document.getElementById('gbKeyInput').value.trim()||gbKey();
+  const url='https://www.googleapis.com/books/v1/volumes?q=isbn:9780441013593&maxResults=1&country=US'
+    +(k?`&key=${encodeURIComponent(k)}`:'');
+  try{
+    const r=await fetch(url);
+    if(r.ok){
+      el.textContent=k?'✓ Key works — lookups will use your own quota.':'✓ Lookups work right now, but without a key you share a quota and will hit rate limits.';
+      el.style.color='var(--sage)';
+    }else if(r.status===429){
+      el.textContent=k?'Rate limited (429) even with this key — check the Books API is enabled for its project.':'Rate limited (429) — this is exactly what a key fixes.';
+      el.style.color='var(--burgundy)';
+    }else{
+      el.textContent=`Google Books returned HTTP ${r.status}.`;
+      el.style.color='var(--burgundy)';
+    }
+  }catch(e){
+    el.textContent='Could not reach Google Books — check your connection.';
+    el.style.color='var(--burgundy)';
+  }
+}
 
 function exportJSON(){
   const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,exportedAt:new Date().toISOString()};

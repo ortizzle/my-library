@@ -87,7 +87,7 @@ Importing a backup goes through the same merge — restoring an old export adds 
 - Single HTML file — no build step, no dependencies to install
 - Vanilla JavaScript and CSS
 - Barcode scanning via [ZXing](https://github.com/zxing-js/library)
-- Book data from [OpenLibrary API](https://openlibrary.org/developers), with [Google Books](https://developers.google.com/books) as a fallback (no API key needed)
+- Book data from [OpenLibrary API](https://openlibrary.org/developers), with [Google Books](https://developers.google.com/books) as a fallback. Works without a key, but Google's free quota is per-IP and shared — on mobile data it runs out constantly. Add a free Google Books API key in Settings for your own quota.
 - Cover images from [OpenLibrary Covers](https://covers.openlibrary.org), Google Books thumbnails, and Amazon keyed on the ISBN-10 derived from a 978 ISBN-13 (no API or key)
 - PWA: `manifest.json` + service worker for offline support and installability
 

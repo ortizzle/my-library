@@ -363,6 +363,95 @@ test('a failed title search reports why instead of "no results"', async () => {
   await ctx.close();
 });
 
+test('a saved Google Books key is sent with every lookup', async () => {
+  // Unauthenticated quota is per IP and shared with everyone on the network,
+  // which is what was producing constant 429s on mobile data.
+  const { ctx, page } = await openApp(browser, base);
+  const urls = [];
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route => {
+    urls.push(route.request().url());
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ALGORITHM_GB) });
+  });
+  await page.route('**://books.google.com/**', route => route.fulfill({ status: 404, body: '' }));
+
+  await page.evaluate(() => localStorage.setItem('trr_v1_gbkey', 'AIzaTESTKEY'));
+  await isbnLookup(page, '9798217177530');
+
+  assert.ok(urls.length > 0);
+  assert.ok(urls.every(u => u.includes('key=AIzaTESTKEY')), 'the key rides along on every call');
+  await ctx.close();
+});
+
+test('no key set means no key parameter, not an empty one', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const urls = [];
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route => {
+    urls.push(route.request().url());
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ALGORITHM_GB) });
+  });
+  await page.route('**://books.google.com/**', route => route.fulfill({ status: 404, body: '' }));
+
+  await isbnLookup(page, '9798217177530');
+  assert.ok(urls.every(u => !u.includes('key=')), 'an empty key= would be rejected by the API');
+  await ctx.close();
+});
+
+test('a 429 with no key points at the fix; with a key it does not', async () => {
+  const stub429 = async page => {
+    await page.route('**://openlibrary.org/**', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+    await page.route('**://www.googleapis.com/books/**', route =>
+      route.fulfill({ status: 429, contentType: 'application/json', body: '{}' }));
+    await page.route('**://covers.openlibrary.org/**', route => route.fulfill({ status: 404, body: '' }));
+    await page.route('**://m.media-amazon.com/**', route => route.fulfill({ status: 404, body: '' }));
+  };
+
+  const a = await openApp(browser, base);
+  await stub429(a.page);
+  const noKey = await isbnLookup(a.page, '9780593717202');
+  assert.match(noKey.status, /Google Books HTTP 429/);
+  assert.match(noKey.status, /Google Books API key in Settings/, 'a fixable failure says how to fix it');
+  await a.ctx.close();
+
+  const b = await openApp(browser, base);
+  await stub429(b.page);
+  await b.page.evaluate(() => localStorage.setItem('trr_v1_gbkey', 'AIzaTESTKEY'));
+  const withKey = await isbnLookup(b.page, '9780593717202');
+  assert.match(withKey.status, /Google Books HTTP 429/);
+  assert.doesNotMatch(withKey.status, /key in Settings/, 'no point suggesting a key that is already set');
+  await b.ctx.close();
+});
+
+test('a failed lookup still finds a cover from the ISBN alone', async () => {
+  // The manual-entry path shouldn't mean typing everything AND hunting for art.
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://openlibrary.org/**', route =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
+  await page.route('**://www.googleapis.com/books/**', route =>
+    route.fulfill({ status: 429, contentType: 'application/json', body: '{}' }));
+  await page.route('**://covers.openlibrary.org/**', route => route.fulfill({ status: 404, body: '' }));
+  // A real 200x300 PNG so the width check passes.
+  await page.route('**://m.media-amazon.com/**', route => route.fulfill({
+    status: 200, contentType: 'image/svg+xml',
+    body: '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300"><rect width="200" height="300"/></svg>'
+  }));
+
+  const r = await isbnLookup(page, '9780593717202');
+  const cover = await page.evaluate(() => {
+    const img = document.getElementById('coverPreviewImg');
+    return { shown: img.style.display !== 'none', src: img.src };
+  });
+
+  assert.match(r.status, /found a cover, though/);
+  assert.ok(cover.shown, 'the cover preview is populated');
+  assert.match(cover.src, /0593717201/, 'keyed on the ISBN-10 derived from the ISBN-13');
+  await ctx.close();
+});
+
 test('a failing OpenLibrary does not stop the Google Books fallback', async () => {
   const { ctx, page } = await openApp(browser, base);
   await page.route('**://openlibrary.org/**', route => route.abort('failed'));
