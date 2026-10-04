@@ -2962,13 +2962,16 @@ function renderYear(){
     const isCurrent=mi===currentMonth;
     const isFuture=mi>currentMonth;
     const monthLabel=name.slice(0,3).toUpperCase();
-    const bookPreviews=bks.slice(0,3).map(b=>{
+    // Show every book for the month. The row already wraps, and ~10 covers fit
+    // per line at this size, so a cap of 3 was hiding books for no reason.
+    const bookPreviews=bks.map(b=>{
       const url=coversDB[b.id];
+      const t=esc(b.title||'');
       return url
-        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="" onerror="this.style.display='none'">`
-        :`<div onclick="openEditModal('${b.id}')" style="width:24px;height:34px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem">📗</div>`;
+        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" title="${t}" style="width:24px;height:34px;border-radius:2px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="${t}" onerror="this.style.display='none'">`
+        :`<div onclick="openEditModal('${b.id}')" title="${t}" style="width:24px;height:34px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem">📗</div>`;
     }).join('');
-    const overflow=bks.length>3?`<span style="font-size:.68rem;color:var(--ink-faint);align-self:center">+${bks.length-3}</span>`:'';
+
     return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .9rem;border-bottom:1px dotted var(--parchment-dark);${isFuture?'opacity:.4':''}">
       <div style="width:36px;flex-shrink:0;text-align:center">
         <div style="font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.07em;color:${isCurrent?'var(--sage)':'var(--ink-faint)'};font-weight:${isCurrent?'600':'400'}">${monthLabel}</div>
@@ -2976,7 +2979,7 @@ function renderYear(){
       </div>
       <div style="flex:1;min-width:0">
         ${bks.length
-          ?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}${overflow}</div>`
+          ?`<div style="display:flex;gap:.3rem;flex-wrap:wrap;align-items:center">${bookPreviews}</div>`
           :`<div style="font-size:.75rem;color:var(--ink-faint);font-style:italic;padding-top:.3rem">${isFuture?'—':'Nothing logged yet'}</div>`
         }
       </div>
