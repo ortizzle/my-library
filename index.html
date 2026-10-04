@@ -2968,8 +2968,8 @@ function renderYear(){
       const url=coversDB[b.id];
       const t=esc(b.title||'');
       return url
-        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" title="${t}" style="width:24px;height:34px;border-radius:2px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="${t}" onerror="this.style.display='none'">`
-        :`<div onclick="openEditModal('${b.id}')" title="${t}" style="width:24px;height:34px;border-radius:2px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.6rem">📗</div>`;
+        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="${t}" onerror="this.style.display='none'">`
+        :`<div onclick="openEditModal('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.78rem">📗</div>`;
     }).join('');
 
     return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .9rem;border-bottom:1px dotted var(--parchment-dark);${isFuture?'opacity:.4':''}">
