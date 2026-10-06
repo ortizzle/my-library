@@ -9,7 +9,8 @@ import assert from 'node:assert/strict';
 import { loadFunctions, extractConst } from './extract.mjs';
 
 const M = loadFunctions(
-  ['mergeDeleted', 'mergeBooks', 'entryKey', 'mergeEntryMap', 'mergeIdMap', 'mergeState', 'remoteState'],
+  ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
+   'mergeIdMap', 'mergeState', 'remoteState', 'normEntries'],
   `const TOMBSTONE_TTL=${extractConst('TOMBSTONE_TTL')};`
 );
 
@@ -156,4 +157,106 @@ test('malformed remote merges without losing local data', () => {
 test('books missing an id are discarded rather than crashing the merge', () => {
   const merged = M.mergeState(state({ books: [{ title: 'no id' }, book('b1', 'Dune', T0)] }), state());
   assert.deepEqual(titles(merged), ['Dune']);
+});
+
+// ── Entry tombstones ─────────────────────────────────────────────────────
+// Journal and progress entries were unioned with no way to express "removed",
+// so deleting one took it out locally and the next push merged the gist's copy
+// straight back in — even on a single device.
+
+const J = (text, at, date = '2026-10-01') => ({ date, time: '9:00 PM', text, at });
+const P = (cur, at, date = '2026-10-01') => ({ date, type: 'pages', cur, total: 300, note: '', at });
+const idJ = (book, e) => M.entryId('j', book, e);
+const idP = (book, e) => M.entryId('p', book, e);
+
+test('a deleted journal entry stays deleted when the gist still has it', () => {
+  // The bug as reproduced: delete locally, then the next push merges remote.
+  const e = J('a passage I deleted', 1000);
+  const local = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [] }, entryDel: { [idJ('b1', e)]: T0 } });
+  const remote = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [e] } });
+  assert.deepEqual(M.mergeState(local, remote).journal.b1, []);
+});
+
+test('a deleted progress entry stays deleted too', () => {
+  const e = P(120, 1000);
+  const local = state({ books: [book('b1', 'Dune', T0)], prog: { b1: [] }, entryDel: { [idP('b1', e)]: T0 } });
+  const remote = state({ books: [book('b1', 'Dune', T0)], prog: { b1: [e] } });
+  assert.deepEqual(M.mergeState(local, remote).prog.b1, []);
+});
+
+test('the delete survives a second round-trip and the tombstone travels', () => {
+  const e = J('gone', 1000);
+  const a = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [] }, entryDel: { [idJ('b1', e)]: T0 } });
+  const b = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [e] } });
+  const once = M.mergeState(a, b);
+  assert.ok(once.entryDel[idJ('b1', e)], 'the tombstone is carried to the other side');
+  assert.deepEqual(M.mergeState(b, once).journal.b1, [], 'and the other device converges');
+});
+
+test('re-adding an identical entry after deleting it is kept', () => {
+  // Log p.120, delete it by mistake, log p.120 again — the second one is real.
+  const old = P(120, 1000);
+  const readded = P(120, T0 + 5000);
+  const local = state({ books: [book('b1', 'Dune', T0)], prog: { b1: [readded] }, entryDel: { [idP('b1', old)]: T0 } });
+  const remote = state({ books: [book('b1', 'Dune', T0)], prog: { b1: [old] } });
+  const merged = M.mergeState(local, remote).prog.b1;
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].at, T0 + 5000, 'the newer copy wins the dedupe and beats the tombstone');
+});
+
+test('a tombstone only removes that book\'s entry, not an identical one elsewhere', () => {
+  const e = J('Read today', 1000);
+  const merged = M.mergeState(
+    state({ books: [book('b1', 'A', T0), book('b2', 'B', T0)], journal: { b1: [], b2: [e] }, entryDel: { [idJ('b1', e)]: T0 } }),
+    state({ books: [book('b1', 'A', T0), book('b2', 'B', T0)], journal: { b1: [e], b2: [e] } })
+  );
+  assert.deepEqual(merged.journal.b1, []);
+  assert.equal(merged.journal.b2.length, 1);
+});
+
+test('entries from an older app version count as oldest and lose to a tombstone', () => {
+  // A device that hasn't updated sends entries with no `at` at all.
+  const legacy = { date: '2026-10-01', time: '9:00 PM', text: 'old' };
+  const merged = M.mergeState(
+    state({ books: [book('b1', 'Dune', T0)], journal: { b1: [] }, entryDel: { [idJ('b1', legacy)]: T0 } }),
+    state({ books: [book('b1', 'Dune', T0)], journal: { b1: [legacy] } })
+  );
+  assert.deepEqual(merged.journal.b1, []);
+});
+
+test('a journal tombstone does not touch a progress entry, and vice versa', () => {
+  const j = J('same', 1000);
+  const merged = M.mergeState(
+    state({ books: [book('b1', 'Dune', T0)], journal: { b1: [j] }, prog: { b1: [P(50, 1000)] },
+            entryDel: { [idP('b1', j)]: T0 } }),
+    state({ books: [book('b1', 'Dune', T0)] })
+  );
+  assert.equal(merged.journal.b1.length, 1);
+});
+
+test('entry tombstones are forgotten after the TTL', () => {
+  const merged = M.mergeState(state({ entryDel: { 'j|b1|x': Date.now() - 61 * 86400000 } }), state());
+  assert.equal(merged.entryDel['j|b1|x'], undefined);
+});
+
+test('merging does not mutate the inputs', () => {
+  const e = { date: '2026-10-01', time: '9:00 PM', text: 'untouched' };
+  const local = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [e] } });
+  M.mergeState(local, state());
+  assert.equal(e.at, undefined, 'the caller\'s objects are left alone');
+});
+
+test('merging with entry tombstones still converges', () => {
+  const e = J('gone', 1000);
+  const a = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [J('kept', 2000)] }, entryDel: { [idJ('b1', e)]: T0 } });
+  const b = state({ books: [book('b1', 'Dune', T0)], journal: { b1: [e, J('kept', 2000)] } });
+  const once = M.mergeState(a, b);
+  assert.deepEqual(M.mergeState(once, once), once);
+});
+
+test('normEntries marks existing entries as older than any tombstone', () => {
+  const map = { b1: [{ text: 'a' }, { text: 'b', at: 5 }] };
+  M.normEntries(map);
+  assert.equal(map.b1[0].at, 1);
+  assert.equal(map.b1[1].at, 5, 'a real timestamp is kept');
 });

@@ -924,6 +924,7 @@ const SK={
   goals:  'trr_v1_goals',    // {year: bookCount}
   gbkey:  'trr_v1_gbkey',    // Google Books API key (optional, raises the quota)
   deleted:'trr_v1_deleted',  // {bookId: deletedAtMs} — tombstones, so deletes survive sync
+  entryDel:'trr_v1_entrydel',// {"j|bookId|entryKey": deletedAtMs} — journal/progress entry tombstones
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -949,6 +950,7 @@ function load(k,shape){
 // did, so a failed write left the in-memory state and storage silently diverged.
 let _storageWarned=false;
 function save(k,v){
+  if(k===SK.prog||k===SK.journal)stampNewEntries(v);
   try{
     localStorage.setItem(k,JSON.stringify(v));
     localStorage.setItem(SK.updated,new Date().toISOString());
@@ -1065,23 +1067,76 @@ function mergeBooks(local,remote,deleted){
 // Per-book history arrays (progress, journal). Union, deduped on content.
 // These were previously spread-replaced by both sync and import, so restoring
 // a backup wiped every entry newer than the backup.
+//
+// A union alone can't express "removed", though: deleting an entry took it out
+// locally, then the next push merged the gist's copy straight back in — even
+// on a single device. So entries get tombstones, the same as books.
+//
+// Entries are only ever added or deleted, never edited in place, so content is
+// a stable identity. Each carries `at`, when it was created, so deliberately
+// re-adding an identical entry can beat an older tombstone.
 function entryKey(e){return [e.date||'',e.time||'',e.type||'',e.cur??'',e.total??'',e.text||e.note||''].join('');}
+function entryId(kind,bookId,e){return kind+'|'+bookId+'|'+entryKey(e);}
+
+// Entries already in storage, or arriving from the other side, get at=1:
+// older than any tombstone. Only entries created locally since then lack `at`,
+// and save() stamps those with the real time. Stamping everything at save time
+// instead would let an old entry look newer than a delete made elsewhere.
+function normEntries(map){
+  for(const arr of Object.values(map||{}))
+    if(Array.isArray(arr))for(const e of arr)if(e&&typeof e==='object'&&!e.at)e.at=1;
+  return map;
+}
+function stampNewEntries(map){
+  const now=Date.now();
+  for(const arr of Object.values(map||{}))
+    if(Array.isArray(arr))for(const e of arr)if(e&&typeof e==='object'&&!e.at)e.at=now;
+}
+
 function mergeEntryMap(a,b){
   const out={};
   for(const id of new Set([...Object.keys(a||{}),...Object.keys(b||{})])){
     const la=Array.isArray((a||{})[id])?a[id]:[];
     const lb=Array.isArray((b||{})[id])?b[id]:[];
-    const seen=new Set(),merged=[];
+    const pos=new Map(),merged=[];
     for(const e of [...la,...lb]){
       if(!e||typeof e!=='object')continue;
-      const k=entryKey(e);
-      if(seen.has(k))continue;
-      seen.add(k);merged.push(e);
+      const c={...e,at:e.at||1};
+      const k=entryKey(c);
+      if(pos.has(k)){
+        // Same entry on both sides: keep the newer copy, so a re-add survives.
+        const i=pos.get(k);
+        if(c.at>merged[i].at)merged[i]=c;
+        continue;
+      }
+      pos.set(k,merged.length);merged.push(c);
     }
     merged.sort((x,y)=>String(x.date||'').localeCompare(String(y.date||'')));
     out[id]=merged;
   }
   return out;
+}
+
+// Keep an entry unless it was deleted after it was created.
+function dropDeletedEntries(map,del,kind){
+  for(const id of Object.keys(map))
+    map[id]=map[id].filter(e=>{const t=del[entryId(kind,id,e)];return !t||e.at>t;});
+  return map;
+}
+
+// Record removed entries so the next sync can't merge the other side's copy
+// back in. Every path that takes entries out of a list must call this.
+function tombstoneEntries(kind,bookId,removed){
+  const list=(removed||[]).filter(e=>e&&typeof e==='object');
+  if(!list.length)return;
+  const now=Date.now();
+  for(const e of list)entryDeletedDB[entryId(kind,bookId,e)]=now;
+  save(SK.entryDel,entryDeletedDB);
+}
+// For paths that swap in a whole earlier array (undo): tombstone what it drops.
+function tombstoneDropped(kind,bookId,before,after){
+  const keep=new Set((after||[]).map(entryKey));
+  tombstoneEntries(kind,bookId,(before||[]).filter(e=>e&&!keep.has(entryKey(e))));
 }
 
 // Flat id->value maps (covers, cached questions, starred questions).
@@ -1093,13 +1148,15 @@ function mergeIdMap(local,remote,deleted){
 
 function mergeState(local,remote){
   const deleted=mergeDeleted(local.deleted,remote.deleted);
+  const entryDel=mergeDeleted(local.entryDel,remote.entryDel);
   const streak={...(remote.streak||{})};
   for(const[d,n]of Object.entries(local.streak||{}))streak[d]=Math.max(streak[d]||0,n||0);
   const merged={
     deleted,
     books:  mergeBooks(local.books,remote.books,deleted),
-    prog:   mergeEntryMap(local.prog,remote.prog),
-    journal:mergeEntryMap(local.journal,remote.journal),
+    entryDel,
+    prog:   dropDeletedEntries(mergeEntryMap(local.prog,remote.prog),entryDel,'p'),
+    journal:dropDeletedEntries(mergeEntryMap(local.journal,remote.journal),entryDel,'j'),
     covers: mergeIdMap(local.covers,remote.covers,deleted),
     cacheQ: mergeIdMap(local.cacheQ,remote.cacheQ,deleted),
     favQ:   mergeIdMap(local.favQ,remote.favQ,deleted),
@@ -1113,7 +1170,7 @@ function mergeState(local,remote){
 
 function currentState(){
   return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
-          streak:streakDB,rooms,goals,deleted:deletedDB};
+          streak:streakDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB};
 }
 
 // Coerce anything off the wire into the shape the merge expects. A hand-edited
@@ -1124,7 +1181,7 @@ function remoteState(d){
   const obj=v=>(v&&typeof v==='object'&&!Array.isArray(v))?v:{};
   return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
           cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
-          goals:obj(d.goals),deleted:obj(d.deleted)};
+          goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel)};
 }
 
 // Assign merged state and persist it. Deliberately does not call save(): that
@@ -1132,9 +1189,10 @@ function remoteState(d){
 function applyState(s){
   books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
   cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
+  entryDeletedDB=s.entryDel||{};
   const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
                [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
-               [SK.goals,goals],[SK.deleted,deletedDB]];
+               [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
     return true;
@@ -1150,7 +1208,7 @@ function gistPayload(state){
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
   return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
     journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
-    goals:s.goals,deleted:s.deleted},null,2);
+    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{}},null,2);
 }
 
 // Gists over ~1MB come back truncated; the full text lives at raw_url.
@@ -1371,12 +1429,13 @@ function reloadStateFromStorage(){
   favQ       = load(SK.favQ,'object')    || {};
   cacheQ     = load(SK.cacheQ,'object')  || {};
   streakDB   = load(SK.streak,'object')  || {};
-  progressDB = load(SK.prog,'object')    || {};
+  progressDB = normEntries(load(SK.prog,'object') || {});
   coversDB   = load(SK.covers,'object')  || {};
-  journalDB  = load(SK.journal,'object') || {};
+  journalDB  = normEntries(load(SK.journal,'object') || {});
   rooms      = load(SK.rooms,'array')    || [];
   goals      = load(SK.goals,'object')   || {};
   deletedDB  = load(SK.deleted,'object') || {};
+  entryDeletedDB = load(SK.entryDel,'object') || {};
 }
 
 // ══════════════════════════════════════════
@@ -1386,12 +1445,13 @@ let books      = load(SK.books,'array')    || [];
 let favQ       = load(SK.favQ,'object')    || {};
 let cacheQ     = load(SK.cacheQ,'object')  || {};
 let streakDB   = load(SK.streak,'object')  || {};
-let progressDB = load(SK.prog,'object')    || {};
+let progressDB = normEntries(load(SK.prog,'object') || {});
 let coversDB   = load(SK.covers,'object')  || {};
-let journalDB  = load(SK.journal,'object') || {};
+let journalDB  = normEntries(load(SK.journal,'object') || {});
 let rooms      = load(SK.rooms,'array')    || [];
 let goals      = load(SK.goals,'object')   || {};   // {year: bookCount}
 let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tombstones
+let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry tombstones
 
 // ══════════════════════════════════════════
 // STATE
@@ -1896,12 +1956,27 @@ function addJournalEntry(){
   toast('Journal note saved!','ok');
 }
 
+// The lists the delete buttons were rendered from. A sync pull can re-sort the
+// live arrays while a list is on screen, so a delete looks up the entry the
+// user actually saw rather than trusting a position that may have moved.
+const _shownEntries={};
+function takeShownEntry(kind,bookId,idx){
+  const shown=(_shownEntries[kind+'|'+bookId]||[])[idx];
+  const db=kind==='j'?journalDB:progressDB;
+  const list=db[bookId]||[];
+  const at=shown?list.findIndex(e=>entryKey(e)===entryKey(shown)):-1;
+  return at<0?null:list.splice(at,1)[0];
+}
+
 function deleteJournalEntry(bookId,idx){
-  journalDB[bookId].splice(idx,1);save(SK.journal,journalDB);renderJournalEntries(bookId);
+  const gone=takeShownEntry('j',bookId,idx);
+  if(gone){tombstoneEntries('j',bookId,[gone]);save(SK.journal,journalDB);}
+  renderJournalEntries(bookId);
 }
 
 function renderJournalEntries(bookId){
   const entries=journalDB[bookId]||[];
+  _shownEntries['j|'+bookId]=entries.slice();
   const el=document.getElementById('journalEntries');
   if(!entries.length){el.innerHTML=`<p style="font-size:.76rem;color:var(--ink-faint);font-style:italic;padding:.25rem 0">No journal entries yet.</p>`;return;}
   el.innerHTML=[...entries].reverse().map((e,ri)=>{
@@ -2224,6 +2299,9 @@ function markDone(id){
   toastUndo(`"${b.title}" finished 🎉 — tap to undo`,()=>{
     b.status=prevStatus;
     b.date=prevDate;
+    // Undo can land after the 2.5s push, so the gist may already hold the
+    // "Finished!" entry. Tombstone it or the next sync merges it straight back.
+    tombstoneDropped('p',id,progressDB[id],prevProg);
     progressDB[id]=prevProg;
     save(SK.prog,progressDB);
     Object.keys(streakDB).forEach(k=>delete streakDB[k]);
@@ -2763,6 +2841,7 @@ function renderProgHistoryEdit(bookId, showAll=false){
   const el=document.getElementById('progHistoryEdit');
   if(!el)return;
   const entries=progressDB[bookId]||[];
+  _shownEntries['p|'+bookId]=entries.slice();
   if(!entries.length){el.innerHTML='';return;}
 
   const PREVIEW=3;
@@ -2818,8 +2897,8 @@ function editProgEntry(bookId,idx,field,val){
 
 function delProgEntryEdit(bookId,idx){
   if(!confirm('Remove this progress entry?'))return;
-  progressDB[bookId].splice(idx,1);
-  save(SK.prog,progressDB);
+  const gone=takeShownEntry('p',bookId,idx);
+  if(gone){tombstoneEntries('p',bookId,[gone]);save(SK.prog,progressDB);}
   renderProgHistoryEdit(bookId);
   renderLibrary();renderLogSession();
 }
@@ -3475,8 +3554,10 @@ function logSessionFinish(id, el){
 }
 
 function logQuick(id, note){
-  // Snapshot for undo
+  // Snapshot for undo. The journal too: logging can write a journal entry,
+  // which undo previously left behind.
   const prevProg=JSON.parse(JSON.stringify(progressDB[id]||[]));
+  const prevJournal=JSON.parse(JSON.stringify(journalDB[id]||[]));
   const prevStreak=JSON.parse(JSON.stringify(streakDB));
 
   const nc=document.getElementById('ls-nocount-'+id);
@@ -3489,8 +3570,12 @@ function logQuick(id, note){
   renderLogSession();
 
   toastUndo('Logged ✓ — tap to undo',()=>{
+    tombstoneDropped('p',id,progressDB[id],prevProg);
     progressDB[id]=prevProg;
     save(SK.prog,progressDB);
+    tombstoneDropped('j',id,journalDB[id],prevJournal);
+    journalDB[id]=prevJournal;
+    save(SK.journal,journalDB);
     Object.keys(streakDB).forEach(k=>delete streakDB[k]);
     Object.assign(streakDB,prevStreak);
     save(SK.streak,streakDB);
@@ -3837,7 +3922,7 @@ async function testGbKey(){
 }
 
 function exportJSON(){
-  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,exportedAt:new Date().toISOString()};
+  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,exportedAt:new Date().toISOString()};
   dl(JSON.stringify(d,null,2),'application/json','reading-room-backup.json');toast('JSON exported!','ok');
 }
 
@@ -3886,7 +3971,7 @@ function handleImport(e){
       // to recover one book destroyed every newer entry on every other book.
       const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
         covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
-        goals:d.goals,deleted:d.deleted});
+        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel});
       const merged=mergeState(currentState(),incoming);
       applyState(merged);
       localStorage.setItem(SK.updated,new Date().toISOString());
@@ -3929,7 +4014,7 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
   renderLibrary();renderLists();renderLogSession();updateHdrStreak();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');

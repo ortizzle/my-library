@@ -515,6 +515,118 @@ test('picking a search result fills the form', async () => {
   await ctx.close();
 });
 
+// ── Entry deletes under sync ─────────────────────────────────────────────
+// Stub the Gist as already holding the entry (it was pushed earlier), delete
+// it in the real UI, run the real push, and read what was written.
+
+const GIST = 'reading-room-library.json';
+async function withGist(page, remotePayload) {
+  const pushed = [];
+  await page.route('**://api.github.com/gists/**', async route => {
+    const req = route.request();
+    if (req.method() === 'PATCH') {
+      pushed.push(JSON.parse(JSON.parse(req.postData()).files[GIST].content));
+      return route.fulfill({ status: 200, contentType: 'application/json', body: '{}' });
+    }
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ files: { [GIST]: { content: JSON.stringify(remotePayload) } } }) });
+  });
+  await page.evaluate(() => {
+    localStorage.setItem('trr_v1_gist_token', 'test-token');
+    localStorage.setItem('trr_v1_gist_id', 'test-gist');
+  });
+  return pushed;
+}
+
+const seed = (page, { journal = [], prog = [] } = {}) => page.evaluate(([j, p]) => {
+  books = [{ id: 'b1', title: 'Dune', author: 'Frank Herbert', status: 'reading', addedAt: 1, updatedAt: 1 }];
+  journalDB = { b1: j }; progressDB = { b1: p };
+  save('trr_v1_books', books); save('trr_v1_journal', journalDB); save('trr_v1_prog', progressDB);
+}, [journal, prog]);
+
+test('a deleted journal entry is not pushed back from the gist', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const entry = { date: '2026-10-01', time: '9:00 PM', text: 'delete me', at: 1000 };
+  await seed(page, { journal: [entry] });
+  const pushed = await withGist(page, { v: 2, books: [{ id: 'b1', title: 'Dune', updatedAt: 1, addedAt: 1 }],
+                                        journal: { b1: [entry] } });
+
+  await page.evaluate(async () => {
+    openEditModal('b1');
+    deleteJournalEntry('b1', 0);
+    await gistPush();
+  });
+
+  assert.equal(pushed.length, 1);
+  assert.deepEqual(pushed[0].journal.b1, [], 'the gist copy did not resurrect it');
+  assert.deepEqual(await page.evaluate(() => journalDB.b1), [], 'and it stays gone locally');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a deleted progress entry is not pushed back from the gist', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const entry = { date: '2026-10-01', type: 'pages', cur: 120, total: 300, note: '', at: 1000 };
+  await seed(page, { prog: [entry] });
+  const pushed = await withGist(page, { v: 2, books: [{ id: 'b1', title: 'Dune', updatedAt: 1, addedAt: 1 }],
+                                        prog: { b1: [entry] } });
+
+  await page.evaluate(async () => {
+    openEditModal('b1');
+    renderProgHistoryEdit('b1', true);
+    delProgEntryEdit('b1', 0);
+    await gistPush();
+  });
+
+  assert.deepEqual(pushed[0].prog.b1, []);
+  await ctx.close();
+});
+
+test('undoing a quick log sticks even after the push already went out', async () => {
+  // The undo window is 5s and the push fires at 2.5s, so undoing in the second
+  // half meant the gist already had the entry.
+  const { ctx, page } = await openApp(browser, base);
+  await seed(page);
+  const pushed = await withGist(page, { v: 2, books: [{ id: 'b1', title: 'Dune', updatedAt: 1, addedAt: 1 }] });
+
+  const logged = await page.evaluate(async () => {
+    showView('log');
+    logQuick('b1', 'Listened today');
+    await gistPush();                     // the push lands before the undo
+    return JSON.parse(JSON.stringify(progressDB.b1));
+  });
+  assert.ok(logged.length > 0, 'the quick log wrote a progress entry');
+
+  // Make the stub hold what was just pushed, as the real gist would.
+  await page.unroute('**://api.github.com/gists/**');
+  const pushed2 = await withGist(page, pushed[0]);
+
+  await page.evaluate(async () => {
+    document.querySelector('.toast button').click();   // tap Undo
+    await gistPush();
+  });
+
+  assert.deepEqual(pushed2[0].prog.b1 || [], [], 'the undone entry was not merged back in');
+  await ctx.close();
+});
+
+test('a delete removes the entry that was on screen even if a sync re-sorted the list', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const a = { date: '2026-09-01', time: '8:00 AM', text: 'older', at: 1000 };
+  const b = { date: '2026-10-01', time: '8:00 AM', text: 'newer', at: 2000 };
+  await seed(page, { journal: [a, b] });
+
+  const left = await page.evaluate(() => {
+    openEditModal('b1');                 // renders newest first: "newer" is idx 1
+    journalDB.b1.reverse();              // a pull reorders the live array underneath
+    deleteJournalEntry('b1', 1);         // the user taps ✕ on "newer"
+    return journalDB.b1.map(e => e.text);
+  });
+
+  assert.deepEqual(left, ['older'], 'the entry the user saw is the one removed');
+  await ctx.close();
+});
+
 test('the export payload round-trips through the import merge', async () => {
   const { ctx, page } = await openApp(browser, base);
   await addBook(page, 'Dune', 'Frank Herbert');
