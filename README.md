@@ -88,6 +88,10 @@ A push fetches and merges the remote copy before writing, and retries with backo
 
 Importing a backup goes through the same merge — restoring an old export adds what's missing without overwriting anything newer.
 
+### Backing up to Google Drive
+
+**Settings → Export JSON** opens Android's share sheet with a dated backup (`reading-room-backup-YYYY-MM-DD.json`). Choose **Drive** and it asks which account and folder to save to. Where sharing files isn't supported — most desktops — it downloads instead.
+
 ---
 
 ## Tech

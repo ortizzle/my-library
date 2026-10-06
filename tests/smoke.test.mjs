@@ -1039,6 +1039,100 @@ test('the sheet closes with Cancel, a tap outside, or Escape', async () => {
   await ctx.close();
 });
 
+// ── Export to the share sheet (→ Drive) ──────────────────────────────────
+// Headless Chromium has no share sheet, so stand one in. `accept` is the MIME
+// types canShare() allows; `fail` makes share() throw that DOMException.
+
+async function fakeShareSheet(page, { accept = ['application/json', 'text/plain'], fail = null } = {}) {
+  await page.evaluate(({ accept, fail }) => {
+    window.__shared = [];
+    Object.defineProperty(navigator, 'canShare', { configurable: true,
+      value: ({ files }) => accept.includes(files[0].type) });
+    Object.defineProperty(navigator, 'share', { configurable: true,
+      value: async ({ files }) => {
+        window.__shared.push({ count: files.length, name: files[0].name, type: files[0].type, text: await files[0].text() });
+        if (fail) throw new DOMException('fake', fail);
+      } });
+  }, { accept, fail });
+}
+function watchDownloads(page) { const d = []; page.on('download', x => d.push(x)); return d; }
+const backupName = (page, ext) => page.evaluate(e => `reading-room-backup-${localDateStr()}${e}`, ext);
+
+test('Export JSON hands a dated backup file to the share sheet', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await addBook(page, 'Piranesi', 'Susanna Clarke');
+  await fakeShareSheet(page);
+  const downloads = watchDownloads(page);
+
+  await page.evaluate(() => exportJSON());
+  const [s] = await page.evaluate(() => window.__shared);
+
+  assert.equal(s.count, 1);
+  assert.equal(s.name, await backupName(page, '.json'));
+  assert.equal(s.type, 'application/json');
+  const data = JSON.parse(s.text);
+  assert.equal(data.books[0].title, 'Piranesi', 'it is the real, complete backup');
+  assert.equal(downloads.length, 0, 'no download as well');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('if Chrome refuses .json it shares the same backup as .txt', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await fakeShareSheet(page, { accept: ['text/plain'] });
+  await page.evaluate(() => exportJSON());
+  const [s] = await page.evaluate(() => window.__shared);
+  assert.equal(s.name, await backupName(page, '.txt'));
+  assert.equal(s.type, 'text/plain');
+  assert.equal(JSON.parse(s.text).books[0].title, 'Dune');
+  await ctx.close();
+});
+
+test('without a share sheet it downloads, as before', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => exportJSON())]);
+  assert.equal(dl.suggestedFilename(), await backupName(page, '.json'));
+  await ctx.close();
+});
+
+test('closing the share sheet does not download anything behind your back', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await fakeShareSheet(page, { fail: 'AbortError' });
+  const downloads = watchDownloads(page);
+  await page.evaluate(() => exportJSON());
+  await page.waitForTimeout(300);
+  assert.equal(downloads.length, 0);
+  assert.equal(await page.locator('.toast.err').count(), 0, 'and it is not reported as an error');
+  await ctx.close();
+});
+
+test('if sharing fails it falls back to a download', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await fakeShareSheet(page, { fail: 'NotAllowedError' });
+  const [dl] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => exportJSON())]);
+  assert.equal(dl.suggestedFilename(), await backupName(page, '.json'));
+  await ctx.close();
+});
+
+test('a .txt backup from the fallback can be imported again', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Piranesi', 'Susanna Clarke');
+  await fakeShareSheet(page, { accept: ['text/plain'] });
+  await page.evaluate(() => exportJSON());
+  const [s] = await page.evaluate(() => window.__shared);
+
+  // A fresh device: empty library, then import the shared .txt.
+  const fresh = await openApp(browser, base);
+  assert.match(await fresh.page.getAttribute('#importFile', 'accept'), /\.txt/, 'the picker offers .txt files');
+  await fresh.page.setInputFiles('#importFile', { name: s.name, mimeType: 'text/plain', buffer: Buffer.from(s.text) });
+  await fresh.page.waitForFunction(() => books.length === 1);
+  assert.equal(await fresh.page.evaluate(() => books[0].title), 'Piranesi');
+  await fresh.ctx.close();
+  await ctx.close();
+});
+
 test('the export payload round-trips through the import merge', async () => {
   const { ctx, page } = await openApp(browser, base);
   await addBook(page, 'Dune', 'Frank Herbert');

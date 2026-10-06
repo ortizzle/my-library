@@ -670,6 +670,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <button class="btn btn-secondary" onclick="exportCSV()">📊 Export CSV (Excel)</button>
     </div>
     <p class="hint" style="margin-top:.38rem">JSON preserves everything. CSV opens cleanly in Excel — one row per book.</p>
+    <p class="hint" style="margin-top:.25rem">On your phone, Export JSON opens the share sheet — choose <b>Drive</b> to pick the folder it's saved in. Each backup is named with the date.</p>
   </div>
   <div class="settings-card">
     <h3>Import &amp; Reset</h3>
@@ -1008,7 +1009,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <button id="fab" aria-label="Add a book or a highlight" title="Add a book or a highlight" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
-<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none" onchange="handleImport(event)">
 
 <script>
 // ══════════════════════════════════════════
@@ -4380,9 +4381,42 @@ async function testGbKey(){
   }
 }
 
-function exportJSON(){
+async function exportJSON(){
   const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,exportedAt:new Date().toISOString()};
-  dl(JSON.stringify(d,null,2),'application/json','reading-room-backup.json');toast('JSON exported!','ok');
+  const json=JSON.stringify(d,null,2);
+  // Dated, so snapshots kept in one Drive folder don't overwrite or pile up as "(1)".
+  const base=`reading-room-backup-${localDateStr()}`;
+  // On a phone, open the share sheet: choosing Drive there asks for the account
+  // and the folder. Anywhere sharing files isn't supported, download as before.
+  const shared=await shareFile(json,base);
+  if(shared==='shared'){toast('Backup ready — save it wherever you chose.','ok');return;}
+  if(shared==='dismissed')return; // they closed the sheet: don't download behind their back
+  dl(json,'application/json',base+'.json');toast('JSON exported!','ok');
+}
+
+// Offer a file to the system share sheet. → 'shared', 'dismissed', or
+// 'unsupported' (the caller should fall back to a download).
+async function shareFile(content,base){
+  if(!navigator.share||!navigator.canShare)return 'unsupported';
+  // Chrome only lets some file types through. Try JSON first; failing that,
+  // the same contents as a .txt, which Drive keeps just the same and Import
+  // accepts.
+  for(const [type,ext] of [['application/json','.json'],['text/plain','.txt']]){
+    const file=new File([content],base+ext,{type});
+    let ok=false;
+    try{ok=navigator.canShare({files:[file]});}catch{}
+    if(!ok)continue;
+    try{
+      // Nothing is awaited before this, so it still counts as the user's tap.
+      await navigator.share({files:[file],title:'Reading Room backup'});
+      return 'shared';
+    }catch(e){
+      if(e&&e.name==='AbortError')return 'dismissed';
+      console.warn('Share failed, downloading instead:',e);
+      return 'unsupported';
+    }
+  }
+  return 'unsupported';
 }
 
 function exportCSV(){
