@@ -1,9 +1,11 @@
-name: Tests
+name: Test and deploy
 
 on:
   push:
     branches: ['**']
   pull_request:
+  # Run by hand from the Actions tab, e.g. to republish without a new commit.
+  workflow_dispatch:
 
 jobs:
   test:
@@ -39,8 +41,62 @@ jobs:
 
       - name: No committed secrets
         run: |
-          if grep -nE "ghp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9-]{20,}" index.html; then
+          if grep -nE "ghp_[A-Za-z0-9]{20,}|sk-ant-[A-Za-z0-9-]{20,}|AIza[0-9A-Za-z_-]{30,}" index.html; then
             echo "::error::A token or API key appears to be committed"
             exit 1
           fi
           echo "clean"
+
+  # Publishes the site — only from main, and only once every test has passed.
+  # If the tests fail this job is skipped, so nothing broken goes live.
+  #
+  # Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
+  # (With "Deploy from a branch", GitHub publishes main on every push itself,
+  # tests or no tests.)
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      # Publish only the app, not the repo. The service worker's offline shell
+      # already lists every file the app needs, so it is the single source of
+      # truth; the worker itself is added alongside.
+      - name: Collect the site
+        run: |
+          mkdir _site
+          shell=$(sed -n "/const SHELL = \[/,/\];/p" sw.js | grep -oE "'\./[^']*'" | tr -d "'" | sed 's|^\./||' | grep -v '^$')
+          for f in $shell sw.js; do cp "$f" _site/; done
+          ls -la _site
+
+      - name: Check nothing the app loads is missing
+        run: |
+          for f in index.html sw.js manifest.json; do
+            test -f "_site/$f" || { echo "::error::$f is not published"; exit 1; }
+          done
+          # Icons named in the manifest must be published too, or installing
+          # the app shows a blank icon.
+          for f in $(grep -oE '"src": *"[^"]+"' manifest.json | sed -E 's/.*"src": *"([^"]+)"/\1/'); do
+            test -f "_site/$f" || { echo "::error::manifest.json names $f, which is not in the service worker's SHELL list"; exit 1; }
+          done
+          echo "ok"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

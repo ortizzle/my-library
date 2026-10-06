@@ -142,6 +142,17 @@ shipped), `tests/stats.test.mjs` the daily page/minute rollup,
 stubbed at the network layer. Tests run in CI on every
 push via `.github/workflows/test.yml`.
 
+### Deploying
+
+Pushing to `main` deploys — but only after every test passes. The workflow's
+`deploy` job depends on the `test` job, so a failing test stops the release and
+the live site stays as it was. Only the app is published (`index.html`,
+`sw.js`, `manifest.json` and the icons), taken from the service worker's
+offline shell list; tests and notes are not.
+
+This needs **Settings → Pages → Source: GitHub Actions**. To republish without
+a new commit, run the workflow from the Actions tab.
+
 Target device is a **Google Pixel (Android / Chrome)** — see `CLAUDE.md`.
 
 ---

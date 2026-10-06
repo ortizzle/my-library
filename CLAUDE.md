@@ -25,3 +25,14 @@ three Gist keys — `trr_v1_gist_token`, `trr_v1_gist_id`, `trr_v1_gist_sync` �
 declared separately and are deliberately **not** in `SK`, because `SK` is what gets
 exported and cleared. Anything that iterates `SK` to reset state must decide
 explicitly whether the Gist keys should go too.
+
+## Deploying
+
+`main` deploys through `.github/workflows/test.yml`: the `deploy` job needs
+`test`, so nothing ships unless every test passes. Pages source must be
+"GitHub Actions". The published files come from the `SHELL` list in `sw.js` —
+add any new local asset there, or it won't be deployed (the workflow checks
+manifest icons and fails loudly if one is missing).
+
+Before asking to merge, confirm the branch's CI run is green, not just local
+tests.
