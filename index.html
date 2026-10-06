@@ -989,7 +989,9 @@ const SK={
   goals:  'trr_v1_goals',    // {year: bookCount}
   gbkey:  'trr_v1_gbkey',    // Google Books API key (optional, raises the quota)
   deleted:'trr_v1_deleted',  // {bookId: deletedAtMs} — tombstones, so deletes survive sync
-  entryDel:'trr_v1_entrydel',// {"j|bookId|entryKey": deletedAtMs} — journal/progress entry tombstones
+  entryDel:'trr_v1_entrydel',// {"j|bookId|entryKey": deletedAtMs} — journal/progress entry tombstones;
+                             // "s|date" removes a streak day (see undoStreakDays)
+  streakAt:'trr_v1_streakat',// {date: lastLoggedMs} — lets a re-logged day beat an undo
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -1216,6 +1218,15 @@ function mergeState(local,remote){
   const entryDel=mergeDeleted(local.entryDel,remote.entryDel);
   const streak={...(remote.streak||{})};
   for(const[d,n]of Object.entries(local.streak||{}))streak[d]=Math.max(streak[d]||0,n||0);
+  const streakAt={...(remote.streakAt||{})};
+  for(const[d,t]of Object.entries(local.streakAt||{}))streakAt[d]=Math.max(streakAt[d]||0,t||0);
+  // Highest-count-wins can only ever add days, so a day removed by an undo
+  // came straight back from the other side. A tombstone removes the day unless
+  // it was logged again after the undo.
+  for(const d of Object.keys(streak)){
+    const t=entryDel['s|'+d];
+    if(t&&t>=(streakAt[d]||0))delete streak[d];
+  }
   const merged={
     deleted,
     books:  mergeBooks(local.books,remote.books,deleted),
@@ -1226,6 +1237,7 @@ function mergeState(local,remote){
     cacheQ: mergeIdMap(local.cacheQ,remote.cacheQ,deleted),
     favQ:   mergeIdMap(local.favQ,remote.favQ,deleted),
     streak,
+    streakAt,
     rooms:  [...new Set([...(remote.rooms||[]),...(local.rooms||[])])].sort(),
     goals:  {...(remote.goals||{}),...(local.goals||{})}
   };
@@ -1235,7 +1247,7 @@ function mergeState(local,remote){
 
 function currentState(){
   return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
-          streak:streakDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB};
+          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB};
 }
 
 // Coerce anything off the wire into the shape the merge expects. A hand-edited
@@ -1246,7 +1258,7 @@ function remoteState(d){
   const obj=v=>(v&&typeof v==='object'&&!Array.isArray(v))?v:{};
   return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
           cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
-          goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel)};
+          goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel),streakAt:obj(d.streakAt)};
 }
 
 // Assign merged state and persist it. Deliberately does not call save(): that
@@ -1254,10 +1266,10 @@ function remoteState(d){
 function applyState(s){
   books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
   cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
-  entryDeletedDB=s.entryDel||{};
+  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};
   const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
                [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
-               [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB]];
+               [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB],[SK.streakAt,streakAtDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
     return true;
@@ -1273,7 +1285,7 @@ function gistPayload(state){
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
   return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
     journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
-    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{}},null,2);
+    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{}},null,2);
 }
 
 // Gists over ~1MB come back truncated; the full text lives at raw_url.
@@ -1501,6 +1513,7 @@ function reloadStateFromStorage(){
   goals      = load(SK.goals,'object')   || {};
   deletedDB  = load(SK.deleted,'object') || {};
   entryDeletedDB = load(SK.entryDel,'object') || {};
+  streakAtDB = load(SK.streakAt,'object') || {};
 }
 
 // ══════════════════════════════════════════
@@ -1517,6 +1530,7 @@ let rooms      = load(SK.rooms,'array')    || [];
 let goals      = load(SK.goals,'object')   || {};   // {year: bookCount}
 let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tombstones
 let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry tombstones
+let streakAtDB = load(SK.streakAt,'object') || {};     // {date: lastLoggedMs}
 
 // ══════════════════════════════════════════
 // STATE
@@ -2596,6 +2610,7 @@ function markDone(id){
     if(last.total){prog.push({date:b.date,type:last.type,cur:last.total,total:last.total,note:'Finished!'});save(SK.prog,progressDB);}
   }
   saveBooks(b);
+  const addedDays=addedStreakDays(prevStreak);
   renderLibrary();renderLists();updateHdrStreak();
   toastUndo(`"${b.title}" finished 🎉 — tap to undo`,()=>{
     b.status=prevStatus;
@@ -2605,9 +2620,7 @@ function markDone(id){
     tombstoneDropped('p',id,progressDB[id],prevProg);
     progressDB[id]=prevProg;
     save(SK.prog,progressDB);
-    Object.keys(streakDB).forEach(k=>delete streakDB[k]);
-    Object.assign(streakDB,prevStreak);
-    save(SK.streak,streakDB);
+    undoStreakDays(addedDays);
     saveBooks(b);
     renderLibrary();renderLists();renderLogSession();updateHdrStreak();
     toast('Undone','ok');
@@ -3447,7 +3460,23 @@ function renderLoaned(){
 // STREAK & STATS
 // ══════════════════════════════════════════
 function localDateStr(d){const dt=d||new Date();return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;}
-function logDay(d){streakDB[d]=(streakDB[d]||0)+1;save(SK.streak,streakDB);}
+function logDay(d){
+  streakDB[d]=(streakDB[d]||0)+1;
+  streakAtDB[d]=Date.now(); // so logging a day again after an undo beats the undo
+  save(SK.streakAt,streakAtDB);save(SK.streak,streakDB);
+}
+
+// The streak days an action added — days absent before it ran. Undo removes
+// exactly these. It used to restore a whole snapshot, which also deleted any
+// day a sync merged in during the undo window, and the removal didn't survive
+// the next sync anyway.
+function addedStreakDays(before){return Object.keys(streakDB).filter(d=>!(d in before));}
+function undoStreakDays(days){
+  if(!days.length)return;
+  const now=Date.now();
+  for(const d of days){delete streakDB[d];entryDeletedDB['s|'+d]=now;}
+  save(SK.entryDel,entryDeletedDB);save(SK.streak,streakDB);
+}
 
 function computeStreak(){
   const days=new Set([...Object.keys(streakDB),...books.map(b=>b.date).filter(Boolean)]);
@@ -3868,6 +3897,7 @@ function logQuick(id, note){
   const rating=_logRatings[id]||0;
   if(rating){const b=books.find(x=>x.id===id);if(b){b.rating=rating;saveBooks(b);}}
   logProgressAndJournalInline(id,'ls',true); // suppress internal toast
+  const addedDays=addedStreakDays(prevStreak);
   renderLogSession();
 
   toastUndo('Logged ✓ — tap to undo',()=>{
@@ -3877,9 +3907,7 @@ function logQuick(id, note){
     tombstoneDropped('j',id,journalDB[id],prevJournal);
     journalDB[id]=prevJournal;
     save(SK.journal,journalDB);
-    Object.keys(streakDB).forEach(k=>delete streakDB[k]);
-    Object.assign(streakDB,prevStreak);
-    save(SK.streak,streakDB);
+    undoStreakDays(addedDays);
     updateHdrStreak();
     renderLogSession();
     toast('Undone','ok');
@@ -4235,7 +4263,7 @@ async function testGbKey(){
 }
 
 function exportJSON(){
-  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,exportedAt:new Date().toISOString()};
+  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,exportedAt:new Date().toISOString()};
   dl(JSON.stringify(d,null,2),'application/json','reading-room-backup.json');toast('JSON exported!','ok');
 }
 
@@ -4284,7 +4312,7 @@ function handleImport(e){
       // to recover one book destroyed every newer entry on every other book.
       const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
         covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
-        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel});
+        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt});
       const merged=mergeState(currentState(),incoming);
       applyState(merged);
       localStorage.setItem(SK.updated,new Date().toISOString());
@@ -4327,7 +4355,7 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
   renderLibrary();renderLists();renderLogSession();updateHdrStreak();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');

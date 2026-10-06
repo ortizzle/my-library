@@ -610,6 +610,53 @@ test('undoing a quick log sticks even after the push already went out', async ()
   await ctx.close();
 });
 
+test('undoing a quick log removes the streak day it added, even after the push', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seed(page);
+  const pushed = await withGist(page, { v: 2, books: [{ id: 'b1', title: 'Dune', updatedAt: 1, addedAt: 1 }] });
+
+  const today = await page.evaluate(async () => {
+    showView('log'); logQuick('b1', 'Listened today'); await gistPush(); return localDateStr();
+  });
+  assert.ok(pushed[0].streak[today] > 0, 'the day went out with the push');
+
+  await page.unroute('**://api.github.com/gists/**');
+  const pushed2 = await withGist(page, pushed[0]);   // the gist now holds that day
+  await page.evaluate(async () => { document.querySelector('.toast button').click(); await gistPush(); });
+
+  assert.equal(pushed2[0].streak[today], undefined, 'the undone day did not come back from the gist');
+  assert.equal(await page.evaluate(d => d in streakDB, today), false);
+  await ctx.close();
+});
+
+test('undo leaves a day that already had reading on it', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seed(page);
+  const kept = await page.evaluate(() => {
+    const today = localDateStr();
+    logDay(today);                                   // read earlier today
+    showView('log'); logQuick('b1', 'Listened today');
+    document.querySelector('.toast button').click(); // undo the second log
+    return today in streakDB;
+  });
+  assert.equal(kept, true, 'undo only removes days the action itself added');
+  await ctx.close();
+});
+
+test('undo does not delete a day that a sync merged in during the undo window', async () => {
+  // The old undo restored a full snapshot, wiping anything that arrived meanwhile.
+  const { ctx, page } = await openApp(browser, base);
+  await seed(page);
+  const survived = await page.evaluate(() => {
+    showView('log'); logQuick('b1', 'Listened today');
+    streakDB['2026-01-15'] = 1;                      // a pull brings in another device's day
+    document.querySelector('.toast button').click();
+    return '2026-01-15' in streakDB;
+  });
+  assert.equal(survived, true);
+  await ctx.close();
+});
+
 test('a delete removes the entry that was on screen even if a sync re-sorted the list', async () => {
   const { ctx, page } = await openApp(browser, base);
   const a = { date: '2026-09-01', time: '8:00 AM', text: 'older', at: 1000 };

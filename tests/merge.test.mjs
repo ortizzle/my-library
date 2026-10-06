@@ -260,3 +260,46 @@ test('normEntries marks existing entries as older than any tombstone', () => {
   assert.equal(map.b1[0].at, 1);
   assert.equal(map.b1[1].at, 5, 'a real timestamp is kept');
 });
+
+// ── Streak days ──────────────────────────────────────────────────────────
+// Days merged as highest-count-wins, which can only add. A day removed by an
+// undo came straight back from the gist's copy on the next sync.
+
+test('a streak day removed by undo stays removed', () => {
+  const local = state({ streak: {}, streakAt: { '2026-10-07': T0 }, entryDel: { 's|2026-10-07': T0 + 3000 } });
+  const remote = state({ streak: { '2026-10-07': 1 }, streakAt: { '2026-10-07': T0 } });
+  assert.deepEqual(M.mergeState(local, remote).streak, {});
+});
+
+test('a day logged again after the undo is kept', () => {
+  // Quick-log, undo, then genuinely read later that day.
+  const merged = M.mergeState(
+    state({ streak: { '2026-10-07': 1 }, streakAt: { '2026-10-07': T0 + 9000 }, entryDel: { 's|2026-10-07': T0 + 3000 } }),
+    state({ streak: { '2026-10-07': 1 }, streakAt: { '2026-10-07': T0 } })
+  );
+  assert.deepEqual(merged.streak, { '2026-10-07': 1 });
+});
+
+test('the re-log wins on the other device too', () => {
+  // The device that undid has the tombstone; the one that re-logged has the
+  // later timestamp. Max-merging streakAt lets the re-log win on both sides.
+  const merged = M.mergeState(
+    state({ streak: {}, entryDel: { 's|2026-10-07': T0 + 3000 } }),
+    state({ streak: { '2026-10-07': 1 }, streakAt: { '2026-10-07': T0 + 9000 } })
+  );
+  assert.deepEqual(merged.streak, { '2026-10-07': 1 });
+  assert.equal(merged.streakAt['2026-10-07'], T0 + 9000);
+});
+
+test('an undo tombstone only removes its own day', () => {
+  const merged = M.mergeState(
+    state({ streak: { '2026-10-06': 1 }, streakAt: { '2026-10-06': T0 }, entryDel: { 's|2026-10-07': T0 + 3000 } }),
+    state({ streak: { '2026-10-06': 2, '2026-10-07': 1 }, streakAt: { '2026-10-07': T0 } })
+  );
+  assert.deepEqual(Object.keys(merged.streak), ['2026-10-06']);
+});
+
+test('streak days logged before this change have no timestamp and are untouched', () => {
+  const merged = M.mergeState(state({ streak: { '2026-01-05': 3 } }), state({ streak: { '2026-02-09': 1 } }));
+  assert.deepEqual(merged.streak, { '2026-01-05': 3, '2026-02-09': 1 });
+});
