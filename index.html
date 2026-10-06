@@ -259,6 +259,25 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .loan-add-form h5{font-family:'Playfair Display',serif;font-size:.8rem;margin-bottom:.48rem;color:var(--ink-light)}
 
 /* MODAL */
+/* Add sheet — the floating + offers "add a book" or "add a highlight" */
+.sheet-backdrop{position:fixed;inset:0;z-index:7000;background:rgba(30,20,10,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet{width:100%;max-width:520px;max-height:85vh;overflow-y:auto;background:var(--cream);border-radius:18px 18px 0 0;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3);animation:su .2s ease}
+.sheet-grip{width:40px;height:4px;border-radius:2px;background:var(--parchment-dark);margin:.35rem auto .8rem}
+.sheet-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin:0 0 .7rem;color:var(--ink)}
+.sheet-opt{display:flex;align-items:center;gap:.9rem;width:100%;min-height:64px;padding:.7rem .9rem;margin-bottom:.55rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--parchment);text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.sheet-opt:active,.sheet-book:active{background:var(--parchment-dark)}
+.sheet-opt b{display:block;font-size:1rem;font-family:'Playfair Display',serif}
+.sheet-opt small{display:block;font-size:.8rem;color:var(--ink-light);margin-top:.1rem}
+.sheet-ico{font-size:1.5rem;width:2rem;text-align:center;color:var(--burgundy);flex-shrink:0}
+.sheet-book{display:flex;align-items:center;gap:.8rem;width:100%;min-height:56px;padding:.45rem .55rem;margin-bottom:.3rem;border:none;border-radius:10px;background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.sheet-book-cover{width:32px;height:46px;border-radius:3px;object-fit:cover;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.sheet-book-text{flex:1;min-width:0}
+.sheet-book b{display:block;font-family:'Playfair Display',serif;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-book small{display:block;font-size:.78rem;color:var(--ink-light);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-label{font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.07em;color:var(--ink-faint);margin:.6rem .55rem .3rem}
+.sheet-more{background:none;border:none;color:var(--burgundy);font-family:'Lora',serif;font-size:.9rem;min-height:48px;padding:0 .55rem;cursor:pointer}
+.sheet-empty{font-size:.85rem;color:var(--ink-light);font-style:italic;margin:.2rem .2rem .6rem}
+.sheet-cancel{display:block;width:100%;min-height:48px;margin-top:.5rem;border:1px solid var(--parchment-dark);border-radius:10px;background:none;font-family:'Lora',serif;font-size:.95rem;color:var(--ink-light);cursor:pointer}
 /* Highlights — a passage saved from a photo of the page, kept in the journal */
 .hl-quote{display:block;border-left:3px solid var(--gold);padding:.15rem 0 .15rem .65rem;font-style:italic;color:var(--ink);background:linear-gradient(90deg,rgba(212,160,48,.14),transparent 75%);line-height:1.55}
 .hl-meta{display:block;margin-top:.3rem;font-size:.7rem;color:var(--ink-faint);font-style:normal}
@@ -927,6 +946,25 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
+<!-- Add sheet: the floating + opens this — add a book, or jump to a highlight -->
+<div id="addSheet" class="sheet-backdrop" style="display:none">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <div id="addSheetChoose">
+      <h3 id="addSheetTitle" class="sheet-title">Add to your Reading Room</h3>
+      <button type="button" class="sheet-opt" id="addSheetBook"><span class="sheet-ico" aria-hidden="true">📚</span><span><b>Add a book</b><small>Scan a barcode or search by title</small></span></button>
+      <button type="button" class="sheet-opt" id="addSheetHl"><span class="sheet-ico" aria-hidden="true">✦</span><span><b>Add a highlight</b><small>Photograph a passage you want to keep</small></span></button>
+    </div>
+    <div id="addSheetBooks" style="display:none">
+      <h3 class="sheet-title">Highlight from which book?</h3>
+      <div id="addSheetReading"></div>
+      <button type="button" class="sheet-more" id="addSheetMoreBtn">Another book…</button>
+      <div id="addSheetOther" style="display:none"></div>
+    </div>
+    <button type="button" class="sheet-cancel" id="addSheetCancel">Cancel</button>
+  </div>
+</div>
+
 <!-- Highlight capture: photo → mark the passage → read it → confirm → journal -->
 <div id="hlModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="hlTitle">
   <div class="hl-sheet">
@@ -969,7 +1007,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
 </div>
 
-<button onclick="openScanner()" title="Add a book" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
+<button id="fab" aria-label="Add a book or a highlight" title="Add a book or a highlight" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <script>
@@ -2019,6 +2057,86 @@ function updateRatingDisplay(v){document.querySelectorAll('#ratingInput .star').
 // ══════════════════════════════════════════
 // JOURNAL
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// ADD SHEET (the floating +)
+// ══════════════════════════════════════════
+// Add a book (the scanner, as before) or add a highlight. Highlights list the
+// books you're reading first, with the rest behind "Another book…".
+
+function initAddSheet(){
+  const $=id=>document.getElementById(id);
+  $('fab').addEventListener('click',openAddSheet);
+  $('addSheetBook').addEventListener('click',()=>{closeAddSheet();openScanner();});
+  $('addSheetHl').addEventListener('click',()=>{renderAddSheetBooks();addSheetStep('books');});
+  $('addSheetMoreBtn').addEventListener('click',()=>{
+    $('addSheetOther').style.display='block';$('addSheetMoreBtn').style.display='none';
+  });
+  $('addSheetCancel').addEventListener('click',closeAddSheet);
+  $('addSheet').addEventListener('click',e=>{if(e.target.id==='addSheet')closeAddSheet();});
+}
+function openAddSheet(){addSheetStep('choose');document.getElementById('addSheet').style.display='flex';}
+function closeAddSheet(){document.getElementById('addSheet').style.display='none';}
+function addSheetStep(step){
+  document.getElementById('addSheetChoose').style.display=step==='choose'?'block':'none';
+  document.getElementById('addSheetBooks').style.display=step==='books'?'block':'none';
+}
+
+// Built with createElement: titles and authors are user data.
+function bookPickRow(b){
+  const btn=document.createElement('button');
+  btn.type='button';btn.className='sheet-book';
+  const url=coversDB[b.id];
+  const placeholder=()=>{
+    const ph=document.createElement('span');ph.className='sheet-book-cover';
+    ph.style.background=bookGradient(b.title,b.author);return ph;
+  };
+  let cover=placeholder();
+  if(url){
+    // A cover that fails to load falls back to the same gradient as a book
+    // with no cover, rather than leaving a hole in the list.
+    cover=document.createElement('img');cover.className='sheet-book-cover';cover.alt='';
+    cover.addEventListener('error',()=>cover.replaceWith(placeholder()));
+    cover.src=url;
+  }
+  const text=document.createElement('span');text.className='sheet-book-text';
+  const t=document.createElement('b');t.textContent=b.title||'Untitled';
+  const a=document.createElement('small');a.textContent=b.author||'';
+  text.append(t,a);btn.append(cover,text);
+  btn.addEventListener('click',()=>{
+    closeAddSheet();
+    openHighlight(b.id);
+    // Still the same tap, so the browser lets this open the camera: one tap
+    // from choosing the book to the shutter. Cancelling the camera leaves the
+    // photo step open, with "Choose a photo" for a picture already taken.
+    document.getElementById('hlCamera').click();
+  });
+  return btn;
+}
+function sheetText(cls,text){const el=document.createElement('p');el.className=cls;el.textContent=text;return el;}
+
+function renderAddSheetBooks(){
+  const $=id=>document.getElementById(id);
+  const owned=books.filter(b=>b.status!=='wishlist');
+  const reading=owned.filter(b=>b.status==='reading');
+  // Everything else, most recently finished first.
+  const other=owned.filter(b=>b.status!=='reading')
+    .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.addedAt||0)-(x.addedAt||0));
+  const rEl=$('addSheetReading'),oEl=$('addSheetOther'),more=$('addSheetMoreBtn');
+  oEl.replaceChildren(...(other.length?[sheetText('sheet-label','OTHER BOOKS')]:[]),...other.map(bookPickRow));
+
+  if(!owned.length){
+    rEl.replaceChildren(sheetText('sheet-empty','Add a book first — highlights are saved to a book.'));
+    oEl.style.display='none';more.style.display='none';
+  }else if(!reading.length){
+    // Nothing marked as reading: skip straight to the library rather than a dead end.
+    rEl.replaceChildren(sheetText('sheet-empty','Nothing is marked Currently Reading — choose from your library:'));
+    oEl.style.display='block';more.style.display='none';
+  }else{
+    rEl.replaceChildren(sheetText('sheet-label','CURRENTLY READING'),...reading.map(bookPickRow));
+    oEl.style.display='none';more.style.display=other.length?'block':'none';
+  }
+}
+
 // ══════════════════════════════════════════
 // HIGHLIGHTS
 // ══════════════════════════════════════════
@@ -4430,6 +4548,7 @@ function syncLinkedProgress(id,prefix,src){
 document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
   initHighlights();
+  initAddSheet();
   renderLibrary();updateHdrStreak();
   // Land on the view in the URL hash (refresh keeps your place); replaceState
   // avoids an extra history entry so Back still exits from the initial view
@@ -4449,6 +4568,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
     if(vis('hlModal')){closeHighlight();return;}
+    if(vis('addSheet')){closeAddSheet();return;}
     if(vis('sessionModal')){closeReadingSession();return;}
     if(vis('scannerModal')){closeScanner();return;}
     if(vis('discModal')){closeM('discModal');return;}

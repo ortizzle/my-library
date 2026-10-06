@@ -40,6 +40,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 ### Highlights
 - **📷 Add Highlight** in a book's Reading Journal — photograph a page (or choose a photo), drag across the passage, and the app reads it for you
+- **Shortcut:** the floating **＋** offers *Add a book* or *Add a highlight*. Highlight lists the books you're reading (the rest are a tap away) and goes straight to the camera
 - The marked region is sent to Claude to transcribe; you check and correct it, add a page number and a note, and save
 - Saved as **text** in the journal, so highlights sync, export, print and delete like any journal entry. Photos aren't kept — a phone photo is several MB and wouldn't fit in browser storage or the sync file
 - Shown in the book, the library card, the Journal tab, and a **✦ Highlights** section of the Keepsake

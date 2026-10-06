@@ -909,6 +909,136 @@ test('Escape closes the capture screen without saving', async () => {
   await ctx.close();
 });
 
+// ── The floating + ───────────────────────────────────────────────────────
+
+const seedShelf = (page, list) => page.evaluate(l => {
+  books = l.map((b, i) => ({ author: 'A', addedAt: i + 1, updatedAt: 1, ...b }));
+  save('trr_v1_books', books); renderLibrary();
+}, list);
+
+test('the + offers a book or a highlight', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.click('#fab');
+  assert.equal(await page.isVisible('#addSheet'), true);
+  assert.equal(await page.isVisible('#addSheetBook'), true);
+  assert.equal(await page.isVisible('#addSheetHl'), true);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('"Add a book" still goes to the scanner', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => { window.loadZXing = () => new Promise(() => {}); }); // no CDN here
+  await page.click('#fab');
+  await page.click('#addSheetBook');
+  assert.equal(await page.isVisible('#addSheet'), false);
+  assert.equal(await page.isVisible('#scannerModal'), true);
+  await ctx.close();
+});
+
+test('"Add a highlight" lists the books being read, the rest one tap away', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelf(page, [
+    { id: 'r1', title: 'Piranesi', status: 'reading' },
+    { id: 'r2', title: 'Dune', status: 'reading' },
+    { id: 'd1', title: 'Middlemarch', status: 'read', date: '2026-09-01' },
+    { id: 'w1', title: 'Wanted', status: 'wishlist' },
+  ]);
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+
+  const visibleTitles = () => page.$$eval('#addSheet .sheet-book', els =>
+    els.filter(e => e.offsetParent !== null).map(e => e.querySelector('b').textContent));
+  assert.deepEqual(await visibleTitles(), ['Piranesi', 'Dune'], 'currently reading only, at first');
+
+  await page.click('#addSheetMoreBtn');
+  assert.deepEqual(await visibleTitles(), ['Piranesi', 'Dune', 'Middlemarch'],
+    'then the rest — never wishlist, which you don\'t own yet');
+  await ctx.close();
+});
+
+test('choosing a book goes straight to the camera for that book', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', author: 'Susanna Clarke', status: 'reading' }]);
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    page.click('#addSheetReading .sheet-book'),
+  ]);
+  assert.equal(await chooser.element().getAttribute('id'), 'hlCamera', 'the camera, not the gallery');
+  assert.equal(await page.isVisible('#addSheet'), false);
+  assert.equal(await page.isVisible('#hlModal'), true);
+  assert.match(await page.textContent('#hlBook'), /Piranesi · Susanna Clarke/, 'for the book that was picked');
+
+  // And the rest of the flow works from here.
+  await chooser.setFiles({ name: 'page.png', mimeType: 'image/png', buffer: await page.screenshot() });
+  await page.waitForFunction(() => document.getElementById('hlMark').style.display === 'block');
+  await page.click('#hlRead');
+  await page.fill('#hlText', 'There is no knowledge that is not valuable.');
+  await page.click('#hlSave');
+  const j = await page.evaluate(() => journalDB.r1);
+  assert.equal(j[0].type, 'highlight');
+  await ctx.close();
+});
+
+test('with nothing marked as reading, the library is offered instead of a dead end', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'd1', title: 'Middlemarch', status: 'read' }]);
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+  assert.match(await page.textContent('#addSheetReading'), /Nothing is marked Currently Reading/);
+  assert.equal(await page.isVisible('#addSheetOther .sheet-book'), true);
+  assert.equal(await page.isVisible('#addSheetMoreBtn'), false);
+  await ctx.close();
+});
+
+test('with no books at all it says why', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+  assert.match(await page.textContent('#addSheetReading'), /Add a book first/);
+  await ctx.close();
+});
+
+test('a title that looks like HTML is listed as text', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'x', title: '<img src=x onerror="window.__pwned=1">', status: 'reading' }]);
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+  assert.equal(await page.locator('#addSheetReading .sheet-book-text img').count(), 0);
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  await ctx.close();
+});
+
+test('a cover that fails to load shows the gradient placeholder, not a hole', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.route('**://covers.openlibrary.org/**', r => r.fulfill({ status: 404, body: '' }));
+  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }]);
+  await page.evaluate(() => { coversDB.r1 = 'https://covers.openlibrary.org/b/id/1-M.jpg'; });
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+  await page.waitForFunction(() => document.querySelector('#addSheetReading .sheet-book-cover').tagName === 'SPAN');
+  const bg = await page.$eval('#addSheetReading .sheet-book-cover', el => el.style.background);
+  assert.match(bg, /linear-gradient/);
+  await ctx.close();
+});
+
+test('the sheet closes with Cancel, a tap outside, or Escape', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  for (const close of [
+    () => page.click('#addSheetCancel'),
+    () => page.mouse.click(10, 10),
+    () => page.keyboard.press('Escape'),
+  ]) {
+    await page.click('#fab');
+    await close();
+    assert.equal(await page.isVisible('#addSheet'), false);
+  }
+  await ctx.close();
+});
+
 test('the export payload round-trips through the import merge', async () => {
   const { ctx, page } = await openApp(browser, base);
   await addBook(page, 'Dune', 'Frank Herbert');
