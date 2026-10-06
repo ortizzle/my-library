@@ -44,7 +44,13 @@ async function startServer() {
 
 /** Fresh page with dialogs auto-accepted and page errors surfaced as failures. */
 async function openApp(browser, base) {
-  const ctx = await browser.newContext();
+  // Service workers are blocked. Once the app's worker controls the page it
+  // fetches cover images itself, and page.route never sees those requests — so
+  // a stubbed cover was really fetched from the network. That made results
+  // depend on the environment: a test that passed in a sandbox without
+  // internet timed out on CI, where the real cover loaded. None of these tests
+  // exercise the worker itself.
+  const ctx = await browser.newContext({ serviceWorkers: 'block' });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
