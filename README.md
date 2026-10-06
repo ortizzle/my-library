@@ -38,6 +38,13 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Inline warning if you enter a page number beyond the book's total
 - Undo toast (5 seconds) if you accidentally log a session or mark a book finished
 
+### Highlights
+- **📷 Add Highlight** in a book's Reading Journal — photograph a page (or choose a photo), drag across the passage, and the app reads it for you
+- The marked region is sent to Claude to transcribe; you check and correct it, add a page number and a note, and save
+- Saved as **text** in the journal, so highlights sync, export, print and delete like any journal entry. Photos aren't kept — a phone photo is several MB and wouldn't fit in browser storage or the sync file
+- Shown in the book, the library card, the Journal tab, and a **✦ Highlights** section of the Keepsake
+- Works without an Anthropic key too — the photo stays on screen while you type the passage
+
 ### Book Details (3-tab edit modal)
 1. **Book Details** — title, author, genre, format, ISBN, cover, series, publisher
 2. **My Reading** — status, rating (⭐ 1–5), dates, journal notes, loan tracking, DNF shelf, reading progress history

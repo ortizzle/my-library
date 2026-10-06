@@ -259,6 +259,26 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .loan-add-form h5{font-family:'Playfair Display',serif;font-size:.8rem;margin-bottom:.48rem;color:var(--ink-light)}
 
 /* MODAL */
+/* Highlights — a passage saved from a photo of the page, kept in the journal */
+.hl-quote{display:block;border-left:3px solid var(--gold);padding:.15rem 0 .15rem .65rem;font-style:italic;color:var(--ink);background:linear-gradient(90deg,rgba(212,160,48,.14),transparent 75%);line-height:1.55}
+.hl-meta{display:block;margin-top:.3rem;font-size:.7rem;color:var(--ink-faint);font-style:normal}
+#hlModal{position:fixed;inset:0;z-index:8500;background:#0e0701;overflow-y:auto} /* solid: the book editor underneath bled through at 95% */
+.hl-sheet{max-width:520px;margin:0 auto;padding:1rem 1rem 2.5rem;color:var(--parchment)}
+.hl-head{display:flex;align-items:center;justify-content:space-between}
+.hl-head h3{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--gold-lt);margin:0}
+.hl-close{background:none;border:none;color:var(--parchment);font-size:1.3rem;min-width:48px;min-height:48px;cursor:pointer}
+.hl-book{font-style:italic;color:#c9b28a;font-size:.85rem;margin:0 0 .8rem}
+.hl-hint{font-size:.85rem;color:#c9b28a;margin:.3rem 0 .8rem;line-height:1.5}
+.hl-big{display:block;width:100%;min-height:52px;font-size:1rem;margin-bottom:.65rem}
+.hl-stage{position:relative;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.hl-stage canvas{display:block;border-radius:4px}
+.hl-box{position:absolute;border:2px solid #e8b84a;background:rgba(232,184,74,.28);border-radius:2px;pointer-events:none}
+.hl-actions{display:flex;gap:.6rem;margin-top:.9rem}
+.hl-actions .btn{min-height:48px;flex:1;font-size:.9rem}
+.hl-crop{display:block;max-width:100%;max-height:30vh;margin:0 auto .5rem;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.45)}
+#hlModal .btn-secondary{color:var(--parchment);background:transparent;border-color:#8a7350} /* the default is styled for parchment, near-invisible here */
+#hlConfirm .fg label{color:#c9b28a}
+#hlConfirm .fg textarea,#hlConfirm .fg input[type=text]{font-size:1rem}
 .overlay{position:fixed;inset:0;background:rgba(30,20,10,.62);backdrop-filter:blur(2px);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fi .2s ease}
 @keyframes fi{from{opacity:0}to{opacity:1}}
 @keyframes toastBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
@@ -820,7 +840,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
           <div id="journalEntries"></div>
           <div class="journal-add">
             <textarea id="journalNewEntry" placeholder="Add a journal note for today's reading session…"></textarea>
-            <div style="display:flex;justify-content:flex-end"><button class="btn btn-teal btn-sm" onclick="addJournalEntry()">＋ Add Note</button></div>
+            <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+              <button class="btn btn-secondary btn-sm" id="hlOpenBtn">📷 Add Highlight</button>
+              <button class="btn btn-teal btn-sm" onclick="addJournalEntry()">＋ Add Note</button>
+            </div>
           </div>
         </div>
       </div>
@@ -904,6 +927,48 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
+<!-- Highlight capture: photo → mark the passage → read it → confirm → journal -->
+<div id="hlModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="hlTitle">
+  <div class="hl-sheet">
+    <div class="hl-head">
+      <h3 id="hlTitle">✦ Add a Highlight</h3>
+      <button class="hl-close" id="hlClose" aria-label="Close">✕</button>
+    </div>
+    <p class="hl-book" id="hlBook"></p>
+
+    <div id="hlPick">
+      <p class="hl-hint">Photograph the page, then drag across the passage you want to keep.</p>
+      <button class="btn btn-primary hl-big" id="hlTakeBtn">📷 Take a photo</button>
+      <button class="btn btn-secondary hl-big" id="hlChooseBtn">🖼 Choose a photo</button>
+      <input type="file" id="hlCamera" accept="image/*" capture="environment" style="display:none">
+      <input type="file" id="hlFile" accept="image/*" style="display:none">
+    </div>
+
+    <div id="hlMark" style="display:none">
+      <p class="hl-hint">Drag across the passage — or skip that to read the whole photo.</p>
+      <div id="hlStage" class="hl-stage"><canvas id="hlCanvas"></canvas><div id="hlBox" class="hl-box" style="display:none"></div></div>
+      <div class="hl-actions">
+        <button class="btn btn-secondary" id="hlRetake">↺ Retake</button>
+        <button class="btn btn-primary" id="hlRead">Read whole photo →</button>
+      </div>
+    </div>
+
+    <div id="hlConfirm" style="display:none">
+      <img id="hlCrop" class="hl-crop" alt="The marked passage">
+      <p class="hl-hint" id="hlStatus"></p>
+      <div class="fg"><label for="hlText">Passage</label><textarea id="hlText" rows="6"></textarea></div>
+      <div style="display:flex;gap:.6rem">
+        <div class="fg" style="flex:0 0 6.5rem"><label for="hlPage">Page</label><input type="text" id="hlPage" inputmode="numeric" placeholder="—"></div>
+        <div class="fg" style="flex:1"><label for="hlNote">Note (optional)</label><input type="text" id="hlNote" placeholder="Why it stood out"></div>
+      </div>
+      <div class="hl-actions">
+        <button class="btn btn-secondary" id="hlBack">← Back</button>
+        <button class="btn btn-primary" id="hlSave">Save highlight</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <button onclick="openScanner()" title="Add a book" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
 
@@ -1940,6 +2005,241 @@ function updateRatingDisplay(v){document.querySelectorAll('#ratingInput .star').
 // ══════════════════════════════════════════
 // JOURNAL
 // ══════════════════════════════════════════
+// ══════════════════════════════════════════
+// HIGHLIGHTS
+// ══════════════════════════════════════════
+// A highlight is a journal entry with type 'highlight': the passage in `text`,
+// plus optional `page` and `note`. Living in the journal means it syncs,
+// exports, prints and deletes through the same paths as a note — including
+// the entry tombstones that make journal deletes stick.
+//
+// Only the text is kept. A phone photo is several MB; all of localStorage is
+// about 5MB and everything in it also syncs through the gist.
+function isHighlight(e){return !!e&&e.type==='highlight';}
+
+// Body of a journal entry as HTML. `inline` is for the print window, which is
+// a separate document without the app's stylesheet.
+function journalBodyHtml(e,inline=false){
+  const body=esc(e&&e.text).replace(/\n/g,'<br>');
+  if(!isHighlight(e))return body;
+  const meta=[e.page?`p. ${esc(e.page)}`:'',e.note?esc(e.note):''].filter(Boolean).join(' · ');
+  const q=inline?' style="display:block;border-left:3px solid #c8912e;padding-left:.65rem;font-style:italic"':' class="hl-quote"';
+  const m=inline?' style="display:block;margin-top:.3rem;font-size:.75rem;color:#a08060;font-style:normal"':' class="hl-meta"';
+  return `<span${q}>${body}</span>`+(meta?`<span${m}>${meta}</span>`:'');
+}
+function journalBodyText(e){
+  if(!isHighlight(e))return (e&&e.text)||'';
+  return `“${e.text}”`+(e.page?` (p. ${e.page})`:'')+(e.note?`\n${e.note}`:'');
+}
+function journalTag(e){return isHighlight(e)?' · ✦ Highlight':'';}
+
+// Two corners of a drag → a box, clamped to the image as displayed.
+function boxFromPoints(x0,y0,x1,y1,maxW,maxH){
+  const cx=v=>Math.max(0,Math.min(maxW,v)),cy=v=>Math.max(0,Math.min(maxH,v));
+  const ax=cx(x0),bx=cx(x1),ay=cy(y0),by=cy(y1);
+  return {x:Math.min(ax,bx),y:Math.min(ay,by),w:Math.abs(bx-ax),h:Math.abs(by-ay)};
+}
+// A box in display pixels → the same region in the source image, clamped.
+function cropRect(box,scale,bw,bh){
+  const x=Math.max(0,Math.floor(box.x/scale)),y=Math.max(0,Math.floor(box.y/scale));
+  return {x,y,w:Math.max(1,Math.min(bw-x,Math.ceil(box.w/scale))),h:Math.max(1,Math.min(bh-y,Math.ceil(box.h/scale)))};
+}
+// Scale so the long edge is at most `max`. Never scales up.
+function fitWithin(w,h,max){
+  const k=Math.min(1,max/Math.max(w,h,1));
+  return {w:Math.max(1,Math.round(w*k)),h:Math.max(1,Math.round(h*k))};
+}
+
+const HIGHLIGHT_PROMPT=`This is a photo of part of a printed book page. Transcribe the text exactly as printed.
+- Keep the author's wording, spelling and punctuation.
+- Join lines that are broken only by the width of the page, and rejoin words hyphenated across a line break.
+- Keep paragraph breaks.
+- Leave out running headers, page numbers and footnote markers.
+- If a word is cut off at the edge of the image, leave it out.
+Reply with the transcription only: no quotation marks, preamble or commentary. If there is no legible text, reply with exactly NO_TEXT.`;
+
+async function transcribePassage(dataUrl){
+  const key=localStorage.getItem(SK.api)||'';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:2000,messages:[{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:dataUrl.split(',')[1]}},
+      {type:'text',text:HIGHLIGHT_PROMPT}]}]})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+  const data=await res.json();
+  return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+}
+
+let _hl=null; // {bookId, bitmap, scale, dispW, dispH, box, cropUrl}
+
+function initHighlights(){
+  const $=id=>document.getElementById(id);
+  $('hlOpenBtn').addEventListener('click',()=>{if(editId)openHighlight(editId);});
+  $('hlClose').addEventListener('click',closeHighlight);
+  $('hlTakeBtn').addEventListener('click',()=>$('hlCamera').click());
+  $('hlChooseBtn').addEventListener('click',()=>$('hlFile').click());
+  $('hlCamera').addEventListener('change',e=>onHighlightPhoto(e.target));
+  $('hlFile').addEventListener('change',e=>onHighlightPhoto(e.target));
+  $('hlRetake').addEventListener('click',()=>highlightStep('pick'));
+  $('hlRead').addEventListener('click',readHighlight);
+  $('hlBack').addEventListener('click',()=>highlightStep('mark'));
+  $('hlSave').addEventListener('click',saveHighlight);
+  wireHighlightStage($('hlStage'));
+}
+
+function highlightStep(step){
+  for(const [id,name] of [['hlPick','pick'],['hlMark','mark'],['hlConfirm','confirm']])
+    document.getElementById(id).style.display=name===step?'block':'none';
+}
+
+function openHighlight(bookId){
+  const b=books.find(x=>x.id===bookId);if(!b)return;
+  _hl={bookId,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
+  document.getElementById('hlBook').textContent=b.title+(b.author?' · '+b.author:'');
+  highlightStep('pick');
+  document.getElementById('hlModal').style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+function closeHighlight(){
+  if(_hl&&_hl.bitmap&&_hl.bitmap.close)_hl.bitmap.close();
+  _hl=null;
+  document.getElementById('hlModal').style.display='none';
+  document.body.style.overflow='';
+}
+
+// Android camera photos often store the image sideways with an orientation
+// flag, so honour it. Very large photos are scaled down to keep the canvas light.
+async function loadPhotoBitmap(file){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'});}
+  catch{bmp=await createImageBitmap(file);}
+  const fit=fitWithin(bmp.width,bmp.height,4096);
+  if(fit.w===bmp.width&&fit.h===bmp.height)return bmp;
+  const small=await createImageBitmap(bmp,{resizeWidth:fit.w,resizeHeight:fit.h,resizeQuality:'high'});
+  bmp.close();
+  return small;
+}
+
+async function onHighlightPhoto(input){
+  const file=input.files&&input.files[0];
+  input.value=''; // so choosing the same file again still fires change
+  if(!file||!_hl)return;
+  try{
+    const bmp=await loadPhotoBitmap(file);
+    if(!_hl){bmp.close();return;}
+    if(_hl.bitmap&&_hl.bitmap.close)_hl.bitmap.close();
+    _hl.bitmap=bmp;_hl.box=null;
+    highlightStep('mark');
+    drawHighlightStage();
+  }catch(e){console.error('Highlight photo failed',e);toast('Could not open that photo.','err');}
+}
+
+function drawHighlightStage(){
+  const bmp=_hl.bitmap,stage=document.getElementById('hlStage'),cv=document.getElementById('hlCanvas');
+  const maxW=Math.max(200,stage.parentElement.clientWidth);
+  const maxH=Math.max(240,Math.round(window.innerHeight*0.62));
+  const scale=Math.min(maxW/bmp.width,maxH/bmp.height);
+  const w=Math.round(bmp.width*scale),h=Math.round(bmp.height*scale),dpr=window.devicePixelRatio||1;
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+  cv.style.width=w+'px';cv.style.height=h+'px';
+  stage.style.width=w+'px';stage.style.height=h+'px';
+  cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+  Object.assign(_hl,{scale,dispW:w,dispH:h});
+  showHighlightBox();
+}
+
+function wireHighlightStage(stage){
+  let start=null;
+  const pt=e=>{const r=stage.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};};
+  stage.addEventListener('pointerdown',e=>{
+    if(!_hl||!_hl.bitmap)return;
+    start=pt(e);
+    try{stage.setPointerCapture(e.pointerId);}catch{}
+    _hl.box=null;showHighlightBox();
+    e.preventDefault();
+  });
+  stage.addEventListener('pointermove',e=>{
+    if(!start||!_hl)return;
+    const p=pt(e);
+    _hl.box=boxFromPoints(start.x,start.y,p.x,p.y,_hl.dispW,_hl.dispH);
+    showHighlightBox();
+  });
+  const end=()=>{
+    if(!start||!_hl)return;
+    start=null;
+    // A tap or a sliver isn't a selection — read the whole photo instead.
+    if(_hl.box&&(_hl.box.w<12||_hl.box.h<12))_hl.box=null;
+    showHighlightBox();
+  };
+  stage.addEventListener('pointerup',end);
+  stage.addEventListener('pointercancel',end);
+}
+
+function showHighlightBox(){
+  const el=document.getElementById('hlBox'),b=_hl&&_hl.box;
+  document.getElementById('hlRead').textContent=b?'Read passage →':'Read whole photo →';
+  if(!b){el.style.display='none';return;}
+  Object.assign(el.style,{display:'block',left:b.x+'px',top:b.y+'px',width:b.w+'px',height:b.h+'px'});
+}
+
+async function readHighlight(){
+  if(!_hl||!_hl.bitmap)return;
+  const {bitmap,box,scale}=_hl;
+  // Send only what was marked: cheaper, faster, and Claude doesn't have to
+  // guess which lines were meant.
+  const r=box?cropRect(box,scale,bitmap.width,bitmap.height):{x:0,y:0,w:bitmap.width,h:bitmap.height};
+  const out=fitWithin(r.w,r.h,1600);
+  const cv=document.createElement('canvas');cv.width=out.w;cv.height=out.h;
+  cv.getContext('2d').drawImage(bitmap,r.x,r.y,r.w,r.h,0,0,out.w,out.h);
+  _hl.cropUrl=cv.toDataURL('image/jpeg',0.85);
+
+  const ta=document.getElementById('hlText'),status=document.getElementById('hlStatus');
+  document.getElementById('hlCrop').src=_hl.cropUrl;
+  ta.value='';document.getElementById('hlPage').value='';document.getElementById('hlNote').value='';
+  highlightStep('confirm');
+
+  // Without a key the app still works: the photo stays up for reference and
+  // the passage is typed by hand.
+  if(!localStorage.getItem(SK.api)){
+    status.textContent='Type the passage below. Add an Anthropic API key in Settings and the app will read it for you.';
+    return;
+  }
+  status.textContent='Reading the passage…';ta.disabled=true;
+  const session=_hl;
+  try{
+    const text=await transcribePassage(session.cropUrl);
+    if(_hl!==session)return; // closed or restarted while waiting
+    if(!text||text==='NO_TEXT')status.textContent='No readable text there — type it below, or go back and mark it again.';
+    else{ta.value=text;status.textContent='Check it against the photo and fix anything it misread.';}
+  }catch(e){
+    if(_hl!==session)return;
+    status.textContent=`Couldn't read it automatically (${e.message}). Type it below.`;
+  }finally{
+    if(_hl===session)ta.disabled=false;
+  }
+}
+
+function saveHighlight(){
+  if(!_hl)return;
+  const text=document.getElementById('hlText').value.trim();
+  if(!text){toast('The passage is empty.','err');return;}
+  const page=document.getElementById('hlPage').value.trim();
+  const note=document.getElementById('hlNote').value.trim();
+  const id=_hl.bookId,now=new Date();
+  const entry={date:localDateStr(now),time:now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),type:'highlight',text};
+  if(page)entry.page=page;
+  if(note)entry.note=note;
+  if(!journalDB[id])journalDB[id]=[];
+  journalDB[id].push(entry);
+  save(SK.journal,journalDB);
+  logDay(entry.date);updateHdrStreak();
+  closeHighlight();
+  if(editId===id)renderJournalEntries(id);
+  renderLibrary(); // the cards bake in recent entries; the Library tab doesn't redraw them
+  toast('Highlight saved ✦','ok');
+}
+
 function addJournalEntry(){
   const text=document.getElementById('journalNewEntry').value.trim();
   if(!text){toast('Write something first.','err');return;}
@@ -1951,6 +2251,7 @@ function addJournalEntry(){
   save(SK.journal,journalDB);
   document.getElementById('journalNewEntry').value='';
   renderJournalEntries(editId);
+  renderLibrary();
   logDay(localDateStr(now));
   updateHdrStreak();
   toast('Journal note saved!','ok');
@@ -1970,7 +2271,7 @@ function takeShownEntry(kind,bookId,idx){
 
 function deleteJournalEntry(bookId,idx){
   const gone=takeShownEntry('j',bookId,idx);
-  if(gone){tombstoneEntries('j',bookId,[gone]);save(SK.journal,journalDB);}
+  if(gone){tombstoneEntries('j',bookId,[gone]);save(SK.journal,journalDB);renderLibrary();}
   renderJournalEntries(bookId);
 }
 
@@ -1983,10 +2284,10 @@ function renderJournalEntries(bookId){
     const idx=entries.length-1-ri;
     return `<div class="journal-entry">
       <div class="journal-entry-head">
-        <span class="journal-entry-date">${fmtDate(e.date)}${e.time?` · ${e.time}`:''}</span>
+        <span class="journal-entry-date">${fmtDate(e.date)}${e.time?` · ${e.time}`:''}${journalTag(e)}</span>
         <button class="journal-entry-del" onclick="deleteJournalEntry('${bookId}',${idx})">✕</button>
       </div>
-      <div class="journal-entry-text">${esc(e.text)}</div>
+      <div class="journal-entry-text">${journalBodyHtml(e)}</div>
     </div>`;
   }).join('');
 }
@@ -2254,8 +2555,8 @@ function buildProgressPanel(b, prefix='rp'){
       <div style="font-size:.72rem;font-family:'IM Fell English SC',serif;letter-spacing:.06em;color:var(--ink-faint);margin-bottom:.4rem">RECENT JOURNAL ENTRIES</div>
       ${recentJournal.map(e=>`
         <div style="margin-bottom:.4rem;padding:.4rem .55rem;background:var(--parchment);border-radius:5px;border-left:2px solid var(--teal)">
-          <div style="font-size:.63rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.12rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
-          <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${esc(e.text)}</div>
+          <div style="font-size:.63rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em;margin-bottom:.12rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}${journalTag(e)}</div>
+          <div style="font-size:.78rem;color:var(--ink-light);font-style:italic;line-height:1.45">${journalBodyHtml(e)}</div>
         </div>`).join('')}
       ${(journalDB[b.id]||[]).length>3?`<div style="font-size:.7rem;color:var(--ink-faint);font-style:italic">+ ${(journalDB[b.id]||[]).length-3} more in Full Edit</div>`:''}
     </div>`:''}
@@ -3731,8 +4032,8 @@ function journalBookSection(b){
     <div class="journal-entry-view">
       <div class="journal-entry-dot"></div>
       <div class="journal-entry-body">
-        <div class="journal-entry-stamp">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
-        <div class="journal-entry-text-view">${esc(e.text).replace(/\n/g,'<br>')}</div>
+        <div class="journal-entry-stamp">${fmtDate(e.date)}${e.time?' · '+e.time:''}${journalTag(e)}</div>
+        <div class="journal-entry-text-view">${journalBodyHtml(e)}</div>
       </div>
     </div>`).join('');
 
@@ -3772,7 +4073,7 @@ function copyBookJournal(id){
     `Reading Journal — ${b.title}`,
     `by ${b.author}`,
     ``,
-    ...entries.map(e=>`${fmtDate(e.date)}${e.time?' · '+e.time:''}\n${e.text}`)
+    ...entries.map(e=>`${fmtDate(e.date)}${e.time?' · '+e.time:''}${journalTag(e)}\n${journalBodyText(e)}`)
   ].join('\n\n');
   navigator.clipboard.writeText(lines)
     .then(()=>toast('Copied to clipboard!','ok'))
@@ -3800,8 +4101,8 @@ function printJournal(){
         </div>
         ${entries.map(e=>`
           <div style="margin-bottom:.85rem;padding-left:1rem;border-left:2px solid #4a6050">
-            <div style="font-size:.65rem;color:#a08060;font-family:'IM Fell English SC',serif;letter-spacing:.06em;margin-bottom:.22rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}</div>
-            <div style="font-size:.87rem;color:#1e140a;line-height:1.7;white-space:pre-wrap">${esc(e.text)}</div>
+            <div style="font-size:.65rem;color:#a08060;font-family:'IM Fell English SC',serif;letter-spacing:.06em;margin-bottom:.22rem">${fmtDate(e.date)}${e.time?' · '+e.time:''}${journalTag(e)}</div>
+            <div style="font-size:.87rem;color:#1e140a;line-height:1.7">${journalBodyHtml(e,true)}</div>
           </div>`).join('')}
       </div>`;
   }).join('');
@@ -3854,6 +4155,18 @@ function renderKeepsake(){
   html+=section('🌿 To Be Read',tbrBks);
   html+=section('📕 Did Not Finish',dnfBks);
   html+=section('📰 Articles Read',articleBks);
+
+  // Highlights, oldest first so the keepsake reads as the year unfolded.
+  const hls=[];
+  for(const[bid,arr]of Object.entries(journalDB)){
+    const bk=books.find(x=>x.id===bid);if(!bk)continue;
+    for(const e of arr||[])if(isHighlight(e))hls.push({bk,e});
+  }
+  hls.sort((a,b)=>String(a.e.date).localeCompare(String(b.e.date)));
+  if(hls.length){
+    html+=`<div class="ks-sec">✦ Highlights</div>`;
+    html+=hls.map(({bk,e})=>`<div class="ks-q">${esc(e.text).replace(/\n/g,'<br>')}<div class="ks-q-src">— ${esc(bk.title)} by ${esc(bk.author)}${e.page?`, p. ${esc(e.page)}`:''}</div></div>`).join('');
+  }
 
   const allFavs=[];
   for(const[bid,qMap]of Object.entries(favQ)){const bk=books.find(x=>x.id===bid);if(!bk)continue;for(const[,q]of Object.entries(qMap))allFavs.push({bk,q});}
@@ -4088,6 +4401,7 @@ function syncLinkedProgress(id,prefix,src){
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
+  initHighlights();
   renderLibrary();updateHdrStreak();
   // Land on the view in the URL hash (refresh keeps your place); replaceState
   // avoids an extra history entry so Back still exits from the initial view
@@ -4106,6 +4420,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
+    if(vis('hlModal')){closeHighlight();return;}
     if(vis('sessionModal')){closeReadingSession();return;}
     if(vis('scannerModal')){closeScanner();return;}
     if(vis('discModal')){closeM('discModal');return;}

@@ -627,6 +627,241 @@ test('a delete removes the entry that was on screen even if a sync re-sorted the
   await ctx.close();
 });
 
+// ── Highlights ───────────────────────────────────────────────────────────
+// The whole capture flow: open a book, pick a photo, drag across the passage,
+// read it (Claude stubbed), confirm, save — then check the entry lands in the
+// journal and shows up everywhere entries do.
+
+async function openCapture(page) {
+  await page.evaluate(() => {
+    books = [{ id: 'b1', title: 'A Tale of Two Cities', author: 'Charles Dickens', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    journalDB = {}; save('trr_v1_books', books); save('trr_v1_journal', journalDB);
+    openEditModal('b1');
+    document.getElementById('hlOpenBtn').click();
+  });
+  assert.equal(await page.isVisible('#hlModal'), true);
+}
+
+async function choosePhoto(page) {
+  // Any real PNG will do — a screenshot is one we can make on the spot.
+  const png = await page.screenshot({ type: 'png' });
+  await page.setInputFiles('#hlFile', { name: 'page.png', mimeType: 'image/png', buffer: png });
+  await page.waitForFunction(() => document.getElementById('hlMark').style.display === 'block');
+}
+
+async function dragBox(page, fx0, fy0, fx1, fy1) {
+  const b = await page.locator('#hlStage').boundingBox();
+  await page.mouse.move(b.x + b.width * fx0, b.y + b.height * fy0);
+  await page.mouse.down();
+  await page.mouse.move(b.x + b.width * fx1, b.y + b.height * fy1, { steps: 6 });
+  await page.mouse.up();
+}
+
+// Claude is stubbed inside the page rather than with page.route. The request is
+// cross-origin with custom headers, so Chromium sends a CORS preflight first,
+// and that preflight goes to the network instead of through page.route — the
+// call fails before the stub ever sees it. Replacing fetch for this one URL
+// still exercises everything the app controls: the request it builds and how
+// it handles the reply. And it keeps the test off the real network.
+async function stubClaude(page, reply) {
+  const calls = [];
+  await page.exposeFunction('__claudeCall', body => { calls.push(JSON.parse(body)); });
+  await page.evaluate(reply => {
+    const real = window.fetch;
+    window.fetch = async (url, opts) => {
+      if (!String(url).startsWith('https://api.anthropic.com/v1/messages')) return real(url, opts);
+      await window.__claudeCall(opts.body);
+      const json = typeof reply === 'number'
+        ? { error: { message: 'Overloaded' } }
+        : { content: [{ type: 'text', text: reply }] };
+      return new Response(JSON.stringify(json),
+        { status: typeof reply === 'number' ? reply : 200, headers: { 'Content-Type': 'application/json' } });
+    };
+  }, reply);
+  return calls;
+}
+
+const sentSize = (page, b64) => page.evaluate(async d => {
+  const i = new Image(); i.src = 'data:image/jpeg;base64,' + d; await i.decode();
+  return { w: i.naturalWidth, h: i.naturalHeight };
+}, b64);
+
+test('a highlight goes from a photo to a journal entry', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const calls = await stubClaude(page, 'It was the best of times, it was the worst of times.');
+
+  await openCapture(page);
+  await choosePhoto(page);
+  await dragBox(page, .1, .1, .6, .3);
+  assert.equal(await page.textContent('#hlRead'), 'Read passage →', 'a drawn box reads just that');
+
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+  assert.equal(await page.isDisabled('#hlText'), false, 'editable once read, to fix misreads');
+  await page.fill('#hlPage', '1');
+  await page.fill('#hlNote', 'the opening');
+  await page.click('#hlSave');
+
+  const j = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_journal')).b1);
+  assert.equal(j.length, 1);
+  assert.deepEqual({ type: j[0].type, text: j[0].text, page: j[0].page, note: j[0].note },
+    { type: 'highlight', text: 'It was the best of times, it was the worst of times.', page: '1', note: 'the opening' });
+  assert.ok(j[0].at > 1, 'stamped as new, so it beats any older tombstone');
+
+  const msg = calls[0];
+  assert.equal(calls.length, 1);
+  assert.equal(msg.model, await page.evaluate(() => CLAUDE_MODEL));
+  assert.equal(msg.messages[0].content[0].type, 'image');
+  assert.equal(msg.messages[0].content[0].source.media_type, 'image/jpeg');
+  assert.match(msg.messages[0].content[1].text, /Transcribe the text exactly/);
+
+  assert.equal(await page.isVisible('#hlModal'), false, 'the capture screen closes');
+  assert.match(await page.textContent('#journalEntries'), /best of times/, 'and the book shows it straight away');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('only the marked passage is sent, not the whole photo', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const calls = await stubClaude(page, 'x');
+  await openCapture(page);
+  await choosePhoto(page);
+  const src = await page.evaluate(() => ({ w: _hl.bitmap.width, h: _hl.bitmap.height }));
+  await dragBox(page, .1, .1, .6, .3);           // half the width, a fifth of the height
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+
+  const sent = await sentSize(page, calls[0].messages[0].content[0].source.data);
+  assert.ok(Math.abs(sent.w / src.w - 0.5) < 0.03, `width ~50% of the photo, got ${sent.w}/${src.w}`);
+  assert.ok(Math.abs(sent.h / src.h - 0.2) < 0.03, `height ~20% of the photo, got ${sent.h}/${src.h}`);
+  await ctx.close();
+});
+
+test('a tap instead of a drag reads the whole photo', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const calls = await stubClaude(page, 'x');
+  await openCapture(page);
+  await choosePhoto(page);
+  const src = await page.evaluate(() => ({ w: _hl.bitmap.width, h: _hl.bitmap.height }));
+  await dragBox(page, .5, .5, .505, .505);       // a sliver is not a selection
+  assert.equal(await page.textContent('#hlRead'), 'Read whole photo →');
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+
+  const sent = await sentSize(page, calls[0].messages[0].content[0].source.data);
+  assert.deepEqual(sent, src, 'the full photo, under the 1600px cap here');
+  await ctx.close();
+});
+
+test('without an API key it still works — type the passage beside the photo', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const calls = await stubClaude(page, 'should not be called');
+  await openCapture(page);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+
+  assert.equal(calls.length, 0, 'no request without a key');
+  assert.match(await page.textContent('#hlStatus'), /Type the passage.*Settings/);
+  assert.equal(await page.isVisible('#hlCrop'), true, 'the marked photo stays up for reference');
+  await page.fill('#hlText', 'Typed by hand.');
+  await page.click('#hlSave');
+  const j = await page.evaluate(() => journalDB.b1);
+  assert.equal(j[0].text, 'Typed by hand.');
+  assert.equal(j[0].type, 'highlight');
+  await ctx.close();
+});
+
+test('a failed read explains itself and falls back to typing', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await stubClaude(page, 529);
+  await openCapture(page);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.waitForFunction(() => /Couldn't read it/.test(document.getElementById('hlStatus').textContent));
+  assert.match(await page.textContent('#hlStatus'), /Overloaded/, 'names the actual cause');
+  assert.equal(await page.isDisabled('#hlText'), false);
+  await ctx.close();
+});
+
+test('an empty passage is not saved', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await openCapture(page);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#hlModal'), true, 'stays open');
+  assert.deepEqual(await page.evaluate(() => journalDB.b1 || []), []);
+  await ctx.close();
+});
+
+test('a highlight shows in the book, the library panel, the Journal tab and Keepsake', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'b1', title: 'A Tale of Two Cities', author: 'Charles Dickens', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    journalDB = {}; save('trr_v1_books', books); save('trr_v1_journal', journalDB);
+    renderLibrary();
+  });
+  // Save through the real capture flow (no key: typed by hand) so the library
+  // cards have to pick it up from the redraw, not from a fresh render.
+  await page.evaluate(() => { openEditModal('b1'); document.getElementById('hlOpenBtn').click(); });
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.fill('#hlText', 'Recalled to life.');
+  await page.fill('#hlPage', '14');
+  await page.click('#hlSave');
+
+  const where = await page.evaluate(() => {
+    const has = sel => { const el = document.querySelector(sel); return !!el && /Recalled to life/.test(el.innerHTML) && /hl-quote/.test(el.innerHTML); };
+    const modal = has('#journalEntries'); closeM('bookModal');
+    showView('library'); const panel = has('#booksGrid');
+    showView('journal'); renderJournalView(); const tab = has('#view-journal');
+    renderKeepsake();
+    const ks = document.getElementById('ksContent').innerHTML;
+    return { modal, panel, tab, keepsake: /✦ Highlights/.test(ks) && /Recalled to life/.test(ks) && /p\. 14/.test(ks) };
+  });
+  assert.deepEqual(where, { modal: true, panel: true, tab: true, keepsake: true });
+  await ctx.close();
+});
+
+test('a passage that looks like HTML is shown as text, not run', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await stubClaude(page, '<img src=x onerror="window.__pwned=1">');
+  await openCapture(page);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+  await page.click('#hlSave');
+  await page.evaluate(() => renderKeepsake());
+
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#journalEntries img, #ksContent .ks-q img').count(), 0);
+  await ctx.close();
+});
+
+test('deleting a highlight sticks under sync', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const hl = { date: '2026-10-06', time: '9:00 PM', type: 'highlight', text: 'Recalled to life.', at: 1000 };
+  await seed(page, { journal: [hl] });
+  const pushed = await withGist(page, { v: 2, books: [{ id: 'b1', title: 'Dune', updatedAt: 1, addedAt: 1 }], journal: { b1: [hl] } });
+  await page.evaluate(async () => { openEditModal('b1'); deleteJournalEntry('b1', 0); await gistPush(); });
+  assert.deepEqual(pushed[0].journal.b1, []);
+  await ctx.close();
+});
+
+test('Escape closes the capture screen without saving', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await openCapture(page);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#hlModal'), false);
+  assert.equal(await page.isVisible('#bookModal'), true, 'the book stays open underneath');
+  await ctx.close();
+});
+
 test('the export payload round-trips through the import merge', async () => {
   const { ctx, page } = await openApp(browser, base);
   await addBook(page, 'Dune', 'Frank Herbert');
