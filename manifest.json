@@ -5,8 +5,8 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#190d05",
-  "theme_color": "#190d05",
+  "background_color": "#0f1a2e",
+  "theme_color": "#0f1a2e",
   "orientation": "portrait-primary",
   "categories": ["books", "education", "lifestyle"],
   "icons": [
