@@ -40,11 +40,19 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 ### Highlights
 - **📷 Add Highlight** in a book's Reading Journal — photograph a page (or choose a photo), drag across the passage, and the app reads it for you
-- **Shortcut:** the floating **＋** offers *Add a book* or *Add a highlight*. Highlight lists the books you're reading (the rest are a tap away) and goes straight to the camera
+- **Shortcut:** the floating **＋** offers *Add a book*, *Add a highlight* or *Add a word*. Highlight lists the books you're reading (the rest are a tap away) and goes straight to the camera
 - The marked region is sent to Claude to transcribe; you check and correct it, add a page number and a note, and save
 - Saved as **text** in the journal, so highlights sync, export, print and delete like any journal entry. Photos aren't kept — a phone photo is several MB and wouldn't fit in browser storage or the sync file
 - Shown in the book, the library card, the Journal tab, and a **✦ Highlights** section of the Keepsake
 - Works without an Anthropic key too — the photo stays on screen while you type the passage
+
+### Vocabulary
+- **Save words you meet while reading** — from the floating **＋** (*Add a word*), a book's Reading tab, or the **Aa Vocabulary** card in Lists
+- Add the sentence you found it in and **Claude defines the word in the sense that book uses it**. Without an Anthropic key it falls back to the free dictionary at [dictionaryapi.dev](https://dictionaryapi.dev); you can always type or edit the definition
+- **Reviews space themselves out** (Leitner boxes): right answers push a word's next review to 1, 3, 7, 14, 30, then 60 days; a miss brings it back tomorrow. Five right in a row and it's *mastered*
+- **Three kinds of question**, getting harder as you learn a word: a flashcard, multiple choice (using your other words' definitions), then typing the word into the sentence it came from
+- A link on **Today's Reading** shows when words are due. Reviews don't count toward the reading streak
+- Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 
 ### Book Details (3-tab edit modal)
 1. **Book Details** — title, author, genre, format, ISBN, cover, series, publisher
@@ -137,7 +145,8 @@ npm run test:unit    # fast — no browser needed
 
 `tests/merge.test.mjs` covers the sync merge (each case is a bug that actually
 shipped), `tests/stats.test.mjs` the daily page/minute rollup,
-`tests/lookup.test.mjs` the OpenLibrary/Google Books record normalisation, and
+`tests/lookup.test.mjs` the OpenLibrary/Google Books record normalisation,
+`tests/vocab.test.mjs` the vocabulary schedule and quiz logic, and
 `tests/smoke.test.mjs` drives the real app in Chromium with both catalogues
 stubbed at the network layer. Tests run in CI on every
 push via `.github/workflows/test.yml`.

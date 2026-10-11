@@ -1153,3 +1153,296 @@ test('the export payload round-trips through the import merge', async () => {
   assert.equal(merged, 1, 'importing your own backup must not duplicate the library');
   await ctx.close();
 });
+
+// ── Vocabulary ───────────────────────────────────────────────────────────
+
+const storedVocab = page => page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_vocab') || '[]'));
+
+// Words straight into storage, as if added earlier. Due today unless told otherwise.
+async function seedVocab(page, words) {
+  await page.evaluate(ws => {
+    const today = localDateStr();
+    vocabDB = ws.map((w, i) => ({ id: 'w_seed' + i, box: 0, reviews: 0, lapses: 0, due: today, addedAt: 1000 + i,
+                                  updatedAt: 1000 + i, bookId: '', sentence: '', ...w }));
+    save(SK.vocab, vocabDB);
+  }, words);
+}
+
+// The free dictionary, stubbed at the network layer (a plain GET, no preflight).
+async function stubDictionary(page, entries = {}) {
+  const hits = [];
+  await page.route('https://api.dictionaryapi.dev/**', route => {
+    const w = decodeURIComponent(route.request().url().split('/').pop());
+    hits.push(w);
+    if (!entries[w]) return route.fulfill({ status: 404, contentType: 'application/json', body: '{"title":"No Definitions Found"}' });
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ word: w, meanings: [
+      { partOfSpeech: entries[w].pos, definitions: [{ definition: entries[w].definition }] }] }]) });
+  });
+  return hits;
+}
+
+test('a word is defined by Claude in the sense the book uses it, and saved', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await addBook(page, 'The Algorithm', 'Jon McNeill');
+  await page.evaluate(() => { books[0].status = 'reading'; saveBooks(books[0]); });
+  const calls = await stubClaude(page, '{"pos":"adjective","definition":"Gloomy and mournful.","note":"From Latin lugere, to mourn."}');
+
+  await page.evaluate(() => showView('vocab'));
+  await page.click('#vocabAddBtn');
+  assert.equal(await page.inputValue('#vocabBook'), await page.evaluate(() => books[0].id),
+               'the one book being read is picked for you');
+  await page.fill('#vocabWord', 'lugubrious');
+  await page.fill('#vocabSentence', 'The meeting had a lugubrious air.');
+  await page.fill('#vocabPage', '42');
+  await page.click('#vocabDefineBtn');
+  await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
+
+  const prompt = calls[0].messages[0].content;
+  assert.match(prompt, /"lugubrious"/);
+  assert.match(prompt, /The Algorithm/, 'the book is in the prompt');
+  assert.match(prompt, /Jon McNeill/);
+  assert.match(prompt, /The meeting had a lugubrious air\./, 'so is the sentence');
+  assert.equal(await page.inputValue('#vocabPos'), 'adjective');
+  assert.equal(await page.inputValue('#vocabNote'), 'From Latin lugere, to mourn.');
+
+  await page.click('#vocabSaveBtn');
+  assert.equal(await page.isVisible('#vocabModal'), false);
+  const [w] = await storedVocab(page);
+  assert.equal(w.word, 'lugubrious');
+  assert.equal(w.definition, 'Gloomy and mournful.');
+  assert.equal(w.page, '42');
+  assert.equal(w.box, 0);
+  assert.equal(w.due, await page.evaluate(() => localDateStr()), 'a new word is ready to review straight away');
+  assert.match(await page.textContent('#vocabList'), /The Algorithm[\s\S]*lugubrious/, 'listed under its book');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('without a key, Save looks the word up in the dictionary first', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const hits = await stubDictionary(page, { ephemeral: { pos: 'adjective', definition: 'Lasting a very short time.' } });
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await page.fill('#vocabWord', 'Ephemeral');
+  await page.click('#vocabSaveBtn');
+  await page.waitForFunction(() => vocabDB.length === 1);
+  assert.deepEqual(hits, ['ephemeral']);
+  const [w] = await storedVocab(page);
+  assert.equal(w.definition, 'Lasting a very short time.');
+  assert.equal(w.pos, 'adjective');
+  assert.equal(w.bookId, '', 'a word does not need a book');
+  assert.match(await page.textContent('#vocabList'), /Other words/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a word no one can define stays open to type a definition', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await stubDictionary(page, {});
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await page.fill('#vocabWord', 'flibbertigibbetish');
+  await page.click('#vocabSaveBtn');
+  await page.waitForFunction(() => /Couldn't find/.test(document.getElementById('vocabStatus').textContent));
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal((await storedVocab(page)).length, 0, 'nothing saved without a definition');
+  await page.fill('#vocabDef', 'Flighty, in a showy way.');
+  await page.click('#vocabSaveBtn');
+  assert.equal((await storedVocab(page))[0].definition, 'Flighty, in a showy way.');
+  await ctx.close();
+});
+
+test('a Claude failure falls back to the dictionary and says why', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await stubClaude(page, 529);
+  await stubDictionary(page, { terse: { pos: 'adjective', definition: 'Brief and abrupt.' } });
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await page.fill('#vocabWord', 'terse');
+  await page.click('#vocabDefineBtn');
+  await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
+  assert.equal(await page.inputValue('#vocabDef'), 'Brief and abrupt.');
+  assert.match(await page.textContent('#vocabStatus'), /dictionary.*Overloaded/);
+  await ctx.close();
+});
+
+test('the same word twice is caught, with a way to the first one', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedVocab(page, [{ word: 'Lugubrious', definition: 'Mournful.' }]);
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await page.fill('#vocabWord', 'lugubrious ');
+  assert.equal(await page.isVisible('#vocabDup'), true);
+  await page.fill('#vocabDef', 'Something else.');
+  await page.click('#vocabSaveBtn');
+  assert.equal((await storedVocab(page)).length, 1, 'not saved twice');
+  await page.click('#vocabDup button');
+  assert.equal(await page.inputValue('#vocabDef'), 'Mournful.', 'Open it shows the saved word');
+  await ctx.close();
+});
+
+test('deleting a word takes two taps and survives a sync', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedVocab(page, [{ word: 'alpha', definition: 'First.' }, { word: 'beta', definition: 'Second.' }]);
+  await page.evaluate(() => { showView('vocab'); openVocabWord('w_seed0'); });
+  await page.click('#vocabDeleteBtn');
+  assert.equal((await storedVocab(page)).length, 2, 'the first tap only asks');
+  assert.match(await page.textContent('#vocabDeleteBtn'), /again/);
+  await page.click('#vocabDeleteBtn');
+  assert.deepEqual((await storedVocab(page)).map(w => w.word), ['beta']);
+  // The other device still has it; the merge must not bring it back.
+  const kept = await page.evaluate(() => {
+    const remote = remoteState({ vocab: [{ id: 'w_seed0', word: 'alpha', definition: 'First.', updatedAt: 1000 }] });
+    return mergeState(currentState(), remote).vocab.map(w => w.word);
+  });
+  assert.deepEqual(kept, ['beta']);
+  await ctx.close();
+});
+
+test('a review session: flashcard, multiple choice and the sentence test', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const today = await page.evaluate(() => localDateStr());
+  await seedVocab(page, [
+    { word: 'lugubrious', definition: 'Gloomy and mournful.', box: 0 },
+    { word: 'terse', definition: 'Brief and abrupt.', box: 1, reviews: 1 },
+    { word: 'obfuscate', definition: 'Make unclear.', box: 3, reviews: 3, sentence: 'He kept obfuscating the issue.' },
+    { word: 'later', definition: 'Not due yet.', due: '2999-01-01' },
+    { word: 'ephemeral', definition: 'Short-lived.', due: '2999-01-01' },
+  ]);
+  await page.evaluate(() => startVocabQuiz());
+  assert.equal(await page.isVisible('#vocabQuiz'), true);
+  assert.match(await page.textContent('#vqCount'), /1 of 3/, 'only the three due words');
+
+  // Oldest-added first among equally due words: the flashcard.
+  assert.equal(await page.getAttribute('.vq-card', 'data-format'), 'flash');
+  await page.click('#vqReveal');
+  assert.match(await page.textContent('.vq-card'), /Gloomy and mournful/);
+  await page.click('.vq-btn.good');
+
+  assert.equal(await page.getAttribute('.vq-card', 'data-format'), 'choice');
+  assert.equal(await page.locator('.vq-opt').count(), 4);
+  await page.click('.vq-opt:not(:has-text("Brief and abrupt."))');
+  assert.equal(await page.locator('.vq-opt.right').textContent(), 'Brief and abrupt.', 'the right answer is shown');
+  await page.click('#vqNext');
+
+  assert.equal(await page.getAttribute('.vq-card', 'data-format'), 'blank');
+  assert.doesNotMatch(await page.textContent('.vq-sentence'), /obfuscating/, 'the word is blanked out');
+  await page.fill('#vqAnswer', 'Obfuscate');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('.vq-feedback'), /Right/);
+  await page.click('#vqNext');
+
+  assert.match(await page.textContent('.vq-score'), /2 \/ 3/);
+  const words = Object.fromEntries((await storedVocab(page)).map(w => [w.word, w]));
+  assert.equal(words.lugubrious.box, 1);
+  assert.equal(words.terse.box, 0, 'missed: back to the start');
+  assert.equal(words.terse.due > today, true, 'and due tomorrow, not again today');
+  assert.equal(words.obfuscate.box, 4);
+  assert.equal(await page.evaluate(() => Object.keys(streakDB).length), 0, 'reviews do not count toward the streak');
+  await page.click('.vq-done .vq-btn');
+  assert.equal(await page.isVisible('#vocabQuiz'), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Today’s Reading links to a review when words are due, and stays quiet otherwise', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => showView('log'));
+  assert.equal(await page.locator('#vocabNudge').count(), 0, 'nothing until there are words');
+
+  await seedVocab(page, [{ word: 'terse', definition: 'Brief.' }, { word: 'later', definition: 'Later.', due: '2999-01-01' }]);
+  await page.evaluate(() => renderLogSession());
+  assert.match(await page.textContent('#vocabNudge'), /1 word to review/);
+  await page.click('#vocabNudge');
+  assert.equal(await page.isVisible('#vocabQuiz'), true, 'one tap into the review');
+  await page.click('#vqReveal');
+  await page.click('.vq-btn.good');
+  await page.click('.vq-done .vq-btn');
+
+  assert.match(await page.textContent('#vocabNudge'), /all caught up/, 'refreshed after the review');
+  await page.click('#vocabNudge');
+  assert.equal(await page.evaluate(() => location.hash), '#vocab');
+  await ctx.close();
+});
+
+test('the Lists card opens the page and starts a review', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => showView('lists'));
+  assert.match(await page.textContent('#vocabCard'), /Add your first word/);
+  await seedVocab(page, [{ word: 'terse', definition: 'Brief.' }]);
+  await page.evaluate(() => renderLists());
+  assert.match(await page.textContent('#vocabCardReview'), /Review 1 word/);
+  await page.click('#vocabCard .list-card-head');
+  assert.equal(await page.evaluate(() => location.hash), '#vocab');
+  assert.equal(await page.getAttribute('.nav-tab[data-view="lists"]', 'aria-current'), 'page', 'Lists stays lit');
+  await ctx.close();
+});
+
+test('the ＋ button adds a word to a book you are reading', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Piranesi', 'Susanna Clarke');
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await page.evaluate(() => { const b = books.find(x => x.title === 'Piranesi'); b.status = 'reading'; saveBooks(b); });
+  await page.click('#fab');
+  await page.click('#addSheetVocab');
+  assert.match(await page.textContent('#addSheetBooksTitle'), /word/);
+  assert.deepEqual(await page.$$eval('#addSheetReading .sheet-book b', els => els.map(e => e.textContent)), ['Piranesi']);
+  await page.click('#addSheetReading .sheet-book');
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.isVisible('#hlModal'), false, 'not the highlight camera');
+  assert.equal(await page.$eval('#vocabBook', s => s.selectedOptions[0].textContent), 'Piranesi');
+
+  // The highlight path is unchanged.
+  await page.click('#vocabCancelBtn');
+  await page.click('#fab');
+  await page.click('#addSheetHl');
+  assert.match(await page.textContent('#addSheetBooksTitle'), /Highlight/);
+  await ctx.close();
+});
+
+test('a book’s editor lists its words and can add one', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Piranesi', 'Susanna Clarke');
+  const id = await page.evaluate(() => books[0].id);
+  await seedVocab(page, [{ word: 'vestibule', definition: 'An entrance hall.', bookId: id }, { word: 'elsewhere', definition: 'x' }]);
+  await page.evaluate(i => { openEditModal(i); switchModalTab('reading'); }, id);
+  const listed = await page.$$eval('#vocabBookList .voc-word', els => els.map(e => e.textContent));
+  assert.deepEqual(listed, ['vestibule']);
+  await page.click('#vocabBookAdd');
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.inputValue('#vocabBook'), id);
+  await page.fill('#vocabWord', 'tide');
+  await page.fill('#vocabDef', 'The rise and fall of the sea.');
+  await page.click('#vocabSaveBtn');
+  assert.deepEqual(await page.$$eval('#vocabBookList .voc-word', els => els.map(e => e.textContent)), ['tide', 'vestibule']);
+  assert.equal(await page.isVisible('#bookModal'), true, 'back in the book');
+  await ctx.close();
+});
+
+test('words with markup in them are shown as text', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const evil = '<img src=x onerror="window.__pwned=1">';
+  await seedVocab(page, [{ word: evil, definition: evil, sentence: `a ${evil} b`, note: evil },
+                         { word: 'b', definition: 'b' }, { word: 'c', definition: 'c' }, { word: 'd', definition: 'd' }]);
+  await page.evaluate(() => { showView('vocab'); renderLists(); renderLogSession(); startVocabQuiz(); });
+  await page.click('#vqReveal');
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#view-vocab img, #vocabQuiz img, #vocabCard img').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('words are in the export and come back through import', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedVocab(page, [{ word: 'terse', definition: 'Brief.' }]);
+  await fakeShareSheet(page);
+  await page.evaluate(() => exportJSON());
+  const [s] = await page.evaluate(() => window.__shared);
+  assert.equal(JSON.parse(s.text).vocab[0].word, 'terse');
+
+  const fresh = await openApp(browser, base);
+  await fresh.page.setInputFiles('#importFile', { name: s.name, mimeType: 'application/json', buffer: Buffer.from(s.text) });
+  await fresh.page.waitForFunction(() => vocabDB.length === 1);
+  assert.equal((await storedVocab(fresh.page))[0].word, 'terse');
+  await fresh.ctx.close();
+  await ctx.close();
+});

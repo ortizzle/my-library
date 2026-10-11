@@ -258,6 +258,94 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .loan-add-form{background:var(--parchment);border:1px dashed var(--parchment-dark);border-radius:6px;padding:.62rem .78rem;margin-bottom:.42rem}
 .loan-add-form h5{font-family:'Playfair Display',serif;font-size:.8rem;margin-bottom:.48rem;color:var(--ink-light)}
 
+/* VOCABULARY */
+.voc-btn{min-height:48px}
+.voc-x{min-width:48px;min-height:48px}
+.voc-opt{font-style:italic;font-size:.68rem;color:var(--ink-faint);font-family:'Lora',serif;letter-spacing:0}
+.voc-status{font-size:.8rem;color:var(--ink-light);font-style:italic;min-height:1.1em;margin:-.2rem 0 .6rem}
+.voc-status.err{color:var(--burgundy);font-style:normal}
+.voc-progress{font-size:.74rem;color:var(--ink-faint);margin:.2rem 0 0}
+.voc-dup{background:#fbf0d8;border:1px solid var(--gold-lt);border-radius:8px;padding:.5rem .7rem;margin:-.3rem 0 .7rem;font-size:.82rem;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.voc-dup button{min-height:44px;background:none;border:1px solid var(--gold);border-radius:6px;color:var(--ink);font-family:'Lora',serif;padding:0 .8rem;cursor:pointer;white-space:nowrap}
+.voc-page{max-width:640px;padding-bottom:5.5rem} /* clear of the floating + */
+.lh-vocab{background:linear-gradient(135deg,#fbf0d8,#fdf7ea);border-bottom:2px solid var(--gold)}
+.voc-card-empty{padding:1rem 1rem .4rem;font-size:.8rem;color:var(--ink-faint);font-style:italic}
+.voc-card-btn{display:block;width:calc(100% - 1.4rem);min-height:48px;margin:.6rem .7rem;border:1px dashed var(--parchment-dark);border-radius:8px;background:none;font-family:'Lora',serif;font-size:.88rem;color:var(--burgundy);cursor:pointer}
+.voc-card-btn.due{border:none;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font-family:'Playfair Display',serif;font-weight:700;font-size:.95rem}
+.voc-row.voc-row-flat{border:none;border-bottom:1px dotted var(--parchment-dark);border-radius:0;margin:0;background:none}
+.voc-hero{background:linear-gradient(135deg,#2c1a10,#4a2a18);color:var(--parchment);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.9rem;box-shadow:0 4px 16px var(--shadow)}
+.voc-hero h3{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--gold-lt);margin:0 0 .25rem}
+.voc-hero p{font-size:.85rem;color:#d9c7a3;margin:0 0 .8rem;line-height:1.5}
+.voc-review{display:block;width:100%;min-height:52px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.voc-counts{display:flex;gap:.5rem;margin-top:.8rem}
+.voc-count{flex:1;text-align:center;background:rgba(255,255,255,.08);border-radius:8px;padding:.45rem .2rem}
+.voc-count b{display:block;font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--parchment)}
+.voc-count small{font-family:'IM Fell English SC',serif;font-size:.66rem;letter-spacing:.07em;color:#c9b28a}
+.voc-tools{margin-bottom:.8rem}
+.voc-tools input{width:100%;min-height:48px;padding:0 .9rem;border:1px solid var(--parchment-dark);border-radius:24px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.95rem;outline:none}
+.voc-tools input:focus{border-color:var(--burgundy)}
+.voc-group{margin-bottom:1rem}
+.voc-group-head{font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.07em;color:var(--ink-faint);margin:0 .2rem .35rem;display:flex;justify-content:space-between;gap:.5rem}
+.voc-row{display:block;width:100%;text-align:left;min-height:56px;padding:.65rem .85rem;margin-bottom:.4rem;background:var(--cream);border:1px solid var(--parchment-dark);border-radius:10px;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.voc-row:active{background:var(--parchment-dark)}
+.voc-row-top{display:flex;align-items:baseline;gap:.45rem}
+.voc-word{font-family:'Playfair Display',serif;font-size:1.02rem;font-weight:600}
+.voc-pos{font-size:.75rem;font-style:italic;color:var(--ink-faint)}
+.voc-def{display:block;font-size:.84rem;color:var(--ink-light);line-height:1.45;margin-top:.15rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.voc-pill{margin-left:auto;font-family:'IM Fell English SC',serif;font-size:.62rem;letter-spacing:.06em;padding:.1rem .45rem;border-radius:20px;white-space:nowrap}
+.voc-pill.new{background:#e4ecf4;color:#2a4a6a}
+.voc-pill.learning{background:#fbf0d8;color:#7a5410}
+.voc-pill.mastered{background:#e0f0e4;color:#245c34}
+.voc-empty{text-align:center;padding:2rem 1rem;color:var(--ink-light)}
+.voc-empty h3{font-family:'Playfair Display',serif;margin-bottom:.35rem}
+.voc-empty p{font-size:.88rem;line-height:1.55}
+.voc-nudge{display:flex;align-items:center;gap:.7rem;width:100%;min-height:56px;padding:.6rem .9rem;margin-bottom:1rem;border:1px solid var(--gold-lt);border-radius:10px;background:linear-gradient(90deg,#fbf0d8,var(--cream));text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.voc-nudge .voc-nudge-ico{font-family:'Playfair Display',serif;font-weight:700;font-size:1.15rem;color:var(--burgundy);width:1.8rem;text-align:center;flex-shrink:0}
+.voc-nudge b{font-family:'Playfair Display',serif;font-size:.95rem}
+.voc-nudge small{display:block;font-size:.76rem;color:var(--ink-light)}
+.voc-nudge .voc-nudge-go{margin-left:auto;font-size:.85rem;color:var(--burgundy);white-space:nowrap}
+.voc-nudge.quiet{background:none;border-color:var(--parchment-dark)}
+.voc-nudge.quiet .voc-nudge-go{color:var(--ink-faint)}
+.voc-book-row{display:flex;align-items:baseline;gap:.45rem;width:100%;min-height:48px;padding:.5rem .65rem;margin-bottom:.35rem;background:var(--cream);border:1px solid var(--parchment-dark);border-radius:6px;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.voc-book-row span:last-child{font-size:.78rem;color:var(--ink-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#vocabQuiz{position:fixed;inset:0;z-index:8400;background:var(--parchment);overflow-y:auto}
+.vq-sheet{max-width:520px;margin:0 auto;padding:.6rem 1rem calc(2rem + env(safe-area-inset-bottom))}
+.vq-head{display:flex;align-items:center;gap:.6rem}
+.vq-head h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin:0}
+.vq-count{font-family:'IM Fell English SC',serif;font-size:.78rem;letter-spacing:.06em;color:var(--ink-faint)}
+.vq-close{margin-left:auto;background:none;border:none;font-size:1.3rem;min-width:48px;min-height:48px;cursor:pointer;color:var(--ink-light)}
+.vq-bar{height:4px;border-radius:2px;background:var(--parchment-dark);margin:.2rem 0 1.2rem;overflow:hidden}
+.vq-bar-fill{height:100%;background:var(--gold);width:0;transition:width .25s}
+.vq-card{background:var(--cream);border:1px solid var(--parchment-dark);border-radius:14px;padding:1.3rem 1.1rem;box-shadow:0 6px 22px var(--shadow)}
+.vq-kind{font-family:'IM Fell English SC',serif;font-size:.7rem;letter-spacing:.08em;color:var(--ink-faint);margin:0 0 .5rem}
+.vq-word{font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--ink);line-height:1.15;word-break:break-word}
+.vq-pos{font-style:italic;color:var(--ink-faint);font-size:.88rem;margin-top:.1rem}
+.vq-src{font-size:.78rem;color:var(--ink-faint);margin-top:.6rem}
+.vq-sentence{font-style:italic;color:var(--ink-light);line-height:1.6;margin-top:.75rem;font-size:.95rem;border-left:3px solid var(--gold);padding-left:.7rem}
+.vq-sentence mark{background:rgba(212,160,48,.3);color:var(--ink);font-style:normal;padding:0 .1rem;border-radius:2px}
+.vq-blank{display:inline-block;min-width:4.5rem;border-bottom:2px solid var(--ink-light);font-style:normal}
+.vq-clue{font-size:1.05rem;color:var(--ink);line-height:1.55}
+.vq-def{margin-top:1rem;padding-top:.9rem;border-top:1px dotted var(--parchment-dark);font-size:1.02rem;line-height:1.55;color:var(--ink)}
+.vq-note{font-size:.84rem;color:var(--ink-light);font-style:italic;margin-top:.4rem}
+.vq-actions{display:flex;gap:.6rem;margin-top:1rem}
+.vq-btn{flex:1;min-height:52px;border-radius:10px;font-family:'Lora',serif;font-size:.98rem;cursor:pointer;border:1px solid var(--parchment-dark);background:var(--cream);color:var(--ink)}
+.vq-btn.primary{background:var(--burgundy);border-color:var(--burgundy);color:var(--parchment);font-family:'Playfair Display',serif;font-weight:600}
+.vq-btn.good{background:#2f6b45;border-color:#2f6b45;color:#fff}
+.vq-btn.bad{background:transparent;border-color:var(--burgundy);color:var(--burgundy)}
+.vq-opts{display:flex;flex-direction:column;gap:.5rem;margin-top:1rem}
+.vq-opt{text-align:left;min-height:52px;padding:.65rem .85rem;border:1px solid var(--parchment-dark);border-radius:10px;background:var(--cream);font-family:'Lora',serif;font-size:.92rem;line-height:1.45;color:var(--ink);cursor:pointer}
+.vq-opt.right{background:#e0f0e4;border-color:#2f6b45;color:#173d24}
+.vq-opt.wrong{background:#f6e0e3;border-color:var(--burgundy);color:#5a1424}
+.vq-opt[disabled]{cursor:default}
+.vq-input{width:100%;min-height:52px;margin-top:1rem;padding:0 .9rem;border:1px solid var(--parchment-dark);border-radius:10px;background:#fff;font-family:'Lora',serif;font-size:1.05rem;color:var(--ink);outline:none}
+.vq-input:focus{border-color:var(--burgundy)}
+.vq-feedback{margin-top:.8rem;font-size:.95rem;line-height:1.5}
+.vq-feedback.right{color:#245c34}
+.vq-feedback.wrong{color:var(--burgundy)}
+.vq-done{text-align:center;padding:1rem .5rem}
+.vq-done .vq-score{font-family:'Playfair Display',serif;font-size:2.4rem;font-weight:700;color:var(--ink)}
+.vq-done p{color:var(--ink-light);line-height:1.55;margin:.4rem 0 0}
+
 /* MODAL */
 /* Add sheet — the floating + offers "add a book" or "add a highlight" */
 .sheet-backdrop{position:fixed;inset:0;z-index:7000;background:rgba(30,20,10,.55);display:flex;align-items:flex-end;justify-content:center}
@@ -552,6 +640,24 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view" id="view-lists">
   <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
   <div class="lists-grid" id="listsGrid"></div>
+</div>
+
+<!-- VOCABULARY (opened from its card in Lists) -->
+<div class="view" id="view-vocab">
+  <div class="sec-head">
+    <h2 class="sec-title">Vocabulary</h2>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-secondary voc-btn" id="vocabBackBtn">‹ Lists</button>
+      <button class="btn btn-primary voc-btn" id="vocabAddBtn">＋ Add a word</button>
+    </div>
+  </div>
+  <div class="voc-page">
+    <div id="vocabHero"></div>
+    <div id="vocabTools" class="voc-tools">
+      <input type="search" id="vocabSearch" placeholder="Search your words…" aria-label="Search your words" autocomplete="off">
+    </div>
+    <div id="vocabList"></div>
+  </div>
 </div>
 
 <!-- READING LOG -->
@@ -867,6 +973,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
           </div>
         </div>
       </div>
+      <div id="vocabSection" style="display:none">
+        <div class="journal-section">
+          <h4>Vocabulary <button type="button" class="btn btn-secondary btn-sm" id="vocabBookAdd">＋ Add a word</button></h4>
+          <div id="vocabBookList"></div>
+        </div>
+      </div>
     </div><!-- /reading -->
 
     <!-- ── TAB 3: LOCATION & OWNERSHIP ── -->
@@ -955,14 +1067,60 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <h3 id="addSheetTitle" class="sheet-title">Add to your Reading Room</h3>
       <button type="button" class="sheet-opt" id="addSheetBook"><span class="sheet-ico" aria-hidden="true">📚</span><span><b>Add a book</b><small>Scan a barcode or search by title</small></span></button>
       <button type="button" class="sheet-opt" id="addSheetHl"><span class="sheet-ico" aria-hidden="true">✦</span><span><b>Add a highlight</b><small>Photograph a passage you want to keep</small></span></button>
+      <button type="button" class="sheet-opt" id="addSheetVocab"><span class="sheet-ico" aria-hidden="true">Aa</span><span><b>Add a word</b><small>Look up a word you met and keep it</small></span></button>
     </div>
     <div id="addSheetBooks" style="display:none">
-      <h3 class="sheet-title">Highlight from which book?</h3>
+      <h3 class="sheet-title" id="addSheetBooksTitle">Highlight from which book?</h3>
       <div id="addSheetReading"></div>
       <button type="button" class="sheet-more" id="addSheetMoreBtn">Another book…</button>
       <div id="addSheetOther" style="display:none"></div>
     </div>
     <button type="button" class="sheet-cancel" id="addSheetCancel">Cancel</button>
+  </div>
+</div>
+
+<!-- Vocabulary word: add / edit. Above the book editor, which can open it. -->
+<div class="overlay" id="vocabModal" style="display:none;z-index:8200">
+<div class="modal" role="dialog" aria-modal="true" aria-labelledby="vocabModalTitle">
+  <div class="modal-hdr" style="display:flex;justify-content:space-between;align-items:flex-start">
+    <h2 class="modal-title" id="vocabModalTitle">Add a word</h2>
+    <button class="modal-close voc-x" id="vocabModalClose" aria-label="Close">✕</button>
+  </div>
+  <div class="modal-body">
+    <div class="fg"><label for="vocabBook">Book</label><select id="vocabBook"></select></div>
+    <div class="fg"><label for="vocabWord">Word</label><input type="text" id="vocabWord" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. lugubrious"></div>
+    <div id="vocabDup" class="voc-dup" style="display:none"></div>
+    <div class="fg"><label for="vocabSentence">The sentence you found it in <span class="voc-opt">(optional — sharpens the definition and the quiz)</span></label><textarea id="vocabSentence" rows="3"></textarea></div>
+    <div style="display:flex;gap:.6rem;align-items:flex-end">
+      <div class="fg" style="flex:0 0 6.5rem"><label for="vocabPage">Page</label><input type="text" id="vocabPage" inputmode="numeric" placeholder="—"></div>
+      <button type="button" class="btn btn-gold voc-btn" id="vocabDefineBtn" style="flex:1;margin-bottom:.7rem;justify-content:center">✦ Define</button>
+    </div>
+    <p class="voc-status" id="vocabStatus" aria-live="polite"></p>
+    <div class="fg"><label for="vocabPos">Part of speech</label><input type="text" id="vocabPos" placeholder="adjective"></div>
+    <div class="fg"><label for="vocabDef">Definition</label><textarea id="vocabDef" rows="3"></textarea></div>
+    <div class="fg"><label for="vocabNote">Note <span class="voc-opt">(optional)</span></label><input type="text" id="vocabNote" placeholder="Usage, origin, how it's used here"></div>
+    <p class="voc-progress" id="vocabProgress"></p>
+  </div>
+  <div class="modal-foot" style="display:flex;justify-content:space-between;gap:.5rem">
+    <button type="button" class="btn btn-secondary voc-btn" id="vocabDeleteBtn" style="color:var(--burgundy)">🗑 Delete</button>
+    <div style="display:flex;gap:.5rem;margin-left:auto">
+      <button type="button" class="btn btn-secondary voc-btn" id="vocabCancelBtn">Cancel</button>
+      <button type="button" class="btn btn-primary voc-btn" id="vocabSaveBtn">Save word</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- Vocabulary review: one word at a time, then a summary -->
+<div id="vocabQuiz" style="display:none" role="dialog" aria-modal="true" aria-labelledby="vqTitle">
+  <div class="vq-sheet">
+    <div class="vq-head">
+      <h3 id="vqTitle">Review</h3>
+      <span class="vq-count" id="vqCount"></span>
+      <button class="vq-close" id="vqClose" aria-label="Close">✕</button>
+    </div>
+    <div class="vq-bar"><div class="vq-bar-fill" id="vqBar"></div></div>
+    <div id="vqBody"></div>
   </div>
 </div>
 
@@ -1008,7 +1166,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
 </div>
 
-<button id="fab" aria-label="Add a book or a highlight" title="Add a book or a highlight" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
+<button id="fab" aria-label="Add a book, highlight or word" title="Add a book, highlight or word" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none" onchange="handleImport(event)">
 
 <script>
@@ -1031,6 +1189,7 @@ const SK={
   entryDel:'trr_v1_entrydel',// {"j|bookId|entryKey": deletedAtMs} — journal/progress entry tombstones;
                              // "s|date" removes a streak day (see undoStreakDays)
   streakAt:'trr_v1_streakat',// {date: lastLoggedMs} — lets a re-logged day beat an undo
+  vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -1275,6 +1434,9 @@ function mergeState(local,remote){
     covers: mergeIdMap(local.covers,remote.covers,deleted),
     cacheQ: mergeIdMap(local.cacheQ,remote.cacheQ,deleted),
     favQ:   mergeIdMap(local.favQ,remote.favQ,deleted),
+    // Words are records like books: newest edit (a review counts) wins per
+    // id, and deleting one leaves a tombstone in the same `deleted` map.
+    vocab:  mergeBooks(local.vocab,remote.vocab,deleted),
     streak,
     streakAt,
     rooms:  [...new Set([...(remote.rooms||[]),...(local.rooms||[])])].sort(),
@@ -1286,7 +1448,7 @@ function mergeState(local,remote){
 
 function currentState(){
   return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
-          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB};
+          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,vocab:vocabDB};
 }
 
 // Coerce anything off the wire into the shape the merge expects. A hand-edited
@@ -1297,7 +1459,8 @@ function remoteState(d){
   const obj=v=>(v&&typeof v==='object'&&!Array.isArray(v))?v:{};
   return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
           cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
-          goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel),streakAt:obj(d.streakAt)};
+          goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel),streakAt:obj(d.streakAt),
+          vocab:arr(d.vocab)};
 }
 
 // Assign merged state and persist it. Deliberately does not call save(): that
@@ -1305,10 +1468,11 @@ function remoteState(d){
 function applyState(s){
   books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
   cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
-  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};
+  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};vocabDB=s.vocab||[];
   const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
                [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
-               [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB],[SK.streakAt,streakAtDB]];
+               [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB],[SK.streakAt,streakAtDB],
+               [SK.vocab,vocabDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
     return true;
@@ -1324,7 +1488,7 @@ function gistPayload(state){
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
   return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
     journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
-    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{}},null,2);
+    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{},vocab:s.vocab||[]},null,2);
 }
 
 // Gists over ~1MB come back truncated; the full text lives at raw_url.
@@ -1421,7 +1585,7 @@ async function gistPull(force=false){
     // local tombstones), send it back up so the other device converges.
     pushBack=JSON.stringify(mergeState(remote,remote))!==JSON.stringify(merged);
     if(JSON.stringify(merged)!==before){
-      renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+      renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
     }
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
@@ -1553,6 +1717,7 @@ function reloadStateFromStorage(){
   deletedDB  = load(SK.deleted,'object') || {};
   entryDeletedDB = load(SK.entryDel,'object') || {};
   streakAtDB = load(SK.streakAt,'object') || {};
+  vocabDB    = load(SK.vocab,'array')    || [];
 }
 
 // ══════════════════════════════════════════
@@ -1570,6 +1735,7 @@ let goals      = load(SK.goals,'object')   || {};   // {year: bookCount}
 let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tombstones
 let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry tombstones
 let streakAtDB = load(SK.streakAt,'object') || {};     // {date: lastLoggedMs}
+let vocabDB    = load(SK.vocab,'array')    || [];       // vocabulary words, newest first
 
 // ══════════════════════════════════════════
 // STATE
@@ -1586,7 +1752,7 @@ let pendingCoverUrl='';
 // Views that no longer have their own page redirect to where they live now
 const VIEW_ALIAS={year:'stats'};
 // Sub-pages highlight the tab they're reached from
-const TAB_FOR={wishlist:'lists',loaned:'lists',keepsake:'stats',settings:null};
+const TAB_FOR={wishlist:'lists',loaned:'lists',vocab:'lists',keepsake:'stats',settings:null};
 
 function resolveView(n){
   n=VIEW_ALIAS[n]||n;
@@ -1618,6 +1784,7 @@ function renderView(n){
   if(n==='log')      renderLogSession();
   if(n==='journal')  renderJournalView();
   if(n==='wishlist') renderWishlist();
+  if(n==='vocab')    renderVocab();
   if(n==='settings'){
     document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
@@ -1880,6 +2047,7 @@ function openAddModal(){
   document.getElementById('modalTitle').textContent='Add to Library';
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
+  document.getElementById('vocabSection').style.display='none';
   document.getElementById('deleteBookBtn').style.display='none';
   document.querySelector('#bookModal .modal').classList.add('add-mode');
   setItemType('book');clearForm();updateRoomsDatalist();switchModalTab('details');
@@ -1949,9 +2117,10 @@ function openEditModal(id){
   }
   document.getElementById('loanHistorySection').style.display='block';
   document.getElementById('journalSection').style.display='block';
+  document.getElementById('vocabSection').style.display='block';
   document.getElementById('loanAddForm').style.display='none';
   document.getElementById('newLoanDate').value=localDateStr();
-  renderLoanEntries(id);renderJournalEntries(id);renderProgHistoryEdit(id);
+  renderLoanEntries(id);renderJournalEntries(id);renderProgHistoryEdit(id);renderBookVocab(id);
   document.getElementById('bookModal').style.display='flex';
 }
 
@@ -2068,13 +2237,16 @@ function initAddSheet(){
   const $=id=>document.getElementById(id);
   $('fab').addEventListener('click',openAddSheet);
   $('addSheetBook').addEventListener('click',()=>{closeAddSheet();openScanner();});
-  $('addSheetHl').addEventListener('click',()=>{renderAddSheetBooks();addSheetStep('books');});
+  $('addSheetHl').addEventListener('click',()=>{_sheetFor='hl';renderAddSheetBooks();addSheetStep('books');});
+  $('addSheetVocab').addEventListener('click',()=>{_sheetFor='vocab';renderAddSheetBooks();addSheetStep('books');});
   $('addSheetMoreBtn').addEventListener('click',()=>{
     $('addSheetOther').style.display='block';$('addSheetMoreBtn').style.display='none';
   });
   $('addSheetCancel').addEventListener('click',closeAddSheet);
   $('addSheet').addEventListener('click',e=>{if(e.target.id==='addSheet')closeAddSheet();});
 }
+// What a book picked in the sheet is for: 'hl' (a highlight) or 'vocab' (a word).
+let _sheetFor='hl';
 function openAddSheet(){addSheetStep('choose');document.getElementById('addSheet').style.display='flex';}
 function closeAddSheet(){document.getElementById('addSheet').style.display='none';}
 function addSheetStep(step){
@@ -2105,6 +2277,7 @@ function bookPickRow(b){
   text.append(t,a);btn.append(cover,text);
   btn.addEventListener('click',()=>{
     closeAddSheet();
+    if(_sheetFor==='vocab'){openVocabWord(null,b.id);return;}
     openHighlight(b.id);
     // Still the same tap, so the browser lets this open the camera: one tap
     // from choosing the book to the shutter. Cancelling the camera leaves the
@@ -2123,9 +2296,12 @@ function renderAddSheetBooks(){
   const other=owned.filter(b=>b.status!=='reading')
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.addedAt||0)-(x.addedAt||0));
   const rEl=$('addSheetReading'),oEl=$('addSheetOther'),more=$('addSheetMoreBtn');
+  const vocab=_sheetFor==='vocab';
+  $('addSheetBooksTitle').textContent=vocab?'A word from which book?':'Highlight from which book?';
   oEl.replaceChildren(...(other.length?[sheetText('sheet-label','OTHER BOOKS')]:[]),...other.map(bookPickRow));
 
   if(!owned.length){
+    if(vocab){closeAddSheet();openVocabWord(null,null);return;} // a word doesn't need a book
     rEl.replaceChildren(sheetText('sheet-empty','Add a book first — highlights are saved to a book.'));
     oEl.style.display='none';more.style.display='none';
   }else if(!reading.length){
@@ -2371,6 +2547,657 @@ function saveHighlight(){
   if(editId===id)renderJournalEntries(id);
   renderLibrary(); // the cards bake in recent entries; the Library tab doesn't redraw them
   toast('Highlight saved ✦','ok');
+}
+
+// ══════════════════════════════════════════
+// VOCABULARY
+// ══════════════════════════════════════════
+// Words met while reading, defined in the sense the book uses them, then
+// reviewed on a spaced schedule until they stick. Each word is a record in
+// vocabDB, synced like a book (newest edit wins, deletes leave a tombstone).
+//
+// Scheduling is a Leitner box: a right answer moves the word up a box and
+// pushes its next review further out; a wrong one sends it back to the start.
+// The box also picks the question: a flashcard while it's new, then multiple
+// choice, then filling it into the sentence you found it in.
+//
+// Reviews don't count toward the reading streak — that stays about reading.
+
+// Days until the next review once a word reaches each box.
+function vocabInterval(box){return [0,1,3,7,14,30,60][Math.max(0,Math.min(6,box|0))];}
+
+// YYYY-MM-DD plus n days. Noon, so a DST change can't push it onto the wrong date.
+function addDaysStr(dateStr,n){
+  const d=new Date(dateStr+'T12:00:00');
+  d.setDate(d.getDate()+n);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function vocabStatus(w){
+  if(!w.reviews)return 'new';
+  return (w.box||0)>=5?'mastered':'learning';
+}
+
+// The word after one answer. Returns a copy; the caller saves it.
+function vocabGrade(w,correct,today,now){
+  const out={...w,reviews:(w.reviews||0)+1,lastReviewed:today,updatedAt:now};
+  if(correct){
+    out.box=Math.min(6,(w.box||0)+1);
+    out.due=addDaysStr(today,vocabInterval(out.box));
+  }else{
+    out.box=0;
+    out.lapses=(w.lapses||0)+1;
+    out.due=addDaysStr(today,1);
+  }
+  return out;
+}
+
+// Words due today or earlier, longest-waiting first. Needs a definition to quiz.
+function vocabDue(list,today){
+  return (list||[]).filter(w=>w&&w.definition&&(!w.due||w.due<=today))
+    .sort((a,b)=>String(a.due||'').localeCompare(String(b.due||''))||(a.addedAt||0)-(b.addedAt||0));
+}
+
+// Earliest upcoming review date, or '' if nothing is scheduled.
+function vocabNextDue(list,today){
+  let next='';
+  for(const w of list||[])if(w&&w.definition&&w.due&&w.due>today&&(!next||w.due<next))next=w.due;
+  return next;
+}
+
+function escRegExp(s){return String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+
+// The sentence with the word blanked out, plus the form it appeared in —
+// "obfuscating" for "obfuscate", "parried" for "parry". null if it isn't there.
+function vocabBlank(sentence,word){
+  const w=String(word||'').trim();
+  if(!sentence||!w)return null;
+  const stems=[w];
+  if(/e$/i.test(w))stems.push(w.slice(0,-1));
+  if(/y$/i.test(w))stems.push(w.slice(0,-1)+'i');
+  const alt=stems.sort((a,b)=>b.length-a.length).map(escRegExp).join('|');
+  const re=new RegExp(`(^|[^\\p{L}])((?:${alt})(?:s|es|ed|d|ing|ly|er|est|ies|ied)?)(?![\\p{L}])`,'iu');
+  const m=re.exec(sentence);
+  if(!m)return null;
+  const start=m.index+m[1].length;
+  return {before:sentence.slice(0,start),after:sentence.slice(start+m[2].length),form:m[2]};
+}
+
+// Lower-case, outer punctuation and curly quotes stripped.
+function vocabNorm(s){
+  return String(s||'').toLowerCase().normalize('NFC').replace(/[’‘]/g,"'").trim()
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu,'').replace(/\s+/g,' ');
+}
+
+// A fill-in answer is right if it's the word or the form in the sentence.
+function vocabCheckAnswer(input,word,form){
+  const a=vocabNorm(input);
+  return !!a&&(a===vocabNorm(word)||(!!form&&a===vocabNorm(form)));
+}
+
+// Words that can serve as wrong answers for w: other words, other definitions.
+function vocabDistractorPool(w,list){
+  const own=vocabNorm(w.definition);
+  const seen=new Set([own]);
+  const out=[];
+  for(const o of list||[]){
+    if(!o||o.id===w.id||!o.definition||vocabNorm(o.word)===vocabNorm(w.word))continue;
+    const d=vocabNorm(o.definition);
+    if(seen.has(d))continue;
+    seen.add(d);out.push(o);
+  }
+  return out;
+}
+
+// Four definitions, one right, in random order. rand is injectable for tests.
+function vocabChoices(w,list,rand=Math.random){
+  const pool=vocabDistractorPool(w,list);
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+  const opts=[{text:w.definition,correct:true},...pool.slice(0,3).map(o=>({text:o.definition,correct:false}))];
+  for(let i=opts.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
+  return opts;
+}
+
+// Which question to ask. New words get a flashcard; multiple choice needs three
+// other definitions to mix in; the sentence test needs the word in its sentence.
+function vocabFormat(w,list){
+  const box=w.box||0;
+  const canChoose=vocabDistractorPool(w,list).length>=3;
+  if(box>=3&&vocabBlank(w.sentence,w.word))return 'blank';
+  if(box>=1&&canChoose)return 'choice';
+  return 'flash';
+}
+
+// Claude is asked for JSON; tolerate a code fence or a sentence around it, and
+// fall back to treating the whole reply as the definition.
+function parseDefinition(text){
+  const raw=String(text||'').trim();
+  const m=raw.replace(/```(?:json)?/gi,'').match(/\{[\s\S]*\}/);
+  if(m){
+    try{
+      const o=JSON.parse(m[0]);
+      if(o&&typeof o.definition==='string'&&o.definition.trim())
+        return {pos:String(o.pos||'').trim(),definition:o.definition.trim(),note:String(o.note||'').trim()};
+    }catch{}
+  }
+  return raw?{pos:'',definition:raw,note:''}:null;
+}
+
+// dictionaryapi.dev → the first sense, or null.
+function parseDictionary(data){
+  const entry=Array.isArray(data)?data[0]:null;
+  for(const m of (entry&&entry.meanings)||[]){
+    const d=(m.definitions||[]).find(x=>x&&x.definition);
+    if(d)return {pos:m.partOfSpeech||'',definition:d.definition,note:d.example?`e.g. “${d.example}”`:''};
+  }
+  return null;
+}
+
+async function defineWithClaude(word,book,sentence){
+  const key=localStorage.getItem(SK.api)||'';
+  const src=book?`the book "${book.title}"${book.author?` by ${book.author}`:''}`:'a book I am reading';
+  const prompt=`I came across the word "${word}" in ${src}.`+
+    (sentence?`\nThe sentence: "${sentence}"`:'')+
+    `\n\nDefine it in the sense it is used there. Reply with JSON only, no code fence:\n`+
+    `{"pos":"part of speech","definition":"one plain sentence, under 25 words — the sense used here","note":"optional: a short note on usage or origin, or how this passage uses it; empty string if nothing useful"}`;
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:400,messages:[{role:'user',content:prompt}]})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+  const data=await res.json();
+  return parseDefinition((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n'));
+}
+
+async function defineWithDictionary(word){
+  const res=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word.toLowerCase()));
+  if(res.status===404)return null;
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);
+  return parseDictionary(await res.json());
+}
+
+// Claude when there's a key (it reads the sentence), the free dictionary
+// otherwise or if Claude fails. → {def, source, error}
+async function defineWord(word,book,sentence){
+  let claudeErr='';
+  if(localStorage.getItem(SK.api)){
+    try{const def=await defineWithClaude(word,book,sentence);if(def)return {def,source:'claude'};}
+    catch(e){claudeErr=e.message;console.warn('Claude definition failed',e);}
+  }
+  try{
+    const def=await defineWithDictionary(word);
+    if(def)return {def,source:'dictionary',error:claudeErr};
+    return {def:null,error:claudeErr?`Claude: ${claudeErr}; not in the dictionary`:'not in the dictionary'};
+  }catch(e){
+    return {def:null,error:(claudeErr?`Claude: ${claudeErr}; `:'')+`dictionary: ${e.message}`};
+  }
+}
+
+function saveVocab(...changed){
+  const now=Date.now();
+  for(const w of changed)if(w&&typeof w==='object')w.updatedAt=now;
+  return save(SK.vocab,vocabDB);
+}
+
+function vocabBookTitle(id){const b=books.find(x=>x.id===id);return b?b.title:'';}
+function vocabFindDup(word,exceptId){
+  const n=vocabNorm(word);
+  return n?vocabDB.find(w=>w.id!==exceptId&&vocabNorm(w.word)===n)||null:null;
+}
+function vEl(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function fmtShortDate(d){return new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});}
+function plural(n,w){return `${n} ${w}${n===1?'':'s'}`;}
+
+// Re-render whatever vocabulary is on screen (after a sync pull or import).
+function refreshVocabViews(){
+  if(document.getElementById('view-vocab').classList.contains('active'))renderVocab();
+  if(editId&&document.getElementById('bookModal').style.display!=='none')renderBookVocab(editId);
+}
+function vocabChanged(){
+  refreshVocabViews();
+  if(document.getElementById('view-lists').classList.contains('active'))renderLists();
+  if(document.getElementById('view-log').classList.contains('active'))renderLogSession();
+}
+
+// ── The word editor ──────────────────────────────────────────────
+let _vw=null; // {id|null, deleteArmed, defining}
+
+function initVocab(){
+  const $=id=>document.getElementById(id);
+  $('vocabBackBtn').addEventListener('click',()=>showView('lists'));
+  $('vocabAddBtn').addEventListener('click',()=>openVocabWord(null,null));
+  $('vocabSearch').addEventListener('input',renderVocabList);
+  $('vocabBookAdd').addEventListener('click',()=>{if(editId)openVocabWord(null,editId);});
+  $('vocabModalClose').addEventListener('click',closeVocabWord);
+  $('vocabCancelBtn').addEventListener('click',closeVocabWord);
+  $('vocabModal').addEventListener('click',e=>{if(e.target.id==='vocabModal')closeVocabWord();});
+  $('vocabDefineBtn').addEventListener('click',()=>defineVocabWord(false));
+  $('vocabSaveBtn').addEventListener('click',saveVocabWord);
+  $('vocabDeleteBtn').addEventListener('click',deleteVocabWord);
+  $('vocabWord').addEventListener('input',showVocabDup);
+  $('vocabWord').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();defineVocabWord(false);}});
+  $('vqClose').addEventListener('click',closeVocabQuiz);
+}
+
+function fillVocabBookSelect(selected){
+  const sel=document.getElementById('vocabBook');
+  const owned=books.filter(b=>b.status!=='wishlist');
+  const reading=owned.filter(b=>b.status==='reading');
+  const rest=owned.filter(b=>b.status!=='reading').sort((a,b)=>String(a.title).localeCompare(String(b.title)));
+  const opt=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;return o;};
+  const group=(label,list)=>{const g=document.createElement('optgroup');g.label=label;g.append(...list.map(b=>opt(b.id,b.title||'Untitled')));return g;};
+  const kids=[opt('','No particular book')];
+  if(reading.length)kids.push(group('Currently reading',reading));
+  if(rest.length)kids.push(group(reading.length?'Other books':'Your books',rest));
+  // A word whose book was since deleted keeps its link; don't silently drop it.
+  if(selected&&!owned.some(b=>b.id===selected)){
+    const t=vocabBookTitle(selected);
+    kids.push(opt(selected,t?t:'(removed book)'));
+  }
+  sel.replaceChildren(...kids);
+  sel.value=selected||'';
+}
+
+function openVocabWord(id,bookId){
+  const w=id?vocabDB.find(x=>x.id===id):null;
+  if(id&&!w)return;
+  _vw={id:w?w.id:null,deleteArmed:false,defining:false};
+  const $=x=>document.getElementById(x);
+  $('vocabModalTitle').textContent=w?'Edit word':'Add a word';
+  if(!w&&!bookId){const r=books.filter(b=>b.status==='reading');if(r.length===1)bookId=r[0].id;}
+  fillVocabBookSelect(w?w.bookId:bookId);
+  $('vocabWord').value=w?w.word:'';
+  $('vocabSentence').value=w?w.sentence||'':'';
+  $('vocabPage').value=w?w.page||'':'';
+  $('vocabPos').value=w?w.pos||'':'';
+  $('vocabDef').value=w?w.definition||'':'';
+  $('vocabNote').value=w?w.note||'':'';
+  setVocabStatus(w?'':(localStorage.getItem(SK.api)?'Type the word, add the sentence if you have it, and tap Define.':'Tap Define to look it up in the dictionary. Add an Anthropic key in Settings for definitions that fit the sentence.'));
+  $('vocabDeleteBtn').style.display=w?'inline-flex':'none';
+  $('vocabDeleteBtn').textContent='🗑 Delete';
+  $('vocabProgress').textContent=w?vocabProgressText(w):'';
+  showVocabDup();
+  $('vocabModal').style.display='flex';
+  // Focus now, not on a timer: a delayed focus can pull typing out of whichever
+  // field the user has already moved on to.
+  if(!w)$('vocabWord').focus();
+}
+
+function vocabProgressText(w){
+  const st=vocabStatus(w);
+  const parts=[{new:'New — not reviewed yet',learning:'Learning',mastered:'Mastered'}[st]];
+  if(w.reviews)parts.push(`reviewed ${plural(w.reviews,'time')}`);
+  if(w.due&&w.definition)parts.push(w.due<=localDateStr()?'due now':`next review ${fmtShortDate(w.due)}`);
+  return parts.join(' · ');
+}
+
+function closeVocabWord(){_vw=null;document.getElementById('vocabModal').style.display='none';}
+
+function setVocabStatus(msg,err=false){
+  const s=document.getElementById('vocabStatus');
+  s.textContent=msg;s.classList.toggle('err',!!err);
+}
+
+function showVocabDup(){
+  const box=document.getElementById('vocabDup');
+  const dup=_vw&&vocabFindDup(document.getElementById('vocabWord').value,_vw.id);
+  if(!dup){box.style.display='none';box.replaceChildren();return;}
+  const t=vocabBookTitle(dup.bookId);
+  const msg=vEl('span',null,`Already in your list${t?` — from ${t}`:''}.`);
+  const open=vEl('button',null,'Open it');open.type='button';
+  open.addEventListener('click',()=>openVocabWord(dup.id));
+  box.replaceChildren(msg,open);box.style.display='flex';
+}
+
+// Fill the definition fields. With andSave, save once it's filled in.
+async function defineVocabWord(andSave){
+  if(!_vw||_vw.defining)return;
+  const $=x=>document.getElementById(x);
+  const word=$('vocabWord').value.trim();
+  if(!word){setVocabStatus('Type the word first.',true);$('vocabWord').focus();return;}
+  const book=books.find(b=>b.id===$('vocabBook').value)||null;
+  const session=_vw;
+  session.defining=true;
+  $('vocabDefineBtn').disabled=true;$('vocabSaveBtn').disabled=true;
+  setVocabStatus(`Looking up “${word}”…`);
+  let r;
+  try{r=await defineWord(word,book,$('vocabSentence').value.trim());}
+  finally{
+    if(_vw===session){session.defining=false;$('vocabDefineBtn').disabled=false;$('vocabSaveBtn').disabled=false;}
+  }
+  if(_vw!==session)return; // closed while waiting
+  if(!r.def){
+    setVocabStatus(`Couldn't find a definition (${r.error}). Check the spelling, or type one below.`,true);
+    $('vocabDef').focus();
+    return;
+  }
+  $('vocabPos').value=r.def.pos||'';
+  $('vocabDef').value=r.def.definition;
+  $('vocabNote').value=r.def.note||'';
+  setVocabStatus(r.source==='claude'?'Defined by Claude for this book — edit anything you like.':
+    'From the dictionary'+(r.error?` (Claude didn't answer: ${r.error})`:'')+' — check it fits the sentence.');
+  if(andSave)saveVocabWord();
+}
+
+function saveVocabWord(){
+  if(!_vw||_vw.defining)return;
+  const $=x=>document.getElementById(x);
+  const word=$('vocabWord').value.trim().replace(/\s+/g,' ');
+  if(!word){setVocabStatus('Type the word first.',true);$('vocabWord').focus();return;}
+  const definition=$('vocabDef').value.trim();
+  if(!definition){defineVocabWord(true);return;} // look it up, then save
+  const dup=vocabFindDup(word,_vw.id);
+  if(dup){setVocabStatus('That word is already in your list — open it to edit.',true);return;}
+  const fields={word,definition,bookId:$('vocabBook').value||'',sentence:$('vocabSentence').value.trim(),
+    page:$('vocabPage').value.trim(),pos:$('vocabPos').value.trim(),note:$('vocabNote').value.trim()};
+  let w;
+  if(_vw.id){
+    w=vocabDB.find(x=>x.id===_vw.id);
+    if(!w){closeVocabWord();return;} // deleted by a sync while open
+    Object.assign(w,fields);
+  }else{
+    const now=Date.now();
+    w={id:'w_'+now.toString(36)+'_'+Math.random().toString(36).slice(2,7),...fields,
+       addedAt:now,box:0,due:localDateStr(),reviews:0,lapses:0};
+    vocabDB.unshift(w);
+  }
+  saveVocab(w);
+  const isNew=!_vw.id;
+  closeVocabWord();
+  vocabChanged();
+  toast(isNew?`“${w.word}” added to your vocabulary`:'Word saved','ok');
+}
+
+function deleteVocabWord(){
+  if(!_vw||!_vw.id)return;
+  const btn=document.getElementById('vocabDeleteBtn');
+  // Two taps rather than a native confirm dialog.
+  if(!_vw.deleteArmed){_vw.deleteArmed=true;btn.textContent='Tap again to delete';return;}
+  const i=vocabDB.findIndex(x=>x.id===_vw.id);
+  if(i>=0){
+    const [gone]=vocabDB.splice(i,1);
+    deletedDB[gone.id]=Date.now();
+    save(SK.deleted,deletedDB);save(SK.vocab,vocabDB);
+    toast(`“${gone.word}” deleted`,'ok');
+  }
+  closeVocabWord();
+  vocabChanged();
+}
+
+// ── The Vocabulary page ──────────────────────────────────────────
+function renderVocab(){
+  const hero=document.getElementById('vocabHero');
+  const today=localDateStr();
+  const due=vocabDue(vocabDB,today);
+  const counts={new:0,learning:0,mastered:0};
+  for(const w of vocabDB)counts[vocabStatus(w)]++;
+  const card=vEl('div','voc-hero');
+  if(!vocabDB.length){
+    card.append(vEl('h3',null,'Your living word list'),
+      vEl('p',null,'Met a word you didn’t know? Add it with the sentence it came in. You’ll get a definition that fits the book, and short reviews that space themselves out until the word is yours.'));
+  }else{
+    card.append(vEl('h3',null,due.length?`${plural(due.length,'word')} ready to review`:'All caught up'));
+    const next=vocabNextDue(vocabDB,today);
+    card.append(vEl('p',null,due.length?'A few minutes now keeps them from slipping away.':
+      next?`Next review ${fmtShortDate(next)}. Add words as you read and they’ll join in.`:'Add definitions to your words to start reviewing them.'));
+    if(due.length){
+      const btn=vEl('button','voc-review',`Review ${Math.min(due.length,VOCAB_SESSION)} now`);
+      btn.type='button';btn.id='vocabReviewBtn';
+      btn.addEventListener('click',()=>startVocabQuiz());
+      card.append(btn);
+    }
+    const row=vEl('div','voc-counts');
+    for(const [k,label] of [['new','NEW'],['learning','LEARNING'],['mastered','MASTERED']]){
+      const c=vEl('div','voc-count');c.append(vEl('b',null,String(counts[k])),vEl('small',null,label));row.append(c);
+    }
+    card.append(row);
+  }
+  hero.replaceChildren(card);
+  document.getElementById('vocabTools').style.display=vocabDB.length?'block':'none';
+  renderVocabList();
+}
+
+function vocabRow(w,cls='voc-row'){
+  const row=vEl('button',cls);row.type='button';
+  const top=vEl('span','voc-row-top');
+  top.append(vEl('span','voc-word',w.word));
+  if(w.pos)top.append(vEl('span','voc-pos',w.pos));
+  const st=vocabStatus(w);
+  top.append(vEl('span','voc-pill '+st,st));
+  row.append(top);
+  row.append(vEl('span','voc-def',w.definition||'No definition yet — tap to add one'));
+  row.addEventListener('click',()=>openVocabWord(w.id));
+  return row;
+}
+
+function renderVocabList(){
+  const out=document.getElementById('vocabList');
+  if(!vocabDB.length){
+    const e=vEl('div','voc-empty');
+    e.append(vEl('h3',null,'No words yet'),vEl('p',null,'Tap ＋ Add a word — or use the ＋ button anywhere in the app while you read.'));
+    out.replaceChildren(e);return;
+  }
+  const q=vocabNorm(document.getElementById('vocabSearch').value);
+  const words=q?vocabDB.filter(w=>vocabNorm(w.word).includes(q)||vocabNorm(w.definition).includes(q)):vocabDB;
+  if(!words.length){out.replaceChildren(vEl('p','voc-empty',`No words match “${document.getElementById('vocabSearch').value.trim()}”.`));return;}
+  // Grouped by book, the most recently added-to book first; words A–Z within.
+  const groups=new Map();
+  for(const w of words){
+    const key=books.some(b=>b.id===w.bookId)?w.bookId:'';
+    if(!groups.has(key))groups.set(key,[]);
+    groups.get(key).push(w);
+  }
+  const latest=list=>Math.max(...list.map(w=>w.addedAt||0));
+  const order=[...groups.entries()].sort((a,b)=>(a[0]===''?1:0)-(b[0]===''?1:0)||latest(b[1])-latest(a[1]));
+  out.replaceChildren(...order.map(([bookId,list])=>{
+    const g=vEl('section','voc-group');
+    const head=vEl('h4','voc-group-head');
+    head.append(vEl('span',null,bookId?vocabBookTitle(bookId):'Other words'),vEl('span',null,String(list.length)));
+    g.append(head,...list.slice().sort((a,b)=>a.word.localeCompare(b.word)).map(w=>vocabRow(w)));
+    return g;
+  }));
+}
+
+// Words in the book editor's Reading tab.
+function renderBookVocab(bookId){
+  const box=document.getElementById('vocabBookList');
+  const list=vocabDB.filter(w=>w.bookId===bookId).sort((a,b)=>a.word.localeCompare(b.word));
+  if(!list.length){box.replaceChildren(vEl('p','journal-entry-text','No words saved from this book yet.'));return;}
+  box.replaceChildren(...list.map(w=>{
+    const r=vEl('button','voc-book-row');r.type='button';
+    r.append(vEl('span','voc-word',w.word),vEl('span',null,w.definition||''));
+    r.addEventListener('click',()=>openVocabWord(w.id));
+    return r;
+  }));
+}
+
+// The quick link on Today's Reading. Nothing at all until there are words.
+function vocabNudge(){
+  if(!vocabDB.length)return null;
+  const today=localDateStr();
+  const due=vocabDue(vocabDB,today).length;
+  const b=vEl('button','voc-nudge'+(due?'':' quiet'));b.type='button';b.id='vocabNudge';
+  const text=vEl('span');
+  if(due){
+    text.append(vEl('b',null,`${plural(due,'word')} to review`),vEl('small',null,'Keep your vocabulary fresh — a minute or two'));
+  }else{
+    const next=vocabNextDue(vocabDB,today);
+    text.append(vEl('b',null,'Vocabulary: all caught up'),vEl('small',null,next?`Next review ${fmtShortDate(next)}`:`${plural(vocabDB.length,'word')} saved`));
+  }
+  b.append(vEl('span','voc-nudge-ico','Aa'),text,vEl('span','voc-nudge-go',due?'Review ›':'Words ›'));
+  b.addEventListener('click',()=>due?startVocabQuiz():showView('vocab'));
+  return b;
+}
+
+// ── Review ───────────────────────────────────────────────────────
+const VOCAB_SESSION=10;
+let _vq=null; // {queue:[ids], i, right, answered, format, blank}
+
+function startVocabQuiz(){
+  const due=vocabDue(vocabDB,localDateStr());
+  if(!due.length){toast('Nothing to review right now.','ok');return;}
+  _vq={queue:due.slice(0,VOCAB_SESSION).map(w=>w.id),i:0,right:0,answered:false};
+  document.getElementById('vocabQuiz').style.display='block';
+  document.body.style.overflow='hidden';
+  showVocabQuestion();
+}
+
+function closeVocabQuiz(){
+  _vq=null;
+  document.getElementById('vocabQuiz').style.display='none';
+  document.body.style.overflow='';
+  vocabChanged();
+}
+
+function vqHeader(){
+  const n=_vq.queue.length;
+  document.getElementById('vqCount').textContent=_vq.i<n?`${_vq.i+1} of ${n}`:'';
+  document.getElementById('vqBar').style.width=`${Math.round(_vq.i/n*100)}%`;
+}
+
+// The sentence with the word marked (or blanked), built as nodes.
+function vqSentence(w,blank){
+  const p=vEl('p','vq-sentence');
+  const b=vocabBlank(w.sentence,w.word);
+  if(!b){p.textContent=w.sentence;return p;}
+  p.append(b.before,blank?vEl('span','vq-blank',' '):vEl('mark',null,b.form),b.after);
+  return p;
+}
+function vqSource(w){
+  const t=vocabBookTitle(w.bookId);
+  return t?vEl('p','vq-src',`from ${t}${w.page?`, p. ${w.page}`:''}`):null;
+}
+
+function showVocabQuestion(){
+  if(!_vq)return;
+  if(_vq.i>=_vq.queue.length){showVocabSummary();return;}
+  const w=vocabDB.find(x=>x.id===_vq.queue[_vq.i]);
+  if(!w){_vq.queue.splice(_vq.i,1);showVocabQuestion();return;} // deleted by a sync
+  _vq.answered=false;
+  _vq.format=vocabFormat(w,vocabDB);
+  vqHeader();
+  const card=vEl('div','vq-card');
+  const body=document.getElementById('vqBody');
+  if(_vq.format==='flash')vqFlash(card,w);
+  else if(_vq.format==='choice')vqChoice(card,w);
+  else vqBlankQ(card,w);
+  body.replaceChildren(card);
+  card.dataset.format=_vq.format;
+}
+
+function vqWordHead(card,w,kind){
+  card.append(vEl('p','vq-kind',kind),vEl('div','vq-word',w.word));
+  if(w.pos)card.append(vEl('div','vq-pos',w.pos));
+  const src=vqSource(w);if(src)card.append(src);
+  if(w.sentence)card.append(vqSentence(w,false));
+}
+function vqDefinition(w){
+  const d=vEl('div','vq-def',w.definition);
+  if(w.note)d.append(vEl('div','vq-note',w.note));
+  return d;
+}
+function vqButton(text,cls,fn){const b=vEl('button','vq-btn'+(cls?' '+cls:''),text);b.type='button';b.addEventListener('click',fn);return b;}
+
+// New words: think of the meaning, reveal it, say honestly whether you knew it.
+function vqFlash(card,w){
+  vqWordHead(card,w,'DO YOU KNOW THIS WORD?');
+  const actions=vEl('div','vq-actions');
+  const reveal=vqButton('Show definition','primary',()=>{
+    actions.before(vqDefinition(w));
+    actions.replaceChildren(
+      vqButton('Didn’t know it','bad',()=>gradeVocab(w,false,true)),
+      vqButton('Knew it','good',()=>gradeVocab(w,true,true)));
+  });
+  reveal.id='vqReveal';
+  actions.append(reveal);
+  card.append(actions);
+}
+
+function vqChoice(card,w){
+  vqWordHead(card,w,'WHAT DOES IT MEAN?');
+  const opts=vEl('div','vq-opts');
+  const choices=vocabChoices(w,vocabDB);
+  const buttons=choices.map(c=>{
+    const b=vEl('button','vq-opt',c.text);b.type='button';
+    b.addEventListener('click',()=>{
+      if(_vq.answered)return;
+      buttons.forEach((x,k)=>{x.disabled=true;if(choices[k].correct)x.classList.add('right');});
+      if(!c.correct)b.classList.add('wrong');
+      gradeVocab(w,c.correct);
+      card.append(vqNext(c.correct?'Right!':`It means: ${w.definition}`,c.correct));
+    });
+    return b;
+  });
+  opts.append(...buttons);
+  card.append(opts);
+}
+
+function vqBlankQ(card,w){
+  const blank=vocabBlank(w.sentence,w.word);
+  card.append(vEl('p','vq-kind','WHICH WORD FITS?'));
+  const clue=vEl('p','vq-clue',w.definition);
+  if(w.pos)clue.prepend(vEl('i',null,w.pos+' — '));
+  card.append(clue,vqSentence(w,true));
+  const input=vEl('input','vq-input');
+  input.type='text';input.id='vqAnswer';input.autocomplete='off';input.setAttribute('autocapitalize','none');input.spellcheck=false;
+  input.placeholder='Type the word';input.setAttribute('aria-label','Your answer');
+  const actions=vEl('div','vq-actions');
+  const check=()=>{
+    if(_vq.answered)return;
+    const typed=input.value.trim();
+    if(!typed){input.focus();return;}
+    finish(vocabCheckAnswer(typed,w.word,blank&&blank.form));
+  };
+  const finish=ok=>{
+    input.disabled=true;actions.remove();
+    gradeVocab(w,ok);
+    card.querySelector('.vq-blank').textContent=blank?blank.form:w.word;
+    const form=blank?blank.form:w.word;
+    const answer=vocabNorm(form)===vocabNorm(w.word)?`“${w.word}”`:`“${form}” (${w.word})`;
+    card.append(vqNext(ok?'Right!':`The word was ${answer}.`,ok));
+  };
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();check();}});
+  actions.append(vqButton('Show answer',null,()=>{if(!_vq.answered)finish(false);}),vqButton('Check','primary',check));
+  card.append(input,actions);
+  setTimeout(()=>input.focus(),60);
+}
+
+function vqNext(msg,ok){
+  const wrap=vEl('div');
+  wrap.append(vEl('p','vq-feedback '+(ok?'right':'wrong'),msg));
+  const a=vEl('div','vq-actions');
+  const next=vqButton(_vq.i+1<_vq.queue.length?'Next →':'Finish','primary',()=>{_vq.i++;showVocabQuestion();});
+  next.id='vqNext';
+  a.append(next);wrap.append(a);
+  setTimeout(()=>next.focus(),30);
+  return wrap;
+}
+
+// Saved at once, so closing halfway keeps what was answered.
+function gradeVocab(w,correct,advance=false){
+  if(!_vq||_vq.answered)return;
+  _vq.answered=true;
+  if(correct)_vq.right++;
+  const i=vocabDB.findIndex(x=>x.id===w.id);
+  if(i>=0){vocabDB[i]=vocabGrade(vocabDB[i],correct,localDateStr(),Date.now());save(SK.vocab,vocabDB);}
+  if(advance){_vq.i++;showVocabQuestion();}
+}
+
+function showVocabSummary(){
+  vqHeader();
+  document.getElementById('vqBar').style.width='100%';
+  const n=_vq.queue.length;
+  const more=vocabDue(vocabDB,localDateStr()).length;
+  const box=vEl('div','vq-done');
+  box.append(vEl('div','vq-score',`${_vq.right} / ${n}`));
+  box.append(vEl('p',null,_vq.right===n?'Every one. Those words are moving up.':
+    'Missed words come back tomorrow; the rest wait longer each time you get them right.'));
+  const next=vocabNextDue(vocabDB,localDateStr());
+  if(!more&&next)box.append(vEl('p',null,`Next review ${fmtShortDate(next)}.`));
+  const a=vEl('div','vq-actions');
+  a.append(vqButton('Done',more?null:'primary',closeVocabQuiz));
+  if(more){const k=vqButton(`Keep going (${more} more)`,'primary',startVocabQuiz);k.id='vqMore';a.append(k);}
+  box.append(a);
+  document.getElementById('vqBody').replaceChildren(box);
 }
 
 function addJournalEntry(){
@@ -2741,7 +3568,7 @@ function markDone(id){
     save(SK.prog,progressDB);
     undoStreakDays(addedDays);
     saveBooks(b);
-    renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+    renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
     toast('Undone','ok');
   });
 }
@@ -3451,12 +4278,38 @@ function renderLists(){
   document.getElementById('listsGrid').innerHTML=
     readingCard+
     finishedCard+
+    '<div class="list-card" id="vocabCard"></div>'+
     makeList('🌿 To Be Read','lh-tbr',tbr,'No books on your TBR yet.')+
     makeList('⭐ Favorites','lh-fav',fav,'No favorites yet — rate a book 5 stars or tag it ⭐.')+
     makeList('📕 Did Not Finish','lh-dnf',dnfL,'No DNF books.')+
     makeList('📰 Articles Read','lh-article',articles,'No articles logged yet.')+
     wishlistCard+
     loanedCard;
+  fillVocabCard(document.getElementById('vocabCard'));
+}
+
+// Lists card for the vocabulary: the review count up front, recent words below.
+function fillVocabCard(card){
+  const due=vocabDue(vocabDB,localDateStr()).length;
+  const head=vEl('div','list-card-head lh-vocab');
+  head.style.cursor='pointer';head.title='Open Vocabulary';
+  head.append(vEl('h3',null,'Aa Vocabulary'),vEl('span','list-count',`${plural(vocabDB.length,'word')} ›`));
+  head.addEventListener('click',()=>showView('vocab'));
+  const rows=vEl('div','list-rows');
+  if(!vocabDB.length){
+    rows.append(vEl('div','voc-card-empty','Save words you meet while reading, then test yourself on them.'));
+    const add=vEl('button','voc-card-btn','＋ Add your first word');add.type='button';
+    add.addEventListener('click',()=>openVocabWord(null,null));
+    rows.append(add);
+  }else{
+    if(due){
+      const go=vEl('button','voc-card-btn due',`Review ${plural(due,'word')} ›`);go.type='button';go.id='vocabCardReview';
+      go.addEventListener('click',()=>startVocabQuiz());
+      rows.append(go);
+    }
+    rows.append(...vocabDB.slice(0,3).map(w=>vocabRow(w,'voc-row voc-row-flat')));
+  }
+  card.replaceChildren(head,rows);
 }
 
 function renderYear(){
@@ -3863,11 +4716,13 @@ function renderLogSession(){
   const el=document.getElementById('logContent');
   if(!reading.length){
     el.innerHTML=`<div class="empty"><span class="icon">📚</span><h3>Nothing in progress</h3><p>Mark a book as Currently Reading to log sessions here.</p></div>`;
-    return;
+  }else{
+    _logRatings={};
+    reading.forEach(b=>_logRatings[b.id]=b.rating||0);
+    el.innerHTML=reading.map(b=>buildLogCard(b)).join('');
   }
-  _logRatings={};
-  reading.forEach(b=>_logRatings[b.id]=b.rating||0);
-  el.innerHTML=reading.map(b=>buildLogCard(b)).join('');
+  const nudge=vocabNudge();
+  if(nudge)el.prepend(nudge);
 }
 
 function buildLogCard(b){
@@ -4382,7 +5237,7 @@ async function testGbKey(){
 }
 
 async function exportJSON(){
-  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,exportedAt:new Date().toISOString()};
+  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB,exportedAt:new Date().toISOString()};
   const json=JSON.stringify(d,null,2);
   // Dated, so snapshots kept in one Drive folder don't overwrite or pile up as "(1)".
   const base=`reading-room-backup-${localDateStr()}`;
@@ -4464,12 +5319,12 @@ function handleImport(e){
       // to recover one book destroyed every newer entry on every other book.
       const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
         covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
-        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt});
+        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt,vocab:d.vocab});
       const merged=mergeState(currentState(),incoming);
       applyState(merged);
       localStorage.setItem(SK.updated,new Date().toISOString());
       scheduleGistPush();
-      renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+      renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
       toast(`Imported — ${newCount} new book(s), history merged.`,'ok');
     }catch(err){console.error('Import failed:',err);toast('Import failed — your library is unchanged.','err');}
   };
@@ -4493,7 +5348,7 @@ async function clearAll(){
   if(connected&&wipeRemote){
     const id=localStorage.getItem(GIST_ID_KEY);
     const empty={books:[],prog:{},journal:{},covers:{},cacheQ:{},favQ:{},streak:{},rooms:[],goals:{},
-                 deleted:mergeDeleted(deletedDB,Object.fromEntries(books.map(b=>[b.id,Date.now()])))};
+                 vocab:[],deleted:mergeDeleted(deletedDB,Object.fromEntries([...books,...vocabDB].map(b=>[b.id,Date.now()])))};
     try{
       localStorage.setItem(SK.updated,new Date().toISOString());
       await gistApi('PATCH',`/gists/${id}`,{files:{[GIST_FILE]:{content:gistPayload(empty)}}});
@@ -4507,9 +5362,9 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
-  renderLibrary();renderLists();renderLogSession();updateHdrStreak();
+  renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');
 }
 
@@ -4583,6 +5438,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
   initHighlights();
   initAddSheet();
+  initVocab();
   renderLibrary();updateHdrStreak();
   // Land on the view in the URL hash (refresh keeps your place); replaceState
   // avoids an extra history entry so Back still exits from the initial view
@@ -4601,6 +5457,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
+    if(vis('vocabQuiz')){closeVocabQuiz();return;}
+    if(vis('vocabModal')){closeVocabWord();return;}
     if(vis('hlModal')){closeHighlight();return;}
     if(vis('addSheet')){closeAddSheet();return;}
     if(vis('sessionModal')){closeReadingSession();return;}

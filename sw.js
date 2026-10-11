@@ -1,6 +1,6 @@
 // Reading Room — Service Worker
 // Cache version: bump this string to force all clients to update
-const CACHE = 'reading-room-v5';
+const CACHE = 'reading-room-v6';
 
 // App shell: local files that MUST cache on install for offline use
 const SHELL = [
@@ -74,6 +74,7 @@ self.addEventListener('fetch', e => {
   // would also catch fonts.googleapis.com and make the font stylesheet
   // network-only, which breaks fonts offline.
   const isApi = url.hostname.includes('openlibrary.org') ||
+                url.hostname === 'api.dictionaryapi.dev' || // vocabulary definitions without a key
                 url.hostname === 'www.googleapis.com' || // Google Books lookup
                 url.hostname.includes('api.github.com') ||
                 url.hostname.includes('fonts.gstatic.com'); // font files vary
