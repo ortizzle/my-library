@@ -9,7 +9,7 @@ import { loadFunctions, extractConst } from './extract.mjs';
 const V = loadFunctions(['vocabInterval', 'addDaysStr', 'vocabStatus', 'vocabGrade', 'vocabDue',
                          'vocabNextDue', 'escRegExp', 'vocabBlank', 'vocabNorm', 'vocabCheckAnswer',
                          'vocabDistractorPool', 'vocabChoices', 'vocabFormat', 'parseDefinition',
-                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap']);
+                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap', 'cleanPron', 'pronShown']);
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
    'mergeIdMap', 'mergeState', 'remoteState'],
@@ -150,7 +150,7 @@ test('question type follows the box, falling back when it cannot be asked', () =
 // ── definitions ──────────────────────────────────────────────────────────
 
 test('reads Claude’s JSON, with or without a code fence', () => {
-  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere', headword: '', pron: '' };
+  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere', headword: '', syll: '', pron: '' };
   assert.deepEqual(V.parseDefinition('{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
   assert.deepEqual(V.parseDefinition('```json\n{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}\n```'), want);
   assert.deepEqual(V.parseDefinition('Here you go: {"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
@@ -252,8 +252,17 @@ test('a picked word is saved lower case unless it is capitalised mid-sentence', 
 
 // ── pronunciation ────────────────────────────────────────────────────────
 
-test('Claude’s respelling comes through with the definition', () => {
-  assert.equal(V.parseDefinition('{"pron":"loo-GOO-bree-us","definition":"gloomy"}').pron, 'loo-GOO-bree-us');
+test('Claude’s syllables and dictionary pronunciation come through with the definition', () => {
+  const d = V.parseDefinition('{"syll":"lu·gu·bri·ous","pron":"\\\\lu̇-ˈgü-brē-əs\\\\","definition":"gloomy"}');
+  assert.equal(d.syll, 'lu·gu·bri·ous');
+  assert.equal(d.pron, 'lu̇-ˈgü-brē-əs', 'backslashes are added for display, not stored');
+});
+
+test('pronunciation is shown between backslashes, IPA as it comes', () => {
+  assert.equal(V.pronShown('lu̇-ˈgü-brē-əs'), '\\lu̇-ˈgü-brē-əs\\');
+  assert.equal(V.pronShown('\\ˈtərs\\'), '\\ˈtərs\\', 'never doubled');
+  assert.equal(V.pronShown('/ləˈɡuːbriəs/'), '/ləˈɡuːbriəs/');
+  assert.equal(V.pronShown(''), '');
 });
 
 test('the dictionary’s sound: phonetic text and the American recording first', () => {
@@ -268,9 +277,10 @@ test('the dictionary’s sound: phonetic text and the American recording first',
   assert.deepEqual(V.dictionarySound({ title: 'No Definitions Found' }), { pron: '', audio: '' });
 });
 
-test('a batch of respellings maps back to the words, whatever their case', () => {
-  assert.deepEqual(V.parsePronMap('```json\n{"Lugubrious":"loo-GOO-bree-us","terse":" turss ","x":""}\n```'),
-                   { lugubrious: 'loo-GOO-bree-us', terse: 'turss' });
+test('a batch of pronunciations maps back to the words, whatever their case', () => {
+  assert.deepEqual(V.parsePronMap('```json\n{"Lugubrious":{"syll":"lu·gu·bri·ous","pron":"lu̇-ˈgü-brē-əs"},"terse":{"syll":"terse","pron":" \\\\ˈtərs\\\\ "},"x":{"syll":"x","pron":""}}\n```'),
+                   { lugubrious: { syll: 'lu·gu·bri·ous', pron: 'lu̇-ˈgü-brē-əs' }, terse: { syll: 'terse', pron: 'ˈtərs' } });
+  assert.deepEqual(V.parsePronMap('{"terse":"ˈtərs"}'), { terse: { syll: '', pron: 'ˈtərs' } }, 'a plain string still counts');
   assert.deepEqual(V.parsePronMap('no json here'), {});
   assert.deepEqual(V.parsePronMap('{"bad json"'), {});
   assert.deepEqual(V.parsePronMap('["a list"]'), {});

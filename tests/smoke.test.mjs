@@ -1659,23 +1659,26 @@ async function captureSpeech(page, { audioFails = false } = {}) {
 test('Define fills in the pronunciation, and the recording is kept with the word', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
-  const calls = await stubClaude(page, '{"headword":"lugubrious","pron":"loo-GOO-bree-us","pos":"adjective","definition":"Gloomy."}');
+  const calls = await stubClaude(page, '{"headword":"lugubrious","syll":"lu·gu·bri·ous","pron":"lu̇-ˈgü-brē-əs","pos":"adjective","definition":"Gloomy."}');
   await stubDictionary(page, { lugubrious: { phonetic: '/ləˈɡuːbriəs/', audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/lugubrious-us.mp3' } });
   await captureSpeech(page);
   await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
   await page.fill('#vocabWord', 'lugubrious');
   await page.click('#vocabDefineBtn');
   await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
-  assert.match(calls[0].messages[0].content, /"pron"/, 'Claude is asked for it');
-  assert.equal(await page.inputValue('#vocabPron'), 'loo-GOO-bree-us', 'Claude’s respelling wins over IPA');
+  assert.match(calls[0].messages[0].content, /Merriam-Webster/, 'Claude is asked for the dictionary style');
+  assert.match(calls[0].messages[0].content, /"syll"/);
+  assert.equal(await page.inputValue('#vocabPron'), 'lu̇-ˈgü-brē-əs', 'Claude’s wins over the dictionary’s IPA');
+  assert.equal(await page.inputValue('#vocabSyll'), 'lu·gu·bri·ous');
 
   await page.click('#vocabSpeak');
   assert.deepEqual(await page.evaluate(() => window.__played), ['https://api.dictionaryapi.dev/media/pronunciations/en/lugubrious-us.mp3']);
   await page.click('#vocabSaveBtn');
   const [w] = await storedVocab(page);
-  assert.equal(w.pron, 'loo-GOO-bree-us');
+  assert.equal(w.pron, 'lu̇-ˈgü-brē-əs');
+  assert.equal(w.syll, 'lu·gu·bri·ous');
   assert.match(w.audio, /lugubrious-us\.mp3$/);
-  assert.match(await page.textContent('#vocabList'), /loo-GOO-bree-us/, 'shown in the list');
+  assert.ok((await page.textContent('#vocabList')).includes('\\lu̇-ˈgü-brē-əs\\'), 'shown in the list, between backslashes');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -1713,40 +1716,42 @@ test('reviews show the pronunciation — after the answer in the sentence test',
   const { ctx, page } = await openApp(browser, base);
   await captureSpeech(page);
   await seedVocab(page, [
-    { word: 'lugubrious', definition: 'Gloomy.', pron: 'loo-GOO-bree-us', box: 0 },
-    { word: 'obfuscate', definition: 'Make unclear.', pron: 'OB-fuh-skayt', box: 3, reviews: 3, sentence: 'He kept obfuscating it.' },
+    { word: 'lugubrious', definition: 'Gloomy.', syll: 'lu·gu·bri·ous', pron: 'lu̇-ˈgü-brē-əs', box: 0 },
+    { word: 'obfuscate', definition: 'Make unclear.', syll: 'ob·fus·cate', pron: 'ˈäb-fə-ˌskāt', box: 3, reviews: 3, sentence: 'He kept obfuscating it.' },
   ]);
   await page.evaluate(() => startVocabQuiz());
-  assert.match(await page.textContent('.vq-card'), /loo-GOO-bree-us/);
+  assert.match(await page.textContent('.vq-card'), /lu·gu·bri·ous/);
+  assert.ok((await page.textContent('.vq-card')).includes('\\lu̇-ˈgü-brē-əs\\'));
   await page.click('.vq-card .voc-speak');
   assert.equal(await page.evaluate(() => window.__said[0].text), 'lugubrious');
   await page.click('#vqReveal');
   await page.click('.vq-btn.good');
 
   assert.equal(await page.getAttribute('.vq-card', 'data-format'), 'blank');
-  assert.doesNotMatch(await page.textContent('.vq-card'), /OB-fuh-skayt/, 'no hint before answering');
+  assert.doesNotMatch(await page.textContent('.vq-card'), /ob·fus·cate|ˈäb-fə-ˌskāt/, 'no hint before answering');
   assert.equal(await page.locator('.vq-card .voc-speak').count(), 0);
   await page.fill('#vqAnswer', 'obfuscate');
   await page.press('#vqAnswer', 'Enter');
-  assert.match(await page.textContent('.vq-card'), /OB-fuh-skayt/);
+  assert.match(await page.textContent('.vq-card'), /ob·fus·cate/);
   assert.equal(await page.locator('.vq-card .voc-speak').count(), 1);
   await ctx.close();
 });
 
-test('one tap adds pronunciations to words saved before, in one Claude request', async () => {
+test('one tap adds dictionary pronunciations to earlier words, in one Claude request', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
-  const calls = await stubClaude(page, '```json\n{"Lugubrious":"loo-GOO-bree-us","terse":"turss"}\n```');
-  await seedVocab(page, [{ word: 'lugubrious', definition: 'Gloomy.' }, { word: 'terse', definition: 'Brief.' },
-                         { word: 'jocund', definition: 'Cheerful.', pron: 'JOK-und' }, { word: 'nodef', definition: '' }]);
+  const calls = await stubClaude(page, '```json\n{"Lugubrious":{"syll":"lu·gu·bri·ous","pron":"lu̇-ˈgü-brē-əs"},"terse":{"syll":"terse","pron":"ˈtərs"}}\n```');
+  await seedVocab(page, [{ word: 'lugubrious', definition: 'Gloomy.' }, { word: 'terse', definition: 'Brief.', pron: 'TURSS' },
+                         { word: 'jocund', definition: 'Cheerful.', syll: 'joc·und', pron: 'ˈjä-kənd' }, { word: 'nodef', definition: '' }]);
   await page.evaluate(() => showView('vocab'));
-  assert.match(await page.textContent('#vocabFillPron'), /2 words/, 'only defined words without one');
+  assert.match(await page.textContent('#vocabFillPron'), /2 words/, 'missing or in the old plain style; defined only');
   await page.click('#vocabFillPron');
   await page.waitForFunction(() => !document.getElementById('vocabFillPron'));
   assert.equal(calls.length, 1);
   assert.match(calls[0].messages[0].content, /lugubrious\nterse/);
-  const by = Object.fromEntries((await storedVocab(page)).map(w => [w.word, w.pron]));
-  assert.deepEqual(by, { lugubrious: 'loo-GOO-bree-us', terse: 'turss', jocund: 'JOK-und', nodef: undefined });
+  const by = Object.fromEntries((await storedVocab(page)).map(w => [w.word, [w.syll, w.pron]]));
+  assert.deepEqual(by, { lugubrious: ['lu·gu·bri·ous', 'lu̇-ˈgü-brē-əs'], terse: ['terse', 'ˈtərs'],
+                         jocund: ['joc·und', 'ˈjä-kənd'], nodef: [undefined, undefined] });
   assert.deepEqual(errors, []);
   await ctx.close();
 });
