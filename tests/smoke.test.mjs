@@ -1446,3 +1446,194 @@ test('words are in the export and come back through import', async () => {
   await fresh.ctx.close();
   await ctx.close();
 });
+
+// ── Words from highlights and photos ─────────────────────────────────────
+
+// Claude for both jobs at once: reading a photo (an image message) and
+// defining a word (a text message). Calls are recorded by kind.
+async function stubClaudeBoth(page, { read, define }) {
+  await page.evaluate(({ read, define }) => {
+    window.__claude = { read: [], define: [] };
+    const real = window.fetch;
+    window.fetch = async (url, opts) => {
+      if (!String(url).startsWith('https://api.anthropic.com/v1/messages')) return real(url, opts);
+      const body = JSON.parse(opts.body);
+      const isImage = Array.isArray(body.messages[0].content);
+      window.__claude[isImage ? 'read' : 'define'].push(body);
+      return new Response(JSON.stringify({ content: [{ type: 'text', text: isImage ? read : define }] }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+  }, { read, define });
+}
+
+const PASSAGE = 'The meeting dragged on. Every layer of approval seemed designed to\nobfuscate who had decided. Nobody spoke.';
+
+async function seedHighlight(page, extra = {}) {
+  await page.evaluate(([text, extra]) => {
+    books = [{ id: 'b1', title: 'The Algorithm', author: 'Jon McNeill', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    journalDB = { b1: [{ date: '2026-10-01', time: '9:00 AM', type: 'highlight', text, page: '88', at: 5 },
+                       { date: '2026-10-02', time: '9:00 AM', text: 'a plain note', at: 6 }] };
+    save('trr_v1_books', books); save('trr_v1_journal', journalDB);
+    Object.assign(window, extra);
+  }, [PASSAGE, extra]);
+}
+
+test('a word picked from a saved highlight arrives with its sentence, page and book', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedHighlight(page);
+  await page.evaluate(() => { openEditModal('b1'); switchModalTab('reading'); });
+  assert.equal(await page.locator('#journalEntries .hl-words').count(), 1, 'on highlights only, not notes');
+  await page.click('#journalEntries .hl-words');
+  assert.equal(await page.isVisible('#wordPick'), true);
+  await page.click('#wordPickText .wp-word:text-is("Every")');
+
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.inputValue('#vocabWord'), 'every', 'lower case at the start of a sentence');
+  assert.equal(await page.inputValue('#vocabSentence'),
+               'Every layer of approval seemed designed to obfuscate who had decided.', 'the whole sentence, wrap joined');
+  assert.equal(await page.inputValue('#vocabPage'), '88');
+  assert.equal(await page.inputValue('#vocabBook'), 'b1');
+
+  await page.fill('#vocabDef', 'Each one.');
+  await page.click('#vocabSaveBtn');
+  assert.equal(await page.isVisible('#wordPick'), true, 'the picker stays for more words');
+  assert.equal(await page.locator('#wordPickText .wp-word.known').count(), 1, 'the saved word is marked');
+  await page.click('#wordPickText .wp-word.known');
+  assert.equal(await page.textContent('#vocabModalTitle'), 'Edit word', 'a known word opens as saved');
+  await page.click('#vocabCancelBtn');
+  await page.click('#wordPickCancel');
+  assert.equal(await page.isVisible('#wordPick'), false);
+  assert.equal(await page.isVisible('#bookModal'), true, 'back in the book');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the Journal tab offers words from highlights too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedHighlight(page);
+  await page.evaluate(() => showView('journal'));
+  await page.waitForFunction(() => location.hash === '#journal' && document.getElementById('jsection-b1'));
+  await page.evaluate(() => toggleJournalSection('b1'));
+  assert.equal(await page.locator('#journalViewContent .hl-words').count(), 1);
+  await page.click('#journalViewContent .hl-words');
+  await page.click('#wordPickText .wp-word:text-is("obfuscate")');
+  assert.equal(await page.inputValue('#vocabWord'), 'obfuscate');
+  assert.equal(await page.inputValue('#vocabBook'), 'b1');
+  await ctx.close();
+});
+
+test('words can be picked while capturing a highlight, then the highlight saved', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await stubClaudeBoth(page, { read: PASSAGE, define: '{"headword":"obfuscate","pos":"verb","definition":"Make unclear."}' });
+  await openCapture(page);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+  await page.fill('#hlPage', '88');
+
+  await page.click('#hlWordsBtn');
+  await page.click('#wordPickText .wp-word:text-is("obfuscate")');
+  assert.equal(await page.isVisible('#vocabModal'), true, 'the editor opens above the capture screen');
+  assert.equal(await page.inputValue('#vocabPage'), '88');
+  await page.click('#vocabSaveBtn'); // defines, then saves
+  await page.waitForFunction(() => vocabDB.length === 1);
+  await page.click('#wordPickCancel');
+
+  assert.equal(await page.isVisible('#hlModal'), true, 'still on the highlight');
+  await page.click('#hlSave');
+  const j = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_journal')).b1);
+  assert.equal(j[0].text, PASSAGE);
+  assert.equal((await storedVocab(page))[0].sentence, 'Every layer of approval seemed designed to obfuscate who had decided.');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a word from a photo: read the page, tap the word, keep the dictionary form', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const passage = 'He kept obfuscating the issue until we gave up.';
+  await stubClaudeBoth(page, { read: passage, define: '{"headword":"obfuscate","pos":"verb","definition":"Make unclear.","note":""}' });
+  await seedHighlight(page);
+
+  await page.evaluate(() => openVocabWord(null, 'b1'));
+  await page.click('#vocabPhotoBtn');
+  assert.equal(await page.isVisible('#vocabModal'), false);
+  assert.equal(await page.isVisible('#hlModal'), true);
+  assert.match(await page.textContent('#hlTitle'), /word/);
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
+  assert.equal(await page.isVisible('#hlSave'), false, 'no Save highlight here');
+  await page.check('#hlAlso');
+
+  await page.click('#hlWordsBtn');
+  assert.match(await page.textContent('#wordPickTitle'), /Tap the word/);
+  await page.click('#wordPickText .wp-word:text-is("obfuscating")');
+  assert.equal(await page.isVisible('#hlModal'), false, 'the photo is done');
+  assert.equal(await page.isVisible('#wordPick'), false);
+  assert.equal(await page.inputValue('#vocabWord'), 'obfuscating');
+  assert.equal(await page.inputValue('#vocabSentence'), passage);
+
+  await page.click('#vocabDefineBtn');
+  await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
+  assert.equal(await page.inputValue('#vocabWord'), 'obfuscate', 'saved under its dictionary form');
+  assert.match(await page.textContent('#vocabStatus'), /dictionary form of “obfuscating”/);
+  const prompt = await page.evaluate(() => window.__claude.define[0].messages[0].content);
+  assert.match(prompt, /"obfuscating"/);
+  assert.match(prompt, /headword/);
+  await page.click('#vocabSaveBtn');
+
+  const [w] = await storedVocab(page);
+  assert.equal(w.word, 'obfuscate');
+  assert.equal(w.bookId, 'b1');
+  const j = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_journal')).b1);
+  assert.equal(j.filter(e => e.type === 'highlight' && e.text === passage).length, 1, 'also kept as a highlight');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('backing out of the photo returns to the word as you left it', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedHighlight(page);
+  await page.evaluate(() => openVocabWord(null, 'b1'));
+  await page.fill('#vocabWord', 'half-typed');
+  await page.click('#vocabPhotoBtn');
+  await page.click('#hlClose');
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.inputValue('#vocabWord'), 'half-typed');
+  assert.equal(await page.inputValue('#vocabBook'), 'b1');
+  await ctx.close();
+});
+
+test('without a key, a word can still come from a photo: type the sentence, then tap', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedHighlight(page);
+  await page.evaluate(() => openVocabWord(null, 'b1'));
+  await page.click('#vocabPhotoBtn');
+  await choosePhoto(page);
+  await page.click('#hlRead');
+  assert.match(await page.textContent('#hlStatus'), /Type the passage/);
+  await page.fill('#hlText', 'A terse reply.');
+  await page.click('#hlWordsBtn');
+  await page.click('#wordPickText .wp-word:text-is("terse")');
+  assert.equal(await page.inputValue('#vocabWord'), 'terse');
+  assert.equal(await page.inputValue('#vocabSentence'), 'A terse reply.');
+  await ctx.close();
+});
+
+test('passages with markup are picked from as text', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedHighlight(page);
+  await page.evaluate(() => {
+    journalDB.b1[0].text = 'A <img src=x onerror="window.__pwned=1"> tag.';
+    save('trr_v1_journal', journalDB);
+    openEditModal('b1'); switchModalTab('reading');
+  });
+  await page.click('#journalEntries .hl-words');
+  await page.waitForTimeout(100);
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#wordPickText img').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

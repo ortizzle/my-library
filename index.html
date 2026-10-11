@@ -267,6 +267,15 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .voc-progress{font-size:.74rem;color:var(--ink-faint);margin:.2rem 0 0}
 .voc-dup{background:#fbf0d8;border:1px solid var(--gold-lt);border-radius:8px;padding:.5rem .7rem;margin:-.3rem 0 .7rem;font-size:.82rem;color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:.6rem}
 .voc-dup button{min-height:44px;background:none;border:1px solid var(--gold);border-radius:6px;color:var(--ink);font-family:'Lora',serif;padding:0 .8rem;cursor:pointer;white-space:nowrap}
+.voc-photo{display:flex;width:100%;min-height:48px;justify-content:center;margin-bottom:.8rem;font-size:.88rem}
+.wp-hint{font-size:.8rem;color:var(--ink-light);font-style:italic;margin:-.4rem 0 .7rem}
+.wp-text{font-size:1.05rem;line-height:2.05;color:var(--ink);max-height:52vh;overflow-y:auto;padding:.2rem .1rem .6rem;white-space:pre-wrap}
+.wp-word{font:inherit;color:inherit;background:none;border:none;padding:.15rem .08rem;margin:0 -.08rem;border-radius:4px;cursor:pointer;line-height:1.5}
+.wp-word:active,.wp-word:hover{background:rgba(212,160,48,.3)}
+.wp-word.known{text-decoration:underline;text-decoration-color:var(--gold);text-decoration-thickness:2px;text-underline-offset:3px}
+.hl-words{margin-top:.4rem;min-height:40px;padding:0 .7rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);font-family:'Lora',serif;font-size:.78rem;color:var(--burgundy);cursor:pointer}
+.hl-also{display:flex;align-items:center;gap:.6rem;min-height:48px;color:#e8dcc0;font-size:.9rem;margin:.1rem 0 .4rem}
+.hl-also input{width:22px;height:22px;accent-color:var(--gold)}
 .voc-page{max-width:640px;padding-bottom:5.5rem} /* clear of the floating + */
 .lh-vocab{background:linear-gradient(135deg,#fbf0d8,#fdf7ea);border-bottom:2px solid var(--gold)}
 .voc-card-empty{padding:1rem 1rem .4rem;font-size:.8rem;color:var(--ink-faint);font-style:italic}
@@ -1080,7 +1089,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <!-- Vocabulary word: add / edit. Above the book editor, which can open it. -->
-<div class="overlay" id="vocabModal" style="display:none;z-index:8200">
+<div class="overlay" id="vocabModal" style="display:none;z-index:8700">
 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="vocabModalTitle">
   <div class="modal-hdr" style="display:flex;justify-content:space-between;align-items:flex-start">
     <h2 class="modal-title" id="vocabModalTitle">Add a word</h2>
@@ -1088,6 +1097,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
   <div class="modal-body">
     <div class="fg"><label for="vocabBook">Book</label><select id="vocabBook"></select></div>
+    <button type="button" class="btn btn-secondary voc-photo" id="vocabPhotoBtn">📷 Pick it from a photo of the page</button>
     <div class="fg"><label for="vocabWord">Word</label><input type="text" id="vocabWord" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. lugubrious"></div>
     <div id="vocabDup" class="voc-dup" style="display:none"></div>
     <div class="fg"><label for="vocabSentence">The sentence you found it in <span class="voc-opt">(optional — sharpens the definition and the quiz)</span></label><textarea id="vocabSentence" rows="3"></textarea></div>
@@ -1109,6 +1119,17 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
   </div>
 </div>
+</div>
+
+<!-- Word picker: a passage as tappable words → the word editor -->
+<div id="wordPick" class="sheet-backdrop" style="display:none;z-index:8600">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wordPickTitle">
+    <div class="sheet-grip" aria-hidden="true"></div>
+    <h3 id="wordPickTitle" class="sheet-title">Tap a word to learn</h3>
+    <p class="wp-hint" id="wordPickHint">Words already in your list are underlined.</p>
+    <div class="wp-text" id="wordPickText"></div>
+    <button type="button" class="sheet-cancel" id="wordPickCancel">Cancel</button>
+  </div>
 </div>
 
 <!-- Vocabulary review: one word at a time, then a summary -->
@@ -1134,7 +1155,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <p class="hl-book" id="hlBook"></p>
 
     <div id="hlPick">
-      <p class="hl-hint">Photograph the page, then drag across the passage you want to keep.</p>
+      <p class="hl-hint" id="hlPickHint">Photograph the page, then drag across the passage you want to keep.</p>
       <button class="btn btn-primary hl-big" id="hlTakeBtn">📷 Take a photo</button>
       <button class="btn btn-secondary hl-big" id="hlChooseBtn">🖼 Choose a photo</button>
       <input type="file" id="hlCamera" accept="image/*" capture="environment" style="display:none">
@@ -1156,8 +1177,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <div class="fg"><label for="hlText">Passage</label><textarea id="hlText" rows="6"></textarea></div>
       <div style="display:flex;gap:.6rem">
         <div class="fg" style="flex:0 0 6.5rem"><label for="hlPage">Page</label><input type="text" id="hlPage" inputmode="numeric" placeholder="—"></div>
-        <div class="fg" style="flex:1"><label for="hlNote">Note (optional)</label><input type="text" id="hlNote" placeholder="Why it stood out"></div>
+        <div class="fg" style="flex:1" id="hlNoteWrap"><label for="hlNote">Note (optional)</label><input type="text" id="hlNote" placeholder="Why it stood out"></div>
       </div>
+      <label class="hl-also" id="hlAlsoWrap" style="display:none"><input type="checkbox" id="hlAlso"> Also save the passage as a highlight</label>
+      <button class="btn btn-secondary hl-big" id="hlWordsBtn">Aa Pick words to learn</button>
       <div class="hl-actions">
         <button class="btn btn-secondary" id="hlBack">← Back</button>
         <button class="btn btn-primary" id="hlSave">Save highlight</button>
@@ -2384,7 +2407,7 @@ let _hl=null; // {bookId, bitmap, scale, dispW, dispH, box, cropUrl}
 function initHighlights(){
   const $=id=>document.getElementById(id);
   $('hlOpenBtn').addEventListener('click',()=>{if(editId)openHighlight(editId);});
-  $('hlClose').addEventListener('click',closeHighlight);
+  $('hlClose').addEventListener('click',()=>closeHighlight());
   $('hlTakeBtn').addEventListener('click',()=>$('hlCamera').click());
   $('hlChooseBtn').addEventListener('click',()=>$('hlFile').click());
   $('hlCamera').addEventListener('change',e=>onHighlightPhoto(e.target));
@@ -2393,6 +2416,8 @@ function initHighlights(){
   $('hlRead').addEventListener('click',readHighlight);
   $('hlBack').addEventListener('click',()=>highlightStep('mark'));
   $('hlSave').addEventListener('click',saveHighlight);
+  $('hlWordsBtn').addEventListener('click',pickWordsFromHighlight);
+  $('hlAlso').addEventListener('change',()=>{$('hlNoteWrap').style.display=$('hlAlso').checked?'':'none';});
   wireHighlightStage($('hlStage'));
 }
 
@@ -2401,20 +2426,37 @@ function highlightStep(step){
     document.getElementById(id).style.display=name===step?'block':'none';
 }
 
-function openHighlight(bookId){
-  const b=books.find(x=>x.id===bookId);if(!b)return;
-  _hl={bookId,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
-  document.getElementById('hlBook').textContent=b.title+(b.author?' · '+b.author:'');
+// mode 'hl' saves a highlight; mode 'word' is the word editor's "from a photo":
+// the same capture, ending in the word picker. `stash` is the word editor as
+// it was, put back if the photo is abandoned.
+function openHighlight(bookId,mode='hl',stash=null){
+  const b=books.find(x=>x.id===bookId);
+  if(!b&&mode!=='word')return;
+  const word=mode==='word';
+  _hl={bookId:b?b.id:'',mode,stash,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
+  const $=id=>document.getElementById(id);
+  $('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
+  $('hlTitle').textContent=word?'A word from the page':'✦ Add a Highlight';
+  $('hlPickHint').textContent=word?'Photograph the page, then drag across the sentence with the word in it.':'Photograph the page, then drag across the passage you want to keep.';
+  $('hlSave').style.display=word?'none':'';
+  $('hlWordsBtn').textContent=word?'Aa Pick the word →':'Aa Pick words to learn';
+  $('hlWordsBtn').className='btn hl-big '+(word?'btn-primary':'btn-secondary');
+  $('hlAlsoWrap').style.display=word&&b?'flex':'none';
+  $('hlAlso').checked=false;
+  $('hlNoteWrap').style.display=word?'none':'';
   highlightStep('pick');
   document.getElementById('hlModal').style.display='block';
   document.body.style.overflow='hidden';
 }
 
-function closeHighlight(){
+function closeHighlight(picked=false){
+  const was=_hl;
   if(_hl&&_hl.bitmap&&_hl.bitmap.close)_hl.bitmap.close();
   _hl=null;
   document.getElementById('hlModal').style.display='none';
   document.body.style.overflow='';
+  // Backed out of "from a photo" without a word: return to the editor as it was.
+  if(was&&was.mode==='word'&&!picked&&was.stash)openVocabWord(null,was.stash.bookId,was.stash);
 }
 
 // Android camera photos often store the image sideways with an orientation
@@ -2531,8 +2573,15 @@ async function readHighlight(){
 
 function saveHighlight(){
   if(!_hl)return;
+  if(!storeHighlight())return;
+  closeHighlight();
+  toast('Highlight saved ✦','ok');
+}
+
+// The passage on the confirm screen → a journal entry. false if it's empty.
+function storeHighlight(){
   const text=document.getElementById('hlText').value.trim();
-  if(!text){toast('The passage is empty.','err');return;}
+  if(!text){toast('The passage is empty.','err');return false;}
   const page=document.getElementById('hlPage').value.trim();
   const note=document.getElementById('hlNote').value.trim();
   const id=_hl.bookId,now=new Date();
@@ -2543,10 +2592,29 @@ function saveHighlight(){
   journalDB[id].push(entry);
   save(SK.journal,journalDB);
   logDay(entry.date);updateHdrStreak();
-  closeHighlight();
   if(editId===id)renderJournalEntries(id);
   renderLibrary(); // the cards bake in recent entries; the Library tab doesn't redraw them
-  toast('Highlight saved ✦','ok');
+  return true;
+}
+
+// "Pick words" on the confirm screen. In highlight mode the word editor opens
+// on top and you come back here to save the highlight; in word mode the photo
+// is done once a word is picked.
+function pickWordsFromHighlight(){
+  if(!_hl)return;
+  const text=document.getElementById('hlText').value.trim();
+  if(!text){toast('There’s no passage to pick from yet.','err');document.getElementById('hlText').focus();return;}
+  const session=_hl;
+  openWordPicker(text,{bookId:session.bookId,page:document.getElementById('hlPage').value.trim(),
+    multi:session.mode!=='word',
+    onPick:pre=>{
+      if(_hl!==session)return;
+      if(session.mode==='word'){
+        if(document.getElementById('hlAlso').checked&&session.bookId&&storeHighlight())toast('Highlight saved ✦','ok');
+        closeHighlight(true);
+        openVocabWord(null,session.bookId||(session.stash&&session.stash.bookId)||'',pre);
+      }else openVocabWord(null,session.bookId,pre);
+    }});
 }
 
 // ══════════════════════════════════════════
@@ -2677,7 +2745,8 @@ function parseDefinition(text){
     try{
       const o=JSON.parse(m[0]);
       if(o&&typeof o.definition==='string'&&o.definition.trim())
-        return {pos:String(o.pos||'').trim(),definition:o.definition.trim(),note:String(o.note||'').trim()};
+        return {pos:String(o.pos||'').trim(),definition:o.definition.trim(),note:String(o.note||'').trim(),
+                headword:String(o.headword||'').trim()};
     }catch{}
   }
   return raw?{pos:'',definition:raw,note:''}:null;
@@ -2699,7 +2768,7 @@ async function defineWithClaude(word,book,sentence){
   const prompt=`I came across the word "${word}" in ${src}.`+
     (sentence?`\nThe sentence: "${sentence}"`:'')+
     `\n\nDefine it in the sense it is used there. Reply with JSON only, no code fence:\n`+
-    `{"pos":"part of speech","definition":"one plain sentence, under 25 words — the sense used here","note":"optional: a short note on usage or origin, or how this passage uses it; empty string if nothing useful"}`;
+    `{"headword":"the dictionary form (run for running, mouse for mice)","pos":"part of speech","definition":"one plain sentence, under 25 words — the sense used here","note":"optional: a short note on usage or origin, or how this passage uses it; empty string if nothing useful"}`;
   const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:400,messages:[{role:'user',content:prompt}]})});
@@ -2754,6 +2823,7 @@ function refreshVocabViews(){
 }
 function vocabChanged(){
   refreshVocabViews();
+  renderWordPicker(); // newly saved words show as known
   if(document.getElementById('view-lists').classList.contains('active'))renderLists();
   if(document.getElementById('view-log').classList.contains('active'))renderLogSession();
 }
@@ -2776,6 +2846,120 @@ function initVocab(){
   $('vocabWord').addEventListener('input',showVocabDup);
   $('vocabWord').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();defineVocabWord(false);}});
   $('vqClose').addEventListener('click',closeVocabQuiz);
+  $('vocabPhotoBtn').addEventListener('click',vocabFromPhoto);
+  $('wordPickCancel').addEventListener('click',closeWordPicker);
+  $('wordPick').addEventListener('click',e=>{if(e.target.id==='wordPick')closeWordPicker();});
+  // "Aa Words" on a saved highlight, wherever the journal is drawn.
+  document.addEventListener('click',e=>{
+    const btn=e.target.closest&&e.target.closest('.hl-words');
+    if(!btn)return;
+    const entry=(journalDB[btn.dataset.book]||[]).find(x=>entryKey(x)===btn.dataset.key);
+    if(!entry){toast('That highlight is no longer there.','err');return;}
+    openWordPicker(entry.text,{bookId:btn.dataset.book,page:entry.page||'',multi:true,
+      onPick:pre=>openVocabWord(null,btn.dataset.book,pre)});
+  });
+}
+
+// The word editor's camera: the highlight capture in word mode. Opened in the
+// same tap so the camera may launch; the editor's fields wait in the stash.
+function vocabFromPhoto(){
+  if(!_vw)return;
+  const $=x=>document.getElementById(x);
+  const stash={bookId:$('vocabBook').value,word:$('vocabWord').value,sentence:$('vocabSentence').value,page:$('vocabPage').value};
+  closeVocabWord();
+  openHighlight(stash.bookId,'word',stash);
+  $('hlCamera').click();
+}
+
+function hlWordsButton(bookId,e){
+  if(!isHighlight(e))return '';
+  return `<button type="button" class="hl-words" data-book="${esc(bookId)}" data-key="${esc(entryKey(e))}">Aa Words</button>`;
+}
+
+// ── Picking a word out of a passage ──────────────────────────────
+// Words and the gaps between them. Apostrophes and hyphens inside a word keep
+// it whole ("don't", "well-worn").
+function wordTokens(text){
+  const s=String(text||''),out=[],re=/[\p{L}\p{M}]+(?:['’\-][\p{L}\p{M}]+)*/gu;
+  let last=0,m;
+  while((m=re.exec(s))){
+    if(m.index>last)out.push({text:s.slice(last,m.index)});
+    out.push({text:m[0],word:true,start:m.index,end:m.index+m[0].length});
+    last=re.lastIndex;
+  }
+  if(last<s.length)out.push({text:s.slice(last)});
+  return out;
+}
+
+// The sentence around [start,end): back to the previous sentence end or
+// paragraph break (a blank line), on to the next. A single line break is just
+// where the page wrapped, so it's read as a space.
+function sentenceAround(text,start,end){
+  const s=String(text||'');
+  const closers='"\'”’)]';
+  let a=start;
+  while(a>0){
+    const c=s[a-1];
+    if(c==='\n'&&s[a-2]==='\n')break;
+    if(/\s/.test(c)){
+      let k=a-2;
+      while(k>=0&&closers.includes(s[k]))k--;
+      if(k>=0&&'.!?…'.includes(s[k]))break;
+    }
+    a--;
+  }
+  let b=end;
+  while(b<s.length&&!(s[b]==='\n'&&s[b+1]==='\n')){
+    if('.!?…'.includes(s[b])){
+      b++;
+      while(b<s.length&&closers.includes(s[b]))b++;
+      if(b>=s.length||/\s/.test(s[b]))break;
+      continue;
+    }
+    b++;
+  }
+  return s.slice(a,b).replace(/\s+/g,' ').trim();
+}
+
+// The word as it should be saved: lower case, unless it's capitalised in the
+// middle of a sentence (a name, or a word the author meant capitalised).
+function pickedWord(tok,sentence){
+  const lead=String(sentence||'').replace(/^[^\p{L}]+/u,'');
+  if(lead.startsWith(tok)||tok===tok.toUpperCase())return tok.toLowerCase();
+  return tok;
+}
+
+let _wp=null; // {text, opts}
+
+function openWordPicker(text,opts){
+  _wp={text,opts};
+  renderWordPicker();
+  document.getElementById('wordPick').style.display='flex';
+}
+function closeWordPicker(){_wp=null;document.getElementById('wordPick').style.display='none';}
+
+function renderWordPicker(){
+  if(!_wp)return;
+  const {text,opts}=_wp;
+  const box=document.getElementById('wordPickText');
+  let known=0;
+  box.replaceChildren(...wordTokens(text).map(t=>{
+    if(!t.word)return document.createTextNode(t.text);
+    const b=vEl('button','wp-word',t.text);b.type='button';
+    const dup=vocabFindDup(t.text);
+    if(dup){b.classList.add('known');b.title='In your list — tap to open';known++;}
+    b.addEventListener('click',()=>{
+      // A word already saved opens as it is; there's nothing new to add.
+      if(dup){if(!opts.multi)closeWordPicker();openVocabWord(dup.id);return;}
+      const sentence=sentenceAround(text,t.start,t.end);
+      if(!opts.multi)closeWordPicker();
+      opts.onPick({word:pickedWord(t.text,sentence),sentence,page:opts.page||''});
+    });
+    return b;
+  }));
+  document.getElementById('wordPickTitle').textContent=opts.multi?'Tap a word to learn':'Tap the word';
+  document.getElementById('wordPickHint').style.display=known?'':'none';
+  document.getElementById('wordPickCancel').textContent=opts.multi?'Done':'Cancel';
 }
 
 function fillVocabBookSelect(selected){
@@ -2797,7 +2981,9 @@ function fillVocabBookSelect(selected){
   sel.value=selected||'';
 }
 
-function openVocabWord(id,bookId){
+// pre: {word, sentence, page} to start a new word with — from a picked word,
+// or the editor's own fields coming back from an abandoned photo.
+function openVocabWord(id,bookId,pre=null){
   const w=id?vocabDB.find(x=>x.id===id):null;
   if(id&&!w)return;
   _vw={id:w?w.id:null,deleteArmed:false,defining:false};
@@ -2805,9 +2991,10 @@ function openVocabWord(id,bookId){
   $('vocabModalTitle').textContent=w?'Edit word':'Add a word';
   if(!w&&!bookId){const r=books.filter(b=>b.status==='reading');if(r.length===1)bookId=r[0].id;}
   fillVocabBookSelect(w?w.bookId:bookId);
-  $('vocabWord').value=w?w.word:'';
-  $('vocabSentence').value=w?w.sentence||'':'';
-  $('vocabPage').value=w?w.page||'':'';
+  $('vocabWord').value=w?w.word:(pre&&pre.word)||'';
+  $('vocabSentence').value=w?w.sentence||'':(pre&&pre.sentence)||'';
+  $('vocabPage').value=w?w.page||'':(pre&&pre.page)||'';
+  $('vocabPhotoBtn').style.display=w?'none':'flex';
   $('vocabPos').value=w?w.pos||'':'';
   $('vocabDef').value=w?w.definition||'':'';
   $('vocabNote').value=w?w.note||'':'';
@@ -2815,11 +3002,12 @@ function openVocabWord(id,bookId){
   $('vocabDeleteBtn').style.display=w?'inline-flex':'none';
   $('vocabDeleteBtn').textContent='🗑 Delete';
   $('vocabProgress').textContent=w?vocabProgressText(w):'';
+  if(!w&&pre&&pre.word)setVocabStatus('Check the word — trim it to its plain form if you like — then tap Define.');
   showVocabDup();
   $('vocabModal').style.display='flex';
   // Focus now, not on a timer: a delayed focus can pull typing out of whichever
   // field the user has already moved on to.
-  if(!w)$('vocabWord').focus();
+  if(!w&&!(pre&&pre.word))$('vocabWord').focus();
 }
 
 function vocabProgressText(w){
@@ -2873,6 +3061,17 @@ async function defineVocabWord(andSave){
   $('vocabPos').value=r.def.pos||'';
   $('vocabDef').value=r.def.definition;
   $('vocabNote').value=r.def.note||'';
+  // A picked word arrives as the book spelled it ("obfuscating"); keep the
+  // dictionary form instead, so the list and the quiz use the real headword.
+  // The sentence test still finds the inflected form.
+  const head=r.def.headword;
+  if(!session.id&&head&&/^[\p{L}\p{M}' ’-]+$/u.test(head)&&vocabNorm(head)!==vocabNorm(word)){
+    $('vocabWord').value=word===word.toLowerCase()?head.toLowerCase():head;
+    showVocabDup();
+    setVocabStatus(`Saved as “${$('vocabWord').value}”, the dictionary form of “${word}”. Change it back if you prefer.`);
+    if(andSave)saveVocabWord();
+    return;
+  }
   setVocabStatus(r.source==='claude'?'Defined by Claude for this book — edit anything you like.':
     'From the dictionary'+(r.error?` (Claude didn't answer: ${r.error})`:'')+' — check it fits the sentence.');
   if(andSave)saveVocabWord();
@@ -3248,6 +3447,7 @@ function renderJournalEntries(bookId){
         <button class="journal-entry-del" onclick="deleteJournalEntry('${bookId}',${idx})">✕</button>
       </div>
       <div class="journal-entry-text">${journalBodyHtml(e)}</div>
+      ${hlWordsButton(bookId,e)}
     </div>`;
   }).join('');
 }
@@ -5036,6 +5236,7 @@ function journalBookSection(b){
       <div class="journal-entry-body">
         <div class="journal-entry-stamp">${fmtDate(e.date)}${e.time?' · '+e.time:''}${journalTag(e)}</div>
         <div class="journal-entry-text-view">${journalBodyHtml(e)}</div>
+        ${hlWordsButton(b.id,e)}
       </div>
     </div>`).join('');
 
@@ -5459,6 +5660,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
     if(vis('vocabQuiz')){closeVocabQuiz();return;}
     if(vis('vocabModal')){closeVocabWord();return;}
+    if(vis('wordPick')){closeWordPicker();return;}
     if(vis('hlModal')){closeHighlight();return;}
     if(vis('addSheet')){closeAddSheet();return;}
     if(vis('sessionModal')){closeReadingSession();return;}

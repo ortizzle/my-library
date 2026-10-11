@@ -51,6 +51,9 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Add the sentence you found it in and **Claude defines the word in the sense that book uses it**. Without an Anthropic key it falls back to the free dictionary at [dictionaryapi.dev](https://dictionaryapi.dev); you can always type or edit the definition
 - **Reviews space themselves out** (Leitner boxes): right answers push a word's next review to 1, 3, 7, 14, 30, then 60 days; a miss brings it back tomorrow. Five right in a row and it's *mastered*
 - **Three kinds of question**, getting harder as you learn a word: a flashcard, multiple choice (using your other words' definitions), then typing the word into the sentence it came from
+- **Pick words instead of typing them:** tap **Aa Words** on any saved highlight, or *Pick words to learn* while capturing one, and tap a word in the passage. The sentence around it, the page and the book come along. Words already in your list are underlined
+- **From a photo:** *📷 Pick it from a photo of the page* in the word editor uses the highlight camera — drag across the sentence, Claude reads it, tap the word. Optionally keep the passage as a highlight too
+- A word picked as the book spells it ("ossified") is saved under its dictionary form ("ossify"), which Claude supplies with the definition
 - A link on **Today's Reading** shows when words are due. Reviews don't count toward the reading streak
 - Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 

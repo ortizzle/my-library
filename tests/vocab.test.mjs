@@ -9,7 +9,7 @@ import { loadFunctions, extractConst } from './extract.mjs';
 const V = loadFunctions(['vocabInterval', 'addDaysStr', 'vocabStatus', 'vocabGrade', 'vocabDue',
                          'vocabNextDue', 'escRegExp', 'vocabBlank', 'vocabNorm', 'vocabCheckAnswer',
                          'vocabDistractorPool', 'vocabChoices', 'vocabFormat', 'parseDefinition',
-                         'parseDictionary']);
+                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord']);
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
    'mergeIdMap', 'mergeState', 'remoteState'],
@@ -150,7 +150,7 @@ test('question type follows the box, falling back when it cannot be asked', () =
 // ── definitions ──────────────────────────────────────────────────────────
 
 test('reads Claude’s JSON, with or without a code fence', () => {
-  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere' };
+  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere', headword: '' };
   assert.deepEqual(V.parseDefinition('{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
   assert.deepEqual(V.parseDefinition('```json\n{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}\n```'), want);
   assert.deepEqual(V.parseDefinition('Here you go: {"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
@@ -202,4 +202,49 @@ test('a gist from before vocabulary existed keeps the local words', () => {
   assert.deepEqual(remote.vocab, []);
   assert.equal(M.mergeState(local, remote).vocab.length, 1);
   assert.deepEqual(M.remoteState({ vocab: { not: 'an array' } }).vocab, [], 'bad shape is ignored');
+});
+
+test('Claude’s dictionary form comes through', () => {
+  assert.equal(V.parseDefinition('{"headword":"obfuscate","pos":"verb","definition":"make unclear"}').headword, 'obfuscate');
+});
+
+// ── picking a word out of a passage ──────────────────────────────────────
+
+test('a passage splits into words and the gaps between, losing nothing', () => {
+  const text = 'He said, “don’t go — it’s well-worn.”\nThen left.';
+  const toks = V.wordTokens(text);
+  assert.equal(toks.map(t => t.text).join(''), text);
+  assert.deepEqual(toks.filter(t => t.word).map(t => t.text),
+                   ['He', 'said', 'don’t', 'go', 'it’s', 'well-worn', 'Then', 'left']);
+  const w = toks.find(t => t.text === 'well-worn');
+  assert.equal(text.slice(w.start, w.end), 'well-worn');
+  assert.deepEqual(V.wordTokens('déjà vu').filter(t => t.word).map(t => t.text), ['déjà', 'vu'], 'accents stay in the word');
+});
+
+const around = (text, word) => { const i = text.indexOf(word); return V.sentenceAround(text, i, i + word.length); };
+
+test('the sentence around a word, and only that sentence', () => {
+  const text = 'It rained. The room had a lugubrious air, as if\neveryone knew. Nobody spoke!';
+  assert.equal(around(text, 'lugubrious'), 'The room had a lugubrious air, as if everyone knew.',
+               'a line break from the page is not a sentence end');
+  assert.equal(around(text, 'rained'), 'It rained.');
+  assert.equal(around(text, 'Nobody'), 'Nobody spoke!');
+});
+
+test('closing quotes stay with their sentence', () => {
+  const text = '“Leave,” she said. “It is all so ephemeral.” He went.';
+  assert.equal(around(text, 'ephemeral'), '“It is all so ephemeral.”');
+});
+
+test('a blank line (a new paragraph) ends the sentence', () => {
+  assert.equal(around('Title line\n\nA sesquipedalian word appears here', 'sesquipedalian'), 'A sesquipedalian word appears here');
+  assert.equal(around('Earlier paragraph ends\n\nthen a sesquipedalian one', 'Earlier'), 'Earlier paragraph ends');
+});
+
+test('a picked word is saved lower case unless it is capitalised mid-sentence', () => {
+  assert.equal(V.pickedWord('Lugubrious', 'Lugubrious was the mood.'), 'lugubrious', 'just the start of a sentence');
+  assert.equal(V.pickedWord('Lugubrious', '“Lugubrious,” he said.'), 'lugubrious', 'even after an opening quote');
+  assert.equal(V.pickedWord('Byzantine', 'The rules were Byzantine.'), 'Byzantine');
+  assert.equal(V.pickedWord('LOUD', 'He was LOUD about it.'), 'loud');
+  assert.equal(V.pickedWord('terse', 'A terse reply.'), 'terse');
 });
