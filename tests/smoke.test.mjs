@@ -1362,9 +1362,10 @@ test('Today’s Reading links to a review when words are due, and stays quiet ot
   await page.click('.vq-btn.good');
   await page.click('.vq-done .vq-btn');
 
-  assert.match(await page.textContent('#vocabNudge'), /all caught up/, 'refreshed after the review');
+  assert.match(await page.textContent('#vocabNudge'), /All caught up/, 'refreshed after the review');
+  assert.match(await page.textContent('#vocabNudge'), /WORD OF THE DAY/);
   await page.click('#vocabNudge');
-  assert.equal(await page.evaluate(() => location.hash), '#vocab');
+  assert.equal(await page.isVisible('#vocabView'), true, 'the word of the day opens its page');
   await ctx.close();
 });
 
@@ -1504,8 +1505,9 @@ test('a word picked from a saved highlight arrives with its sentence, page and b
   assert.equal(await page.isVisible('#wordPick'), true, 'the picker stays for more words');
   assert.equal(await page.locator('#wordPickText .wp-word.known').count(), 1, 'the saved word is marked');
   await page.click('#wordPickText .wp-word.known');
-  assert.equal(await page.textContent('#vocabModalTitle'), 'Edit word', 'a known word opens as saved');
-  await page.click('#vocabCancelBtn');
+  assert.equal(await page.isVisible('#vocabView'), true, 'a known word opens its page');
+  assert.match(await page.textContent('#vocabViewBody'), /every/);
+  await page.click('#vocabViewBody .vv-foot .btn-primary');
   await page.click('#wordPickCancel');
   assert.equal(await page.isVisible('#wordPick'), false);
   assert.equal(await page.isVisible('#bookModal'), true, 'back in the book');
@@ -1737,15 +1739,14 @@ test('reviews show the pronunciation — after the answer in the sentence test',
   await ctx.close();
 });
 
-test('one tap adds dictionary pronunciations to earlier words, in one Claude request', async () => {
+test('opening Vocabulary brings earlier words up to dictionary style, in one Claude request', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
   const calls = await stubClaude(page, '```json\n{"Lugubrious":{"syll":"lu·gu·bri·ous","pron":"lu̇-ˈgü-brē-əs"},"terse":{"syll":"terse","pron":"ˈtərs"}}\n```');
   await seedVocab(page, [{ word: 'lugubrious', definition: 'Gloomy.' }, { word: 'terse', definition: 'Brief.', pron: 'TURSS' },
                          { word: 'jocund', definition: 'Cheerful.', syll: 'joc·und', pron: 'ˈjä-kənd' }, { word: 'nodef', definition: '' }]);
-  await page.evaluate(() => showView('vocab'));
-  assert.match(await page.textContent('#vocabFillPron'), /2 words/, 'missing or in the old plain style; defined only');
-  await page.click('#vocabFillPron');
+  await page.evaluate(() => vocabDB.filter(needsPron).length).then(n => assert.equal(n, 2, 'missing or in the old plain style; defined only'));
+  await page.evaluate(() => showView('vocab')); // with a key it runs by itself
   await page.waitForFunction(() => !document.getElementById('vocabFillPron'));
   assert.equal(calls.length, 1);
   assert.match(calls[0].messages[0].content, /lugubrious\nterse/);
@@ -1767,5 +1768,74 @@ test('without a key, the dictionary fills in what it knows', async () => {
   assert.equal(by.terse.pron, '/tɜːs/');
   assert.match(by.terse.audio, /terse-us\.mp3$/);
   assert.equal(by.flibbertigibbetish.pron, undefined);
+  await ctx.close();
+});
+
+// ── A word's page ────────────────────────────────────────────────────────
+
+test('tapping a word shows its page; Edit is a step further and comes back', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await addBook(page, 'Switzy', 'Some Author');
+  const id = await page.evaluate(() => books[0].id);
+  await seedVocab(page, [{ word: 'addled', definition: 'Confused.', pos: 'adjective', syll: 'ad·dled', pron: 'ˈa-dᵊld',
+                           sentence: 'His addled brain gave up.', page: '12', bookId: id, box: 2, reviews: 2, due: '2999-01-01' }]);
+  await page.evaluate(() => showView('vocab'));
+  await page.click('#vocabList .voc-row');
+  assert.equal(await page.isVisible('#vocabView'), true);
+  assert.equal(await page.isVisible('#vocabModal'), false, 'not straight to the editor');
+  const text = await page.textContent('#vocabViewBody');
+  for (const bit of ['addled', 'ad·dled', '\\ˈa-dᵊld\\', 'adjective', 'Confused.', 'from Switzy, page 12', 'Reviewed 2 times'])
+    assert.ok(text.includes(bit), `shows ${bit}`);
+  assert.equal(await page.locator('#vocabViewBody .vv-step.on').count(), 2, 'two of five steps to mastered');
+  assert.equal(await page.locator('#vocabViewBody .vv-quote mark').textContent(), 'addled');
+
+  await page.click('#vocabViewEdit');
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.isVisible('#vocabView'), false);
+  await page.click('#vocabCancelBtn');
+  assert.equal(await page.isVisible('#vocabView'), true, 'Cancel goes back to the page');
+
+  await page.click('#vocabViewEdit');
+  await page.fill('#vocabDef', 'Muddled, confused.');
+  await page.click('#vocabSaveBtn');
+  assert.equal(await page.isVisible('#vocabView'), true, 'Save goes back to the page too');
+  assert.match(await page.textContent('#vocabViewBody'), /Muddled, confused\./, 'showing the edit');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#vocabView'), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('words in a book and on the Lists card open their page too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Switzy');
+  const id = await page.evaluate(() => books[0].id);
+  await seedVocab(page, [{ word: 'slough', definition: 'Shed.', bookId: id }]);
+  await page.evaluate(i => { openEditModal(i); switchModalTab('reading'); }, id);
+  await page.click('#vocabBookList .voc-book-row');
+  assert.equal(await page.isVisible('#vocabView'), true);
+  await page.click('#vocabViewBody .vv-foot .btn-primary');
+  await page.evaluate(() => { closeM('bookModal'); showView('lists'); });
+  await page.click('#vocabCard .voc-row');
+  assert.equal(await page.isVisible('#vocabView'), true);
+  await ctx.close();
+});
+
+test('the Today card shows the words waiting, and a word of the day once caught up', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedVocab(page, [{ word: 'addled', definition: 'Confused.' }, { word: 'slough', definition: 'Shed.' },
+                         { word: 'interstitial', definition: 'Between.' }, { word: 'tenebrous', definition: 'Dark.' }]);
+  await page.evaluate(() => showView('log'));
+  await page.waitForSelector('#vocabNudge');
+  assert.equal(await page.textContent('#vocabNudge .vn-badge b'), '4');
+  assert.deepEqual(await page.$$eval('#vocabNudge .vn-chip', els => els.map(e => e.textContent)),
+                   ['addled', 'slough', 'interstitial', '+1']);
+
+  await page.evaluate(() => { vocabDB.forEach(w => w.due = '2999-01-01'); save(SK.vocab, vocabDB); renderLogSession(); });
+  const first = await page.textContent('#vocabNudge .vn-word');
+  await page.evaluate(() => renderLogSession());
+  assert.equal(await page.textContent('#vocabNudge .vn-word'), first, 'the same word all day');
+  const week = await page.evaluate(() => new Set(Array.from({ length: 14 }, (_, i) => wordOfTheDay(vocabDB, addDaysStr('2026-10-01', i)).word)).size);
+  assert.ok(week > 1, 'but not the same word every day');
   await ctx.close();
 });

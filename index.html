@@ -292,6 +292,48 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .vq-say{flex-wrap:wrap}
 .vq-syll{font-size:1rem;color:var(--ink);letter-spacing:.03em}
 .vq-pron{font-size:1rem;color:var(--ink-light)}
+.vn{display:block;width:100%;text-align:left;margin-bottom:1rem;border-radius:14px;cursor:pointer;font-family:'Lora',serif;box-shadow:0 6px 20px var(--shadow-deep),0 1px 4px var(--shadow)}
+.vn-due{display:flex;align-items:center;gap:.85rem;padding:.9rem 1rem;border:1px solid #6b4a22;background:radial-gradient(circle at 0 0,rgba(212,160,48,.22),transparent 55%),linear-gradient(135deg,#2c1a10,#4a2a18);color:var(--parchment)}
+.vn-badge{flex-shrink:0;width:58px;height:58px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 0 0 3px rgba(212,160,48,.25),0 2px 8px rgba(0,0,0,.35)}
+.vn-badge b{font-family:'Playfair Display',serif;font-size:1.45rem;line-height:1}
+.vn-badge small{font-family:'IM Fell English SC',serif;font-size:.52rem;letter-spacing:.08em;margin-top:.05rem}
+.vn-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:.15rem}
+.vn-kicker{font-family:'IM Fell English SC',serif;font-size:.66rem;letter-spacing:.12em;color:var(--gold-lt);display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.vn-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:#fff8e8}
+.vn-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.25rem}
+.vn-chip{font-size:.78rem;font-style:italic;padding:.1rem .55rem;border-radius:20px;background:rgba(255,248,232,.1);border:1px solid rgba(212,160,48,.35);color:#f2e4c4;max-width:9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vn-chip.more{font-style:normal;color:var(--gold-lt)}
+.vn-go{flex-shrink:0;align-self:center;padding:.5rem .8rem;min-height:40px;display:flex;align-items:center;border-radius:20px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font-family:'Playfair Display',serif;font-weight:700;font-size:.85rem;white-space:nowrap}
+.vn-wotd{padding:.85rem 1rem .95rem;border:1px solid var(--gold-lt);border-left:5px solid var(--gold);background:linear-gradient(120deg,#fdf6e3,var(--cream));color:var(--ink)}
+.vn-wotd .vn-kicker{color:var(--gold)}
+.vn-caught{font-family:'Lora',serif;letter-spacing:0;font-size:.7rem;color:var(--ink-faint)}
+.vn-wordline{display:flex;align-items:baseline;gap:.5rem;flex-wrap:wrap;margin:.25rem 0 .1rem}
+.vn-word{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;color:var(--burgundy);line-height:1.15}
+.vn-pron{font-size:.85rem;color:var(--ink-light)}
+.vn-def{display:block;font-size:.88rem;color:var(--ink-light);line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#vocabView .modal.vv{max-width:480px;padding:0}
+.vv-top{position:relative;padding:1.4rem 1.3rem 1rem;background:radial-gradient(circle at 100% 0,rgba(212,160,48,.25),transparent 60%),linear-gradient(135deg,#2c1a10,#4a2a18);color:var(--parchment)}
+.vv-close{position:absolute;top:.4rem;right:.4rem;min-width:48px;min-height:48px;background:none;border:none;color:#e8dcc0;font-size:1.2rem;cursor:pointer}
+.vv-word{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:700;line-height:1.1;color:#fff8e8;padding-right:2.5rem;word-break:break-word}
+.vv-say{display:flex;align-items:center;flex-wrap:wrap;gap:.25rem .7rem;margin-top:.5rem}
+.vv-syll{font-size:1.05rem;color:var(--gold-lt);letter-spacing:.03em}
+.vv-pron{font-size:1rem;color:#e8dcc0}
+.vv-say .voc-speak{background:rgba(255,248,232,.1);border-color:rgba(212,160,48,.4);color:#fff}
+.vv-pos{margin-top:.45rem;font-style:italic;color:#c9b28a;font-size:.92rem}
+.vv-main{padding:1.1rem 1.3rem .4rem;overflow-y:auto}
+.vv-def{font-size:1.12rem;line-height:1.55;color:var(--ink);margin:0}
+.vv-note{font-size:.88rem;font-style:italic;color:var(--ink-light);margin:.55rem 0 0;line-height:1.5}
+.vv-quote{margin-top:1rem}
+.vv-src{font-size:.78rem;color:var(--ink-faint);margin:.4rem 0 0 .9rem}
+.vv-progress{margin-top:1.1rem;padding-top:.85rem;border-top:1px dotted var(--parchment-dark)}
+.vv-prog-head{display:flex;align-items:center;gap:.7rem}
+.vv-prog-head .voc-pill{margin-left:0}
+.vv-meter{display:flex;gap:.3rem}
+.vv-step{width:22px;height:6px;border-radius:3px;background:var(--parchment-dark)}
+.vv-step.on{background:linear-gradient(90deg,var(--gold),var(--gold-lt))}
+.vv-facts{font-size:.8rem;color:var(--ink-light);margin:.45rem 0 0}
+.vv-foot{display:flex;gap:.6rem;padding:.9rem 1.3rem 1.2rem}
+.vv-foot .btn{flex:1;justify-content:center}
 .voc-page{max-width:640px;padding-bottom:5.5rem} /* clear of the floating + */
 .lh-vocab{background:linear-gradient(135deg,#fbf0d8,#fdf7ea);border-bottom:2px solid var(--gold)}
 .voc-card-empty{padding:1rem 1rem .4rem;font-size:.8rem;color:var(--ink-faint);font-style:italic}
@@ -324,13 +366,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .voc-empty{text-align:center;padding:2rem 1rem;color:var(--ink-light)}
 .voc-empty h3{font-family:'Playfair Display',serif;margin-bottom:.35rem}
 .voc-empty p{font-size:.88rem;line-height:1.55}
-.voc-nudge{display:flex;align-items:center;gap:.7rem;width:100%;min-height:56px;padding:.6rem .9rem;margin-bottom:1rem;border:1px solid var(--gold-lt);border-radius:10px;background:linear-gradient(90deg,#fbf0d8,var(--cream));text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
-.voc-nudge .voc-nudge-ico{font-family:'Playfair Display',serif;font-weight:700;font-size:1.15rem;color:var(--burgundy);width:1.8rem;text-align:center;flex-shrink:0}
-.voc-nudge b{font-family:'Playfair Display',serif;font-size:.95rem}
-.voc-nudge small{display:block;font-size:.76rem;color:var(--ink-light)}
-.voc-nudge .voc-nudge-go{margin-left:auto;font-size:.85rem;color:var(--burgundy);white-space:nowrap}
-.voc-nudge.quiet{background:none;border-color:var(--parchment-dark)}
-.voc-nudge.quiet .voc-nudge-go{color:var(--ink-faint)}
 .voc-book-row{display:flex;align-items:baseline;gap:.45rem;width:100%;min-height:48px;padding:.5rem .65rem;margin-bottom:.35rem;background:var(--cream);border:1px solid var(--parchment-dark);border-radius:6px;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
 .voc-book-row span:last-child{font-size:.78rem;color:var(--ink-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 #vocabQuiz{position:fixed;inset:0;z-index:8400;background:var(--parchment);overflow-y:auto}
@@ -1139,6 +1174,11 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
   </div>
 </div>
+</div>
+
+<!-- A word's own page: tapping a word shows this; Edit is a step further -->
+<div class="overlay" id="vocabView" style="display:none;z-index:8650">
+  <div class="modal vv" role="dialog" aria-modal="true" aria-label="Word"><div id="vocabViewBody"></div></div>
 </div>
 
 <!-- Word picker: a passage as tappable words → the word editor -->
@@ -2960,9 +3000,10 @@ function initVocab(){
   $('vocabAddBtn').addEventListener('click',()=>openVocabWord(null,null));
   $('vocabSearch').addEventListener('input',renderVocabList);
   $('vocabBookAdd').addEventListener('click',()=>{if(editId)openVocabWord(null,editId);});
-  $('vocabModalClose').addEventListener('click',closeVocabWord);
-  $('vocabCancelBtn').addEventListener('click',closeVocabWord);
-  $('vocabModal').addEventListener('click',e=>{if(e.target.id==='vocabModal')closeVocabWord();});
+  $('vocabModalClose').addEventListener('click',cancelVocabWord);
+  $('vocabCancelBtn').addEventListener('click',cancelVocabWord);
+  $('vocabModal').addEventListener('click',e=>{if(e.target.id==='vocabModal')cancelVocabWord();});
+  $('vocabView').addEventListener('click',e=>{if(e.target.id==='vocabView')closeVocabDetail();});
   $('vocabDefineBtn').addEventListener('click',()=>defineVocabWord(false));
   $('vocabSaveBtn').addEventListener('click',saveVocabWord);
   $('vocabDeleteBtn').addEventListener('click',deleteVocabWord);
@@ -3074,7 +3115,7 @@ function renderWordPicker(){
     if(dup){b.classList.add('known');b.title='In your list — tap to open';known++;}
     b.addEventListener('click',()=>{
       // A word already saved opens as it is; there's nothing new to add.
-      if(dup){if(!opts.multi)closeWordPicker();openVocabWord(dup.id);return;}
+      if(dup){if(!opts.multi)closeWordPicker();openVocabDetail(dup.id);return;}
       const sentence=sentenceAround(text,t.start,t.end);
       if(!opts.multi)closeWordPicker();
       opts.onPick({word:pickedWord(t.text,sentence),sentence,page:opts.page||''});
@@ -3107,11 +3148,12 @@ function fillVocabBookSelect(selected){
 
 // pre: {word, sentence, page} to start a new word with — from a picked word,
 // or the editor's own fields coming back from an abandoned photo.
-function openVocabWord(id,bookId,pre=null){
+function openVocabWord(id,bookId,pre=null,back=false){
   const w=id?vocabDB.find(x=>x.id===id):null;
   if(id&&!w)return;
   // audio is the recording for audioFor; typing a different word drops it.
-  _vw={id:w?w.id:null,deleteArmed:false,defining:false,audio:w&&w.audio||'',audioFor:w?vocabNorm(w.word):''};
+  _vw={id:w?w.id:null,deleteArmed:false,defining:false,audio:w&&w.audio||'',audioFor:w?vocabNorm(w.word):'',
+       back:back&&w?w.id:null}; // back: return to the word page on Save or Cancel
   const $=x=>document.getElementById(x);
   $('vocabModalTitle').textContent=w?'Edit word':'Add a word';
   if(!w&&!bookId){const r=books.filter(b=>b.status==='reading');if(r.length===1)bookId=r[0].id;}
@@ -3150,6 +3192,12 @@ function vocabEditorAudio(){
 }
 
 function closeVocabWord(){_vw=null;document.getElementById('vocabModal').style.display='none';}
+// Cancel, ✕, Escape: back to the word page if that's where Edit came from.
+function cancelVocabWord(){
+  const back=_vw&&_vw.back;
+  closeVocabWord();
+  if(back)openVocabDetail(back);
+}
 
 function setVocabStatus(msg,err=false){
   const s=document.getElementById('vocabStatus');
@@ -3236,9 +3284,10 @@ function saveVocabWord(){
     vocabDB.unshift(w);
   }
   saveVocab(w);
-  const isNew=!_vw.id;
+  const isNew=!_vw.id,back=_vw.back;
   closeVocabWord();
   vocabChanged();
+  if(back)openVocabDetail(back);
   toast(isNew?`“${w.word}” added to your vocabulary`:'Word saved','ok');
 }
 
@@ -3282,10 +3331,13 @@ function renderVocab(){
     }
     const missing=vocabDB.filter(needsPron).length;
     if(missing){
-      const fill=vEl('button','voc-fill',`Add dictionary pronunciations to ${plural(missing,'word')}`);
-      fill.type='button';fill.id='vocabFillPron';
+      const fill=vEl('button','voc-fill',_pronFilling?'Adding pronunciations…':`Add dictionary pronunciations to ${plural(missing,'word')}`);
+      fill.type='button';fill.id='vocabFillPron';fill.disabled=_pronFilling;
       fill.addEventListener('click',()=>fillPronunciations(fill));
       card.append(fill);
+      // With a key, older words are brought up to the same style on their own,
+      // once per visit to the app; the button stays for a retry.
+      if(localStorage.getItem(SK.api)&&!_pronAutoTried){_pronAutoTried=true;fillPronunciations(fill,true);}
     }
     const row=vEl('div','voc-counts');
     for(const [k,label] of [['new','NEW'],['learning','LEARNING'],['mastered','MASTERED']]){
@@ -3304,12 +3356,14 @@ function vocabRow(w,cls='voc-row'){
   const top=vEl('span','voc-row-top');
   top.append(vEl('span','voc-word',w.word));
   if(w.pron)top.append(vEl('span','voc-pron',pronShown(w.pron)));
-  else if(w.pos)top.append(vEl('span','voc-pos',w.pos));
   const st=vocabStatus(w);
   top.append(vEl('span','voc-pill '+st,st));
   row.append(top);
-  row.append(vEl('span','voc-def',w.definition||'No definition yet — tap to add one'));
-  row.addEventListener('click',()=>openVocabWord(w.id));
+  const def=vEl('span','voc-def');
+  if(w.pos)def.append(vEl('i','voc-pos',w.pos+' '));
+  def.append(w.definition||'No definition yet — tap to add one');
+  row.append(def);
+  row.addEventListener('click',()=>openVocabDetail(w.id));
   item.append(row,speakButton(w));
   return item;
 }
@@ -3353,9 +3407,11 @@ function needsPron(w){
 // Pronunciations for words saved before they existed (or in the older plain
 // style). With a key, one Claude request per 40 words; without one, the free
 // dictionary word by word.
-async function fillPronunciations(btn){
+let _pronFilling=false,_pronAutoTried=false;
+async function fillPronunciations(btn,auto=false){
   const todo=vocabDB.filter(needsPron);
-  if(!todo.length)return;
+  if(!todo.length||_pronFilling)return;
+  _pronFilling=true;
   btn.disabled=true;btn.textContent='Adding pronunciations…';
   const found=new Map(); // id → {pron, audio}
   let err='';
@@ -3384,9 +3440,10 @@ async function fillPronunciations(btn){
     changed.push(w);
   }
   if(changed.length)saveVocab(...changed);
+  _pronFilling=false;
   const left=todo.length-changed.length;
-  if(err&&!changed.length)toast(`Couldn’t add pronunciations (${err}).`,'err');
-  else toast(`Added ${plural(changed.length,'pronunciation')}`+(left?` — ${left} not found; tap 🔊 to hear them anyway`:''),changed.length?'ok':'err');
+  if(err&&!changed.length){if(!auto)toast(`Couldn’t add pronunciations (${err}).`,'err');}
+  else if(!auto||changed.length)toast(`Added ${plural(changed.length,'pronunciation')}`+(left?` — ${left} not found; tap 🔊 to hear them anyway`:''),changed.length?'ok':'err');
   vocabChanged();
 }
 
@@ -3398,28 +3455,111 @@ function renderBookVocab(bookId){
   box.replaceChildren(...list.map(w=>{
     const r=vEl('button','voc-book-row');r.type='button';
     r.append(vEl('span','voc-word',w.word),vEl('span',null,w.definition||''));
-    r.addEventListener('click',()=>openVocabWord(w.id));
+    r.addEventListener('click',()=>openVocabDetail(w.id));
     return r;
   }));
 }
 
 // The quick link on Today's Reading. Nothing at all until there are words.
+// The same word all day, a different one tomorrow.
+function wordOfTheDay(list,today){
+  const pool=(list||[]).filter(w=>w&&w.definition).sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  if(!pool.length)return null;
+  let h=0;for(const c of String(today))h=(h*31+c.charCodeAt(0))>>>0;
+  return pool[h%pool.length];
+}
+
+// The card on Today's Reading. Words due: a dark card that leads to the
+// review. Caught up: a word of the day from your own list. No words: nothing.
 function vocabNudge(){
   if(!vocabDB.length)return null;
   const today=localDateStr();
-  const due=vocabDue(vocabDB,today).length;
-  const b=vEl('button','voc-nudge'+(due?'':' quiet'));b.type='button';b.id='vocabNudge';
-  const text=vEl('span');
+  const dueList=vocabDue(vocabDB,today);
+  const due=dueList.length;
+  const b=vEl('button','vn'+(due?' vn-due':' vn-wotd'));b.type='button';b.id='vocabNudge';
   if(due){
-    text.append(vEl('b',null,`${plural(due,'word')} to review`),vEl('small',null,'Keep your vocabulary fresh — a minute or two'));
-  }else{
-    const next=vocabNextDue(vocabDB,today);
-    text.append(vEl('b',null,'Vocabulary: all caught up'),vEl('small',null,next?`Next review ${fmtShortDate(next)}`:`${plural(vocabDB.length,'word')} saved`));
+    const badge=vEl('span','vn-badge');
+    badge.append(vEl('b',null,String(due)),vEl('small',null,due===1?'WORD':'WORDS'));
+    const text=vEl('span','vn-text');
+    text.append(vEl('span','vn-kicker','VOCABULARY'),vEl('b','vn-title',`${plural(due,'word')} to review`));
+    const chips=vEl('span','vn-chips');
+    for(const w of dueList.slice(0,3))chips.append(vEl('span','vn-chip',w.word));
+    if(due>3)chips.append(vEl('span','vn-chip more',`+${due-3}`));
+    text.append(chips);
+    b.append(badge,text,vEl('span','vn-go','Review ›'));
+    b.addEventListener('click',()=>startVocabQuiz());
+    return b;
   }
-  b.append(vEl('span','voc-nudge-ico','Aa'),text,vEl('span','voc-nudge-go',due?'Review ›':'Words ›'));
-  b.addEventListener('click',()=>due?startVocabQuiz():showView('vocab'));
+  const w=wordOfTheDay(vocabDB,today);
+  const next=vocabNextDue(vocabDB,today);
+  const head=vEl('span','vn-kicker');
+  head.append(vEl('span',null,'WORD OF THE DAY'),vEl('span','vn-caught',next?`All caught up · next review ${fmtShortDate(next)}`:'All caught up'));
+  b.append(head);
+  if(w){
+    const line=vEl('span','vn-wordline');
+    line.append(vEl('span','vn-word',w.word));
+    if(w.pron)line.append(vEl('span','vn-pron',pronShown(w.pron)));
+    b.append(line,vEl('span','vn-def',(w.pos?w.pos+' · ':'')+w.definition));
+    b.addEventListener('click',()=>openVocabDetail(w.id));
+  }else{
+    b.append(vEl('span','vn-def',`${plural(vocabDB.length,'word')} saved — add definitions to start reviewing.`));
+    b.addEventListener('click',()=>showView('vocab'));
+  }
   return b;
 }
+
+// ── A word's page ────────────────────────────────────────────────
+function openVocabDetail(id){
+  const w=vocabDB.find(x=>x.id===id);
+  if(!w)return;
+  const body=document.getElementById('vocabViewBody');
+  const close=vEl('button','vv-close','✕');close.type='button';close.setAttribute('aria-label','Close');
+  close.addEventListener('click',closeVocabDetail);
+
+  const top=vEl('div','vv-top');
+  top.append(close,vEl('div','vv-word',w.word));
+  const say=vEl('div','vv-say');
+  if(w.syll)say.append(vEl('span','vv-syll',w.syll));
+  if(w.pron)say.append(vEl('span','vv-pron',pronShown(w.pron)));
+  say.append(speakButton(w));
+  top.append(say);
+  if(w.pos)top.append(vEl('div','vv-pos',w.pos));
+
+  const main=vEl('div','vv-main');
+  main.append(vEl('p','vv-def',w.definition||'No definition yet.'));
+  if(w.note)main.append(vEl('p','vv-note',w.note));
+  if(w.sentence){
+    const q=vqSentence(w,false);q.classList.add('vv-quote');
+    main.append(q);
+  }
+  const t=vocabBookTitle(w.bookId);
+  if(t)main.append(vEl('p','vv-src',`from ${t}${w.page?`, page ${w.page}`:''}`));
+
+  // Progress: the Leitner box as five steps to mastered.
+  const st=vocabStatus(w);
+  const prog=vEl('div','vv-progress');
+  const head=vEl('div','vv-prog-head');
+  head.append(vEl('span','voc-pill '+st,st));
+  const meter=vEl('span','vv-meter');meter.setAttribute('aria-label',`${Math.min(5,w.box||0)} of 5 steps to mastered`);
+  for(let i=1;i<=5;i++)meter.append(vEl('span','vv-step'+(i<=(w.box||0)?' on':'')));
+  head.append(meter);
+  const today=localDateStr();
+  const facts=[w.reviews?`Reviewed ${plural(w.reviews,'time')}`:'Not reviewed yet'];
+  if(w.definition&&w.due)facts.push(w.due<=today?'due now':`next review ${fmtShortDate(w.due)}`);
+  prog.append(head,vEl('p','vv-facts',facts.join(' · ')));
+  main.append(prog);
+
+  const foot=vEl('div','vv-foot');
+  const edit=vEl('button','btn btn-secondary voc-btn','✎ Edit');edit.type='button';edit.id='vocabViewEdit';
+  edit.addEventListener('click',()=>{closeVocabDetail();openVocabWord(w.id,null,null,true);});
+  const done=vEl('button','btn btn-primary voc-btn','Done');done.type='button';
+  done.addEventListener('click',closeVocabDetail);
+  foot.append(edit,done);
+
+  body.replaceChildren(top,main,foot);
+  document.getElementById('vocabView').style.display='flex';
+}
+function closeVocabDetail(){document.getElementById('vocabView').style.display='none';}
 
 // ── Review ───────────────────────────────────────────────────────
 const VOCAB_SESSION=10;
@@ -5855,7 +5995,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
     if(vis('vocabQuiz')){closeVocabQuiz();return;}
-    if(vis('vocabModal')){closeVocabWord();return;}
+    if(vis('vocabModal')){cancelVocabWord();return;}
+    if(vis('vocabView')){closeVocabDetail();return;}
     if(vis('wordPick')){closeWordPicker();return;}
     if(vis('hlModal')){closeHighlight();return;}
     if(vis('addSheet')){closeAddSheet();return;}
