@@ -54,6 +54,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Pick words instead of typing them:** tap **Aa Words** on any saved highlight, or *Pick words to learn* while capturing one, and tap a word in the passage. The sentence around it, the page and the book come along. Words already in your list are underlined
 - **From a photo:** *📷 Pick it from a photo of the page* in the word editor uses the highlight camera — drag across the sentence, Claude reads it, tap the word. Optionally keep the passage as a highlight too
 - A word picked as the book spells it ("ossified") is saved under its dictionary form ("ossify"), which Claude supplies with the definition
+- **Pronunciation:** each word gets a sound-it-out spelling (*loo-GOO-bree-us*) from Claude with its definition, or the dictionary's phonetic spelling without a key. **🔊** says it — a real recording from the dictionary when there is one, otherwise the phone's own voice (free, works offline). In reviews it's shown with the word, except in the sentence test, where it appears only after you answer. Words saved earlier can be filled in with one tap on the Vocabulary page
 - A link on **Today's Reading** shows when words are due. Reviews don't count toward the reading streak
 - Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 

@@ -9,7 +9,7 @@ import { loadFunctions, extractConst } from './extract.mjs';
 const V = loadFunctions(['vocabInterval', 'addDaysStr', 'vocabStatus', 'vocabGrade', 'vocabDue',
                          'vocabNextDue', 'escRegExp', 'vocabBlank', 'vocabNorm', 'vocabCheckAnswer',
                          'vocabDistractorPool', 'vocabChoices', 'vocabFormat', 'parseDefinition',
-                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord']);
+                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap']);
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
    'mergeIdMap', 'mergeState', 'remoteState'],
@@ -150,7 +150,7 @@ test('question type follows the box, falling back when it cannot be asked', () =
 // ── definitions ──────────────────────────────────────────────────────────
 
 test('reads Claude’s JSON, with or without a code fence', () => {
-  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere', headword: '' };
+  const want = { pos: 'adjective', definition: 'mournful, dismal', note: 'from Latin lugere', headword: '', pron: '' };
   assert.deepEqual(V.parseDefinition('{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
   assert.deepEqual(V.parseDefinition('```json\n{"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}\n```'), want);
   assert.deepEqual(V.parseDefinition('Here you go: {"pos":"adjective","definition":"mournful, dismal","note":"from Latin lugere"}'), want);
@@ -166,7 +166,8 @@ test('takes the first sense from the free dictionary', () => {
   const data = [{ word: 'lugubrious', meanings: [
     { partOfSpeech: 'adjective', definitions: [{ definition: 'Gloomy, mournful or dismal.', example: 'a lugubrious tune' }] },
     { partOfSpeech: 'noun', definitions: [{ definition: 'not this one' }] }] }];
-  assert.deepEqual(V.parseDictionary(data), { pos: 'adjective', definition: 'Gloomy, mournful or dismal.', note: 'e.g. “a lugubrious tune”' });
+  assert.deepEqual(V.parseDictionary(data), { pos: 'adjective', definition: 'Gloomy, mournful or dismal.', note: 'e.g. “a lugubrious tune”',
+                                             pron: '', audio: '' });
   assert.equal(V.parseDictionary({ title: 'No Definitions Found' }), null);
   assert.equal(V.parseDictionary([{ meanings: [] }]), null);
 });
@@ -247,4 +248,30 @@ test('a picked word is saved lower case unless it is capitalised mid-sentence', 
   assert.equal(V.pickedWord('Byzantine', 'The rules were Byzantine.'), 'Byzantine');
   assert.equal(V.pickedWord('LOUD', 'He was LOUD about it.'), 'loud');
   assert.equal(V.pickedWord('terse', 'A terse reply.'), 'terse');
+});
+
+// ── pronunciation ────────────────────────────────────────────────────────
+
+test('Claude’s respelling comes through with the definition', () => {
+  assert.equal(V.parseDefinition('{"pron":"loo-GOO-bree-us","definition":"gloomy"}').pron, 'loo-GOO-bree-us');
+});
+
+test('the dictionary’s sound: phonetic text and the American recording first', () => {
+  const data = [{ phonetic: '/ləˈɡuːbriəs/', phonetics: [
+    { text: '/ləˈɡuːbriəs/', audio: '' },
+    { audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/x-uk.mp3' },
+    { audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/x-us.mp3' }], meanings: [] }];
+  assert.deepEqual(V.dictionarySound(data), { pron: '/ləˈɡuːbriəs/', audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/x-us.mp3' });
+  assert.deepEqual(V.dictionarySound([{ phonetics: [{ text: '/tɜːs/' }, { audio: 'https://a/x-uk.mp3' }] }]),
+                   { pron: '/tɜːs/', audio: 'https://a/x-uk.mp3' }, 'phonetic from the list, any recording');
+  assert.deepEqual(V.dictionarySound([{ phonetics: [{ audio: 'javascript:alert(1)' }] }]), { pron: '', audio: '' }, 'https only');
+  assert.deepEqual(V.dictionarySound({ title: 'No Definitions Found' }), { pron: '', audio: '' });
+});
+
+test('a batch of respellings maps back to the words, whatever their case', () => {
+  assert.deepEqual(V.parsePronMap('```json\n{"Lugubrious":"loo-GOO-bree-us","terse":" turss ","x":""}\n```'),
+                   { lugubrious: 'loo-GOO-bree-us', terse: 'turss' });
+  assert.deepEqual(V.parsePronMap('no json here'), {});
+  assert.deepEqual(V.parsePronMap('{"bad json"'), {});
+  assert.deepEqual(V.parsePronMap('["a list"]'), {});
 });

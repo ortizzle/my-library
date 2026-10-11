@@ -276,12 +276,26 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .hl-words{margin-top:.4rem;min-height:40px;padding:0 .7rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);font-family:'Lora',serif;font-size:.78rem;color:var(--burgundy);cursor:pointer}
 .hl-also{display:flex;align-items:center;gap:.6rem;min-height:48px;color:#e8dcc0;font-size:.9rem;margin:.1rem 0 .4rem}
 .hl-also input{width:22px;height:22px;accent-color:var(--gold)}
+.voc-word-row{display:flex;gap:.5rem}
+.voc-word-row input{flex:1;min-width:0}
+.voc-speak{flex-shrink:0;min-width:48px;min-height:48px;border:1px solid var(--parchment-dark);border-radius:10px;background:var(--cream);font-size:1.15rem;line-height:1;cursor:pointer}
+.voc-speak:active{background:var(--parchment-dark)}
+.voc-item{display:flex;gap:.4rem;align-items:stretch;margin-bottom:.4rem}
+.voc-item .voc-row{flex:1;min-width:0;margin-bottom:0}
+.voc-item.flat{gap:0;margin:0;border-bottom:1px dotted var(--parchment-dark)}
+.voc-item.flat .voc-row{border:none}
+.voc-item.flat .voc-speak{border:none;background:none;margin-right:.3rem}
+.voc-pron{font-size:.78rem;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.voc-fill{display:block;width:100%;min-height:48px;margin-top:.6rem;border:1px solid rgba(255,255,255,.25);border-radius:10px;background:transparent;color:var(--parchment);font-family:'Lora',serif;font-size:.9rem;cursor:pointer}
+.voc-fill[disabled]{opacity:.6;cursor:default}
+.vq-say{display:flex;align-items:center;gap:.6rem;margin-top:.35rem}
+.vq-pron{font-size:1rem;color:var(--ink-light);letter-spacing:.02em}
 .voc-page{max-width:640px;padding-bottom:5.5rem} /* clear of the floating + */
 .lh-vocab{background:linear-gradient(135deg,#fbf0d8,#fdf7ea);border-bottom:2px solid var(--gold)}
 .voc-card-empty{padding:1rem 1rem .4rem;font-size:.8rem;color:var(--ink-faint);font-style:italic}
 .voc-card-btn{display:block;width:calc(100% - 1.4rem);min-height:48px;margin:.6rem .7rem;border:1px dashed var(--parchment-dark);border-radius:8px;background:none;font-family:'Lora',serif;font-size:.88rem;color:var(--burgundy);cursor:pointer}
 .voc-card-btn.due{border:none;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font-family:'Playfair Display',serif;font-weight:700;font-size:.95rem}
-.voc-row.voc-row-flat{border:none;border-bottom:1px dotted var(--parchment-dark);border-radius:0;margin:0;background:none}
+.voc-row.voc-row-flat{border:none;border-radius:0;margin:0;background:none}
 .voc-hero{background:linear-gradient(135deg,#2c1a10,#4a2a18);color:var(--parchment);border-radius:var(--r);padding:1rem 1.1rem;margin-bottom:.9rem;box-shadow:0 4px 16px var(--shadow)}
 .voc-hero h3{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--gold-lt);margin:0 0 .25rem}
 .voc-hero p{font-size:.85rem;color:#d9c7a3;margin:0 0 .8rem;line-height:1.5}
@@ -1098,7 +1112,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div class="modal-body">
     <div class="fg"><label for="vocabBook">Book</label><select id="vocabBook"></select></div>
     <button type="button" class="btn btn-secondary voc-photo" id="vocabPhotoBtn">📷 Pick it from a photo of the page</button>
-    <div class="fg"><label for="vocabWord">Word</label><input type="text" id="vocabWord" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. lugubrious"></div>
+    <div class="fg"><label for="vocabWord">Word</label><div class="voc-word-row"><input type="text" id="vocabWord" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. lugubrious"><button type="button" class="voc-speak" id="vocabSpeak" aria-label="Say the word" title="Say it">🔊</button></div></div>
     <div id="vocabDup" class="voc-dup" style="display:none"></div>
     <div class="fg"><label for="vocabSentence">The sentence you found it in <span class="voc-opt">(optional — sharpens the definition and the quiz)</span></label><textarea id="vocabSentence" rows="3"></textarea></div>
     <div style="display:flex;gap:.6rem;align-items:flex-end">
@@ -1106,7 +1120,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <button type="button" class="btn btn-gold voc-btn" id="vocabDefineBtn" style="flex:1;margin-bottom:.7rem;justify-content:center">✦ Define</button>
     </div>
     <p class="voc-status" id="vocabStatus" aria-live="polite"></p>
-    <div class="fg"><label for="vocabPos">Part of speech</label><input type="text" id="vocabPos" placeholder="adjective"></div>
+    <div style="display:flex;gap:.6rem">
+      <div class="fg" style="flex:1;min-width:0"><label for="vocabPos">Part of speech</label><input type="text" id="vocabPos" placeholder="adjective"></div>
+      <div class="fg" style="flex:1.3;min-width:0"><label for="vocabPron">Pronunciation</label><input type="text" id="vocabPron" autocomplete="off" spellcheck="false" placeholder="loo-GOO-bree-us"></div>
+    </div>
     <div class="fg"><label for="vocabDef">Definition</label><textarea id="vocabDef" rows="3"></textarea></div>
     <div class="fg"><label for="vocabNote">Note <span class="voc-opt">(optional)</span></label><input type="text" id="vocabNote" placeholder="Usage, origin, how it's used here"></div>
     <p class="voc-progress" id="vocabProgress"></p>
@@ -2746,7 +2763,7 @@ function parseDefinition(text){
       const o=JSON.parse(m[0]);
       if(o&&typeof o.definition==='string'&&o.definition.trim())
         return {pos:String(o.pos||'').trim(),definition:o.definition.trim(),note:String(o.note||'').trim(),
-                headword:String(o.headword||'').trim()};
+                headword:String(o.headword||'').trim(),pron:String(o.pron||'').trim()};
     }catch{}
   }
   return raw?{pos:'',definition:raw,note:''}:null;
@@ -2757,9 +2774,32 @@ function parseDictionary(data){
   const entry=Array.isArray(data)?data[0]:null;
   for(const m of (entry&&entry.meanings)||[]){
     const d=(m.definitions||[]).find(x=>x&&x.definition);
-    if(d)return {pos:m.partOfSpeech||'',definition:d.definition,note:d.example?`e.g. “${d.example}”`:''};
+    if(d)return {pos:m.partOfSpeech||'',definition:d.definition,note:d.example?`e.g. “${d.example}”`:'',...dictionarySound(data)};
   }
   return null;
+}
+
+// The dictionary's phonetic spelling and a recording, if it has them. The
+// recordings are real voices from Wiktionary; prefer the American one.
+function dictionarySound(data){
+  const entry=Array.isArray(data)?data[0]:null;
+  const ph=((entry&&entry.phonetics)||[]).filter(x=>x&&typeof x==='object');
+  const withText=ph.find(x=>x.text);
+  const pron=(entry&&entry.phonetic)||(withText?withText.text:'')||'';
+  const audios=ph.map(x=>x.audio).filter(a=>typeof a==='string'&&/^https:\/\//.test(a));
+  return {pron,audio:audios.find(a=>/-us\.mp3$/i.test(a))||audios[0]||''};
+}
+
+// Claude's reply to a batch pronunciation request → {normalised word: respelling}.
+function parsePronMap(text){
+  const m=String(text||'').replace(/```(?:json)?/gi,'').match(/\{[\s\S]*\}/);
+  if(!m)return {};
+  let o;
+  try{o=JSON.parse(m[0]);}catch{return {};}
+  const out={};
+  if(o&&typeof o==='object'&&!Array.isArray(o))
+    for(const [k,v] of Object.entries(o))if(typeof v==='string'&&v.trim())out[vocabNorm(k)]=v.trim();
+  return out;
 }
 
 async function defineWithClaude(word,book,sentence){
@@ -2768,13 +2808,37 @@ async function defineWithClaude(word,book,sentence){
   const prompt=`I came across the word "${word}" in ${src}.`+
     (sentence?`\nThe sentence: "${sentence}"`:'')+
     `\n\nDefine it in the sense it is used there. Reply with JSON only, no code fence:\n`+
-    `{"headword":"the dictionary form (run for running, mouse for mice)","pos":"part of speech","definition":"one plain sentence, under 25 words — the sense used here","note":"optional: a short note on usage or origin, or how this passage uses it; empty string if nothing useful"}`;
+    `{"headword":"the dictionary form (run for running, mouse for mice)","pron":"how to say the headword: a simple respelling with the stressed syllable in capitals, e.g. loo-GOO-bree-us","pos":"part of speech","definition":"one plain sentence, under 25 words — the sense used here","note":"optional: a short note on usage or origin, or how this passage uses it; empty string if nothing useful"}`;
   const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
     body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:400,messages:[{role:'user',content:prompt}]})});
   if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
   const data=await res.json();
   return parseDefinition((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n'));
+}
+
+// Just the recording and phonetic spelling, for a word Claude defined. Short
+// timeout: it's a nicety, and must not hold up the definition.
+async function dictionarySoundFor(word){
+  const ctl=new AbortController();
+  const t=setTimeout(()=>ctl.abort(),4000);
+  try{
+    const res=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(word.toLowerCase()),{signal:ctl.signal});
+    return res.ok?dictionarySound(await res.json()):{pron:'',audio:''};
+  }catch{return {pron:'',audio:''};}
+  finally{clearTimeout(t);}
+}
+
+async function pronounceWithClaude(words){
+  const key=localStorage.getItem(SK.api)||'';
+  const prompt=`Give a pronunciation guide for each word below: a simple respelling with the stressed syllable in capitals (lugubrious → loo-GOO-bree-us). `+
+    `Reply with JSON only, no code fence: one object mapping each word, exactly as given, to its respelling.\n\n`+words.join('\n');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:200+30*words.length,messages:[{role:'user',content:prompt}]})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+  const data=await res.json();
+  return parsePronMap((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n'));
 }
 
 async function defineWithDictionary(word){
@@ -2789,7 +2853,16 @@ async function defineWithDictionary(word){
 async function defineWord(word,book,sentence){
   let claudeErr='';
   if(localStorage.getItem(SK.api)){
-    try{const def=await defineWithClaude(word,book,sentence);if(def)return {def,source:'claude'};}
+    try{
+      const def=await defineWithClaude(word,book,sentence);
+      if(def){
+        // Claude gives the respelling; the dictionary may have a real recording.
+        const snd=await dictionarySoundFor(def.headword||word);
+        if(snd.audio)def.audio=snd.audio;
+        if(!def.pron&&snd.pron)def.pron=snd.pron;
+        return {def,source:'claude'};
+      }
+    }
     catch(e){claudeErr=e.message;console.warn('Claude definition failed',e);}
   }
   try{
@@ -2805,6 +2878,36 @@ function saveVocab(...changed){
   const now=Date.now();
   for(const w of changed)if(w&&typeof w==='object')w.updatedAt=now;
   return save(SK.vocab,vocabDB);
+}
+
+// Say a word: the dictionary's recording when there is one, otherwise the
+// phone's own voice (Android's Google voice — free, and works offline).
+function speakWord(word,audio){
+  word=String(word||'').trim();
+  if(!word)return;
+  const voice=()=>{
+    if(!('speechSynthesis' in window)||typeof SpeechSynthesisUtterance==='undefined'){toast('This browser can’t say words aloud.','err');return;}
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(word);
+    u.lang='en-US';u.rate=0.85;
+    speechSynthesis.speak(u);
+  };
+  if(!audio){voice();return;}
+  try{const a=new Audio(audio);const p=a.play();if(p&&p.catch)p.catch(voice);}
+  catch{voice();}
+}
+function speakButton(w){
+  const b=vEl('button','voc-speak','🔊');b.type='button';
+  b.setAttribute('aria-label',`Say “${w.word}”`);b.title='Say it';
+  b.addEventListener('click',e=>{e.stopPropagation();speakWord(w.word,w.audio);});
+  return b;
+}
+// The written pronunciation with its 🔊, for the quiz cards.
+function vqSay(w){
+  const d=vEl('div','vq-say');
+  if(w.pron)d.append(vEl('span','vq-pron',w.pron));
+  d.append(speakButton(w));
+  return d;
 }
 
 function vocabBookTitle(id){const b=books.find(x=>x.id===id);return b?b.title:'';}
@@ -2847,6 +2950,7 @@ function initVocab(){
   $('vocabWord').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();defineVocabWord(false);}});
   $('vqClose').addEventListener('click',closeVocabQuiz);
   $('vocabPhotoBtn').addEventListener('click',vocabFromPhoto);
+  $('vocabSpeak').addEventListener('click',()=>{if(_vw)speakWord($('vocabWord').value,vocabEditorAudio());});
   $('wordPickCancel').addEventListener('click',closeWordPicker);
   $('wordPick').addEventListener('click',e=>{if(e.target.id==='wordPick')closeWordPicker();});
   // "Aa Words" on a saved highlight, wherever the journal is drawn.
@@ -2986,7 +3090,8 @@ function fillVocabBookSelect(selected){
 function openVocabWord(id,bookId,pre=null){
   const w=id?vocabDB.find(x=>x.id===id):null;
   if(id&&!w)return;
-  _vw={id:w?w.id:null,deleteArmed:false,defining:false};
+  // audio is the recording for audioFor; typing a different word drops it.
+  _vw={id:w?w.id:null,deleteArmed:false,defining:false,audio:w&&w.audio||'',audioFor:w?vocabNorm(w.word):''};
   const $=x=>document.getElementById(x);
   $('vocabModalTitle').textContent=w?'Edit word':'Add a word';
   if(!w&&!bookId){const r=books.filter(b=>b.status==='reading');if(r.length===1)bookId=r[0].id;}
@@ -2996,6 +3101,7 @@ function openVocabWord(id,bookId,pre=null){
   $('vocabPage').value=w?w.page||'':(pre&&pre.page)||'';
   $('vocabPhotoBtn').style.display=w?'none':'flex';
   $('vocabPos').value=w?w.pos||'':'';
+  $('vocabPron').value=w?w.pron||'':'';
   $('vocabDef').value=w?w.definition||'':'';
   $('vocabNote').value=w?w.note||'':'';
   setVocabStatus(w?'':(localStorage.getItem(SK.api)?'Type the word, add the sentence if you have it, and tap Define.':'Tap Define to look it up in the dictionary. Add an Anthropic key in Settings for definitions that fit the sentence.'));
@@ -3016,6 +3122,10 @@ function vocabProgressText(w){
   if(w.reviews)parts.push(`reviewed ${plural(w.reviews,'time')}`);
   if(w.due&&w.definition)parts.push(w.due<=localDateStr()?'due now':`next review ${fmtShortDate(w.due)}`);
   return parts.join(' · ');
+}
+
+function vocabEditorAudio(){
+  return _vw&&_vw.audio&&vocabNorm(document.getElementById('vocabWord').value)===_vw.audioFor?_vw.audio:'';
 }
 
 function closeVocabWord(){_vw=null;document.getElementById('vocabModal').style.display='none';}
@@ -3059,8 +3169,11 @@ async function defineVocabWord(andSave){
     return;
   }
   $('vocabPos').value=r.def.pos||'';
+  $('vocabPron').value=r.def.pron||'';
   $('vocabDef').value=r.def.definition;
   $('vocabNote').value=r.def.note||'';
+  session.audio=r.def.audio||'';
+  session.audioFor=vocabNorm(r.def.headword||word);
   // A picked word arrives as the book spelled it ("obfuscating"); keep the
   // dictionary form instead, so the list and the quiz use the real headword.
   // The sentence test still finds the inflected form.
@@ -3087,7 +3200,8 @@ function saveVocabWord(){
   const dup=vocabFindDup(word,_vw.id);
   if(dup){setVocabStatus('That word is already in your list — open it to edit.',true);return;}
   const fields={word,definition,bookId:$('vocabBook').value||'',sentence:$('vocabSentence').value.trim(),
-    page:$('vocabPage').value.trim(),pos:$('vocabPos').value.trim(),note:$('vocabNote').value.trim()};
+    page:$('vocabPage').value.trim(),pos:$('vocabPos').value.trim(),note:$('vocabNote').value.trim(),
+    pron:$('vocabPron').value.trim(),audio:vocabEditorAudio()};
   let w;
   if(_vw.id){
     w=vocabDB.find(x=>x.id===_vw.id);
@@ -3144,6 +3258,13 @@ function renderVocab(){
       btn.addEventListener('click',()=>startVocabQuiz());
       card.append(btn);
     }
+    const missing=vocabDB.filter(w=>w.definition&&!w.pron).length;
+    if(missing){
+      const fill=vEl('button','voc-fill',`🔊 Add pronunciations to ${plural(missing,'word')}`);
+      fill.type='button';fill.id='vocabFillPron';
+      fill.addEventListener('click',()=>fillPronunciations(fill));
+      card.append(fill);
+    }
     const row=vEl('div','voc-counts');
     for(const [k,label] of [['new','NEW'],['learning','LEARNING'],['mastered','MASTERED']]){
       const c=vEl('div','voc-count');c.append(vEl('b',null,String(counts[k])),vEl('small',null,label));row.append(c);
@@ -3156,16 +3277,19 @@ function renderVocab(){
 }
 
 function vocabRow(w,cls='voc-row'){
+  const item=vEl('div','voc-item'+(cls.includes('flat')?' flat':''));
   const row=vEl('button',cls);row.type='button';
   const top=vEl('span','voc-row-top');
   top.append(vEl('span','voc-word',w.word));
-  if(w.pos)top.append(vEl('span','voc-pos',w.pos));
+  if(w.pron)top.append(vEl('span','voc-pron',w.pron));
+  else if(w.pos)top.append(vEl('span','voc-pos',w.pos));
   const st=vocabStatus(w);
   top.append(vEl('span','voc-pill '+st,st));
   row.append(top);
   row.append(vEl('span','voc-def',w.definition||'No definition yet — tap to add one'));
   row.addEventListener('click',()=>openVocabWord(w.id));
-  return row;
+  item.append(row,speakButton(w));
+  return item;
 }
 
 function renderVocabList(){
@@ -3194,6 +3318,44 @@ function renderVocabList(){
     g.append(head,...list.slice().sort((a,b)=>a.word.localeCompare(b.word)).map(w=>vocabRow(w)));
     return g;
   }));
+}
+
+// Respellings for words saved before pronunciation existed. With a key, one
+// Claude request per 40 words; without one, the free dictionary word by word.
+async function fillPronunciations(btn){
+  const todo=vocabDB.filter(w=>w.definition&&!w.pron);
+  if(!todo.length)return;
+  btn.disabled=true;btn.textContent='Adding pronunciations…';
+  const found=new Map(); // id → {pron, audio}
+  let err='';
+  try{
+    if(localStorage.getItem(SK.api)){
+      for(let i=0;i<todo.length;i+=40){
+        const chunk=todo.slice(i,i+40);
+        const map=await pronounceWithClaude(chunk.map(w=>w.word));
+        for(const w of chunk){const p=map[vocabNorm(w.word)];if(p)found.set(w.id,{pron:p});}
+      }
+    }else{
+      for(const w of todo){
+        const snd=await dictionarySoundFor(w.word);
+        if(snd.pron)found.set(w.id,snd);
+      }
+    }
+  }catch(e){err=e.message;console.warn('Pronunciations failed',e);}
+  // Applied to the live records: a sync may have replaced them while waiting.
+  const changed=[];
+  for(const [id,snd] of found){
+    const w=vocabDB.find(x=>x.id===id);
+    if(!w||w.pron)continue;
+    w.pron=snd.pron;
+    if(snd.audio&&!w.audio)w.audio=snd.audio;
+    changed.push(w);
+  }
+  if(changed.length)saveVocab(...changed);
+  const left=todo.length-changed.length;
+  if(err&&!changed.length)toast(`Couldn’t add pronunciations (${err}).`,'err');
+  else toast(`Added ${plural(changed.length,'pronunciation')}`+(left?` — ${left} not found; tap 🔊 to hear them anyway`:''),changed.length?'ok':'err');
+  vocabChanged();
 }
 
 // Words in the book editor's Reading tab.
@@ -3286,6 +3448,7 @@ function showVocabQuestion(){
 function vqWordHead(card,w,kind){
   card.append(vEl('p','vq-kind',kind),vEl('div','vq-word',w.word));
   if(w.pos)card.append(vEl('div','vq-pos',w.pos));
+  card.append(vqSay(w));
   const src=vqSource(w);if(src)card.append(src);
   if(w.sentence)card.append(vqSentence(w,false));
 }
@@ -3350,6 +3513,7 @@ function vqBlankQ(card,w){
     input.disabled=true;actions.remove();
     gradeVocab(w,ok);
     card.querySelector('.vq-blank').textContent=blank?blank.form:w.word;
+    card.append(vqSay(w)); // only now: hearing it first would give the answer away
     const form=blank?blank.form:w.word;
     const answer=vocabNorm(form)===vocabNorm(w.word)?`“${w.word}”`:`“${form}” (${w.word})`;
     card.append(vqNext(ok?'Right!':`The word was ${answer}.`,ok));

@@ -55,6 +55,9 @@ async function openApp(browser, base) {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('dialog', d => d.accept());
+  // The free dictionary is never reached for real: a test that wants it
+  // registers its own stub, which takes precedence over this one.
+  await page.route('https://api.dictionaryapi.dev/**', r => r.fulfill({ status: 404, contentType: 'application/json', body: '{}' }));
   await page.goto(`${base}/index.html`);
   await page.waitForFunction(() => typeof window.saveBook === 'function');
   return { ctx, page, errors };
@@ -1175,8 +1178,10 @@ async function stubDictionary(page, entries = {}) {
     const w = decodeURIComponent(route.request().url().split('/').pop());
     hits.push(w);
     if (!entries[w]) return route.fulfill({ status: 404, contentType: 'application/json', body: '{"title":"No Definitions Found"}' });
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ word: w, meanings: [
-      { partOfSpeech: entries[w].pos, definitions: [{ definition: entries[w].definition }] }] }]) });
+    const e = entries[w];
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{ word: w,
+      phonetic: e.phonetic, phonetics: e.audio ? [{ text: e.phonetic, audio: e.audio }] : [],
+      meanings: e.pos ? [{ partOfSpeech: e.pos, definitions: [{ definition: e.definition }] }] : [] }]) });
   });
   return hits;
 }
@@ -1635,5 +1640,127 @@ test('passages with markup are picked from as text', async () => {
   assert.equal(await page.evaluate(() => window.__pwned), undefined);
   assert.equal(await page.locator('#wordPickText img').count(), 0);
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+// ── Pronunciation ────────────────────────────────────────────────────────
+
+// Record what would be said or played, instead of making a sound.
+async function captureSpeech(page, { audioFails = false } = {}) {
+  await page.evaluate(audioFails => {
+    window.__said = []; window.__played = [];
+    speechSynthesis.speak = u => window.__said.push({ text: u.text, lang: u.lang });
+    speechSynthesis.cancel = () => {};
+    window.Audio = class { constructor(src) { this.src = src; }
+      play() { window.__played.push(this.src); return audioFails ? Promise.reject(new Error('offline')) : Promise.resolve(); } };
+  }, audioFails);
+}
+
+test('Define fills in the pronunciation, and the recording is kept with the word', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const calls = await stubClaude(page, '{"headword":"lugubrious","pron":"loo-GOO-bree-us","pos":"adjective","definition":"Gloomy."}');
+  await stubDictionary(page, { lugubrious: { phonetic: '/ləˈɡuːbriəs/', audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/lugubrious-us.mp3' } });
+  await captureSpeech(page);
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await page.fill('#vocabWord', 'lugubrious');
+  await page.click('#vocabDefineBtn');
+  await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
+  assert.match(calls[0].messages[0].content, /"pron"/, 'Claude is asked for it');
+  assert.equal(await page.inputValue('#vocabPron'), 'loo-GOO-bree-us', 'Claude’s respelling wins over IPA');
+
+  await page.click('#vocabSpeak');
+  assert.deepEqual(await page.evaluate(() => window.__played), ['https://api.dictionaryapi.dev/media/pronunciations/en/lugubrious-us.mp3']);
+  await page.click('#vocabSaveBtn');
+  const [w] = await storedVocab(page);
+  assert.equal(w.pron, 'loo-GOO-bree-us');
+  assert.match(w.audio, /lugubrious-us\.mp3$/);
+  assert.match(await page.textContent('#vocabList'), /loo-GOO-bree-us/, 'shown in the list');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('without a recording the phone’s voice says it; a changed word drops the old recording', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await captureSpeech(page);
+  await seedVocab(page, [{ word: 'terse', definition: 'Brief.', pron: 'turss' },
+                         { word: 'ossify', definition: 'Harden.', audio: 'https://api.dictionaryapi.dev/media/x/ossify-us.mp3' }]);
+  await page.evaluate(() => showView('vocab'));
+  await page.click('#vocabList .voc-item:has-text("terse") .voc-speak');
+  assert.deepEqual(await page.evaluate(() => window.__said), [{ text: 'terse', lang: 'en-US' }]);
+  assert.equal(await page.isVisible('#vocabModal'), false, 'the 🔊 does not open the word');
+
+  await page.evaluate(() => openVocabWord('w_seed1'));
+  await page.fill('#vocabWord', 'ossified');
+  await page.click('#vocabSpeak');
+  assert.deepEqual(await page.evaluate(() => window.__played), [], 'not the recording of another word');
+  assert.equal(await page.evaluate(() => window.__said.at(-1).text), 'ossified');
+  await ctx.close();
+});
+
+test('a recording that cannot play (offline) falls back to the voice', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await captureSpeech(page, { audioFails: true });
+  await seedVocab(page, [{ word: 'ossify', definition: 'Harden.', audio: 'https://api.dictionaryapi.dev/media/x/ossify-us.mp3' }]);
+  await page.evaluate(() => showView('vocab'));
+  await page.click('#vocabList .voc-speak');
+  await page.waitForFunction(() => window.__said.length === 1);
+  assert.equal(await page.evaluate(() => window.__said[0].text), 'ossify');
+  await ctx.close();
+});
+
+test('reviews show the pronunciation — after the answer in the sentence test', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await captureSpeech(page);
+  await seedVocab(page, [
+    { word: 'lugubrious', definition: 'Gloomy.', pron: 'loo-GOO-bree-us', box: 0 },
+    { word: 'obfuscate', definition: 'Make unclear.', pron: 'OB-fuh-skayt', box: 3, reviews: 3, sentence: 'He kept obfuscating it.' },
+  ]);
+  await page.evaluate(() => startVocabQuiz());
+  assert.match(await page.textContent('.vq-card'), /loo-GOO-bree-us/);
+  await page.click('.vq-card .voc-speak');
+  assert.equal(await page.evaluate(() => window.__said[0].text), 'lugubrious');
+  await page.click('#vqReveal');
+  await page.click('.vq-btn.good');
+
+  assert.equal(await page.getAttribute('.vq-card', 'data-format'), 'blank');
+  assert.doesNotMatch(await page.textContent('.vq-card'), /OB-fuh-skayt/, 'no hint before answering');
+  assert.equal(await page.locator('.vq-card .voc-speak').count(), 0);
+  await page.fill('#vqAnswer', 'obfuscate');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('.vq-card'), /OB-fuh-skayt/);
+  assert.equal(await page.locator('.vq-card .voc-speak').count(), 1);
+  await ctx.close();
+});
+
+test('one tap adds pronunciations to words saved before, in one Claude request', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const calls = await stubClaude(page, '```json\n{"Lugubrious":"loo-GOO-bree-us","terse":"turss"}\n```');
+  await seedVocab(page, [{ word: 'lugubrious', definition: 'Gloomy.' }, { word: 'terse', definition: 'Brief.' },
+                         { word: 'jocund', definition: 'Cheerful.', pron: 'JOK-und' }, { word: 'nodef', definition: '' }]);
+  await page.evaluate(() => showView('vocab'));
+  assert.match(await page.textContent('#vocabFillPron'), /2 words/, 'only defined words without one');
+  await page.click('#vocabFillPron');
+  await page.waitForFunction(() => !document.getElementById('vocabFillPron'));
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].messages[0].content, /lugubrious\nterse/);
+  const by = Object.fromEntries((await storedVocab(page)).map(w => [w.word, w.pron]));
+  assert.deepEqual(by, { lugubrious: 'loo-GOO-bree-us', terse: 'turss', jocund: 'JOK-und', nodef: undefined });
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('without a key, the dictionary fills in what it knows', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await stubDictionary(page, { terse: { phonetic: '/tɜːs/', audio: 'https://api.dictionaryapi.dev/media/x/terse-us.mp3' } });
+  await seedVocab(page, [{ word: 'terse', definition: 'Brief.' }, { word: 'flibbertigibbetish', definition: 'Flighty.' }]);
+  await page.evaluate(() => showView('vocab'));
+  await page.click('#vocabFillPron');
+  await page.waitForFunction(() => /1 word/.test(document.getElementById('vocabFillPron')?.textContent || ''));
+  const by = Object.fromEntries((await storedVocab(page)).map(w => [w.word, w]));
+  assert.equal(by.terse.pron, '/tɜːs/');
+  assert.match(by.terse.audio, /terse-us\.mp3$/);
+  assert.equal(by.flibbertigibbetish.pron, undefined);
   await ctx.close();
 });
