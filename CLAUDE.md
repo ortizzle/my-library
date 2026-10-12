@@ -14,6 +14,17 @@ Tap targets in this app work well on his device — confirmed. Don't flag contro
 sizes as defects or propose a resize pass. 48px is a default for new controls,
 not a reason to touch what ships.
 
+## Installing on the phone (open issue, Oct 2026)
+
+Installing as an app on Chris's Pixel fails with "Could not open app", even
+after uninstalling, restarting, and a fresh manifest `id`; chrome://webapks
+lists nothing. App-side checks all pass (Chrome reports no installability
+errors, PNG icons 192/512 + maskable are published, `tests/manifest.test.mjs`).
+He uses an **Add to Home screen → Create shortcut** for now. Next step if
+revisited: see whether another ortizzle.github.io family app installs — if
+none do, it's the phone's WebAPK/Play service, not this app. Don't change the
+manifest `id` again without reason; it is the app's identity.
+
 ## Verifying changes
 
 See `.claude/skills/verify/SKILL.md` for the launch + Playwright recipe.
