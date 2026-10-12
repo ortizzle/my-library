@@ -14,16 +14,15 @@ Tap targets in this app work well on his device — confirmed. Don't flag contro
 sizes as defects or propose a resize pass. 48px is a default for new controls,
 not a reason to touch what ships.
 
-## Installing on the phone (open issue, Oct 2026)
+## Installing on the phone (solved, Oct 2026)
 
-Installing as an app on Chris's Pixel fails with "Could not open app", even
-after uninstalling, restarting, and a fresh manifest `id`; chrome://webapks
-lists nothing. App-side checks all pass (Chrome reports no installability
-errors, PNG icons 192/512 + maskable are published, `tests/manifest.test.mjs`).
-He uses an **Add to Home screen → Create shortcut** for now. Next step if
-revisited: see whether another ortizzle.github.io family app installs — if
-none do, it's the phone's WebAPK/Play service, not this app. Don't change the
-manifest `id` again without reason; it is the app's identity.
+Installing on Chris's Pixel failed with "Could not open app" until he cleared
+Chrome's cache and cookies; then it installed. App-side was fine throughout
+(no installability errors; PNG icons 192/512 + maskable; `tests/manifest.test.mjs`).
+If it recurs, that's the fix to suggest first — but warn that clearing cookies
+also clears site data (the library lives in localStorage): reconnect Gist sync
+in Settings to pull it back, and re-enter the Anthropic / Google Books keys.
+Don't change the manifest `id` without reason; it is the app's identity.
 
 ## Verifying changes
 
