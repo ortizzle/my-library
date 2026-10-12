@@ -47,3 +47,10 @@ manifest icons and fails loudly if one is missing).
 
 Before asking to merge, confirm the branch's CI run is green, not just local
 tests.
+
+**Standing approval (Chris, Oct 2026): "Merge and deploy always."** Once a
+change is done and the branch's CI run is green, merge to `main` and deploy
+without asking, then confirm the `main` run and the Pages deployment
+succeeded. Still send screenshots of visual changes, and still ask before
+anything destructive or outside the app (deleting data, changing the Gist,
+repo settings).
