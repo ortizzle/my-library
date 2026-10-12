@@ -36,19 +36,24 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opa
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E")}
 
 .top-rule{height:5px;background:linear-gradient(90deg,var(--burgundy),var(--gold),var(--burgundy),var(--gold),var(--burgundy))}
-header{background:linear-gradient(175deg,#0f1a2e 0%,#1b2c4b 100%);color:var(--parchment);padding:1.3rem 1.75rem 0;position:relative;z-index:5;box-shadow:0 4px 24px var(--shadow-deep)}
+header{background:linear-gradient(175deg,#0f1a2e 0%,#1b2c4b 100%);color:var(--parchment);padding:.85rem 1.1rem 0;position:relative;z-index:5;box-shadow:0 4px 24px var(--shadow-deep)}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
-.hdr-inner{max-width:1060px;margin:0 auto;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.brand h1{font-family:'Playfair Display',serif;font-size:1.78rem;font-weight:700;letter-spacing:.02em;line-height:1.1}
-.brand-sub{font-family:'IM Fell English SC',serif;font-size:.66rem;color:var(--gold-lt);letter-spacing:.18em;margin-top:.2rem}
-.hdr-meta{display:flex;align-items:center;gap:.58rem;flex-wrap:wrap;padding-bottom:.1rem}
-.streak-pill{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);padding:.3rem .85rem;border-radius:20px;font-family:'Playfair Display',serif;font-size:.77rem;font-weight:600;display:flex;align-items:center;gap:.28rem;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hdr-inner{max-width:1060px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding-bottom:.7rem}
+.brand h1{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;letter-spacing:.01em;line-height:1.1}
+.brand-sub{font-family:'Lora',serif;font-size:.78rem;font-style:italic;color:var(--gold-lt);letter-spacing:.02em;margin-top:.2rem}
+.hdr-meta{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.streak-pill{background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);min-height:40px;padding:0 .85rem;border:none;border-radius:20px;font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;display:flex;align-items:center;gap:.3rem;box-shadow:0 2px 8px rgba(0,0,0,.3);cursor:pointer;white-space:nowrap}
+.hdr-icon{position:relative;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);color:var(--parchment);font-size:1.2rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hdr-icon:hover{background:rgba(255,255,255,.18);border-color:var(--gold)}
+#gistDot{position:absolute;top:2px;right:2px;width:10px;height:10px;border-radius:50%;background:transparent;border:2px solid transparent;transition:background .4s}
 .hdr-btn{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);color:var(--parchment);padding:.3rem .76rem;border-radius:6px;cursor:pointer;font-family:'Lora',serif;font-size:.74rem;transition:all .2s;display:inline-flex;align-items:center;gap:.3rem}
 .hdr-btn:hover{background:rgba(255,255,255,.18);border-color:var(--gold)}
-.nav-tabs{background:#0b1424;display:flex;padding:0 1.75rem;overflow-x:auto;border-bottom:2px solid var(--gold);position:relative;z-index:5;scrollbar-width:none}
+.nav-tabs{background:#0b1424;display:flex;justify-content:center;margin:0 -1.1rem;padding:0 .4rem;border-bottom:2px solid var(--gold);position:relative;z-index:5}
 .nav-tabs::-webkit-scrollbar{display:none}
-.nav-tab{padding:.66rem 1.22rem;color:rgba(243,241,236,.52);cursor:pointer;font-family:'IM Fell English SC',serif;font-size:.79rem;letter-spacing:.07em;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;user-select:none}
-.nav-tab:hover{color:var(--parchment)}.nav-tab.active{color:var(--gold-lt);border-bottom-color:var(--gold-lt)}
+.nav-tab{flex:1;max-width:120px;display:flex;flex-direction:column;align-items:center;gap:.15rem;padding:.5rem .2rem .45rem;color:rgba(243,241,236,.62);cursor:pointer;font-family:'Lora',serif;font-size:.8rem;letter-spacing:.01em;background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .2s,background .2s;white-space:nowrap;user-select:none}
+.nav-ico{font-size:1.2rem;line-height:1;filter:grayscale(.35);opacity:.8;transition:filter .2s,opacity .2s}
+.nav-tab.active .nav-ico{filter:none;opacity:1}
+.nav-tab:hover{color:var(--parchment)}.nav-tab.active{color:var(--gold-lt);border-bottom-color:var(--gold-lt);background:rgba(255,255,255,.05)}
 .nav-tab:focus-visible{outline:2px solid var(--gold-lt);outline-offset:-3px}
 
 main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
@@ -605,10 +610,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 }
 @media(max-width:600px){
   main{padding:1rem}.row2,.row3{grid-template-columns:1fr}.books-grid{grid-template-columns:1fr}
-  .stats-hero{grid-template-columns:repeat(2,1fr)}.brand h1{font-size:1.38rem}.modal{padding:1.08rem}
+  .stats-hero{grid-template-columns:repeat(2,1fr)}.brand h1{font-size:1.3rem}.modal{padding:1.08rem}
   .charts-grid{grid-template-columns:1fr}
-  .nav-tabs{justify-content:space-between}
-  .nav-tab{padding:.66rem .45rem;font-size:.72rem;flex:1;text-align:center}
+  .brand-sub{font-size:.7rem}
   .sb-right{align-items:flex-start;width:100%}
   .s7-strip{width:100%;justify-content:space-between}
 }
@@ -620,22 +624,21 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <header>
   <div class="hdr-inner">
     <div class="brand" onclick="showView('log')" style="cursor:pointer">
-      <h1>📖 The Reading Room</h1>
+      <h1>The Reading Room</h1>
       <div class="brand-sub">My Personal Library &amp; Reading Companion</div>
     </div>
     <div class="hdr-meta">
-      <div id="gistDot" onclick="showView('settings')" style="width:8px;height:8px;border-radius:50%;background:transparent;flex-shrink:0;cursor:pointer;transition:background .4s" title="Gist sync"></div>
-      <div class="streak-pill" id="hdrStreak" onclick="showView('stats')" style="cursor:pointer">🔥 — streak</div>
-      <button class="hdr-btn" onclick="openScanner()" style="font-weight:600">＋ Add Book</button>
-      <button class="hdr-btn" onclick="showView('settings')">⚙</button>
+      <button type="button" class="streak-pill" id="hdrStreak" onclick="showView('stats')" title="Reading streak — open Stats">🔥 —</button>
+      <button type="button" class="hdr-icon" onclick="showView('settings')" aria-label="Settings" title="Settings">⚙<span id="gistDot" title="Gist sync"></span></button>
     </div>
   </div>
-  <nav class="nav-tabs" style="margin:0 -1.75rem;padding:0 1.75rem">
-    <button class="nav-tab active" data-view="log" onclick="showView('log')">📖 Today</button>
-    <button class="nav-tab" data-view="library" onclick="showView('library')">My Library</button>
-    <button class="nav-tab" data-view="lists" onclick="showView('lists')">Lists</button>
-    <button class="nav-tab" data-view="journal" onclick="showView('journal')">📓 Journal</button>
-    <button class="nav-tab" data-view="stats" onclick="showView('stats')">Stats</button>
+  <!-- Adding a book is the floating ＋ (and the Library page's button), so the header doesn't repeat it -->
+  <nav class="nav-tabs">
+    <button class="nav-tab active" data-view="log" onclick="showView('log')"><span class="nav-ico" aria-hidden="true">📖</span>Today</button>
+    <button class="nav-tab" data-view="library" onclick="showView('library')"><span class="nav-ico" aria-hidden="true">📚</span>Library</button>
+    <button class="nav-tab" data-view="lists" onclick="showView('lists')"><span class="nav-ico" aria-hidden="true">🔖</span>Lists</button>
+    <button class="nav-tab" data-view="journal" onclick="showView('journal')"><span class="nav-ico" aria-hidden="true">📓</span>Journal</button>
+    <button class="nav-tab" data-view="stats" onclick="showView('stats')"><span class="nav-ico" aria-hidden="true">📊</span>Stats</button>
   </nav>
 </header>
 
@@ -1611,8 +1614,10 @@ async function gistApi(method,path,body){
 function setGistDot(state){
   const dot=document.getElementById('gistDot');
   if(!dot)return;
-  const colors={synced:'#4a6050',pushing:'#d6ae4c',off:'transparent'};
+  // A dot on the corner of the settings button, ringed so it reads on the navy.
+  const colors={synced:'#5cbf7c',pushing:'#d6ae4c',off:'transparent'};
   dot.style.background=colors[state]||'transparent';
+  dot.style.borderColor=colors[state]&&state!=='off'?'#13213b':'transparent';
   dot.title=state==='synced'?'Gist synced':state==='pushing'?'Syncing…':'Gist not connected';
 }
 
@@ -5243,7 +5248,11 @@ function renderPaceTable(readBks){
   </table>`;
 }
 
-function updateHdrStreak(){const{cur}=computeStreak();document.getElementById('hdrStreak').innerHTML=`🔥 ${cur} day${cur!==1?'s':''} streak`;}
+function updateHdrStreak(){
+  const{cur}=computeStreak(),el=document.getElementById('hdrStreak');
+  el.textContent=`🔥 ${cur} day${cur!==1?'s':''}`;
+  el.setAttribute('aria-label',`${cur}-day reading streak — open Stats`);
+}
 
 // ══════════════════════════════════════════
 // READING LOG SESSION
