@@ -1,6 +1,6 @@
 // Reading Room — Service Worker
 // Cache version: bump this string to force all clients to update
-const CACHE = 'reading-room-v7';
+const CACHE = 'reading-room-v8';
 
 // App shell: local files that MUST cache on install for offline use
 const SHELL = [
@@ -9,6 +9,11 @@ const SHELL = [
   './icon.svg',
   './icon-maskable.svg',
   './manifest.json',
+  // PNG icons: Android builds the installed app from these; it may refuse
+  // to install from SVG icons alone.
+  './icon-192.png',
+  './icon-512.png',
+  './icon-maskable-512.png',
 ];
 
 // External extras: cache if reachable, but never fail the install over them
