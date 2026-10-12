@@ -2,7 +2,7 @@
   "id": "/my-library/reading-room-2026",
   "name": "The Reading Room",
   "short_name": "Reading Room",
-  "description": "My Personal Library & Book Club Companion",
+  "description": "My Personal Library & Reading Companion",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
