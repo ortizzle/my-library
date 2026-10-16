@@ -40,7 +40,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 ### Highlights
 - **📷 Add Highlight** in a book's Reading Journal — photograph a page (or choose a photo), drag across the passage, and the app reads it for you
-- **From a page:** the floating **＋** offers *Add a book* or *From a page*. Pick the book (the ones you're reading come first) and the camera opens. After the passage is read, choose **✦ Highlight**, **Aa Words**, or both: save it to the journal, pick words to learn from it, or do both from one photo. **✎ Type the passage instead** skips the photo; **Aa Just type a word** goes straight to the word editor
+- **One camera button:** the floating **＋** opens the camera. Point it at a book's barcode and the book is added (only ISBNs count, so other barcodes are ignored); point it at a page and tap **Capture page**. The photo is read, then choose **✦ Highlight**, **Aa Words**, or both — with the book you're reading preselected, or a quick choice if you're reading several. Underneath: *Type a passage*, *Add a word*, *From gallery* and *Find a book*. Barcodes use Chrome's built-in reader on Android; elsewhere the ZXing library
 - The marked region is sent to Claude to transcribe; you check and correct it, add a page number and a note, and save
 - Saved as **text** in the journal, so highlights sync, export, print and delete like any journal entry. Photos aren't kept — a phone photo is several MB and wouldn't fit in browser storage or the sync file
 - Shown in the book, the library card, the Journal tab, and a **✦ Highlights** section of the Keepsake

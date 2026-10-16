@@ -925,126 +925,153 @@ const seedShelf = (page, list) => page.evaluate(l => {
   save('trr_v1_books', books); renderLibrary();
 }, list);
 
-test('the + offers a book or a highlight', async () => {
+// ── The camera (the floating ＋) ─────────────────────────────────────────
+// Headless Chromium has no camera and no BarcodeDetector, so stand both in:
+// a canvas stream as the camera, and a detector that reports whatever the
+// test puts in window.__detected.
+async function fakeCamera(page, { deny = false } = {}) {
+  await page.evaluate(deny => {
+    window.__detected = null;
+    navigator.mediaDevices.getUserMedia = async () => {
+      if (deny) throw new DOMException('denied', 'NotAllowedError');
+      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 480;
+      const g = cv.getContext('2d');
+      const draw = () => { g.fillStyle = '#fff'; g.fillRect(0, 0, 640, 480); g.fillStyle = '#000'; g.font = '36px serif'; g.fillText('A page of text ' + Date.now() % 10, 40, 200); };
+      draw(); setInterval(draw, 100);
+      const stream = cv.captureStream(10);
+      window.__camStream = stream;
+      return stream;
+    };
+    window.BarcodeDetector = class { constructor(o) { window.__formats = o.formats; }
+      async detect() { return window.__detected ? [{ rawValue: window.__detected }] : []; } };
+  }, deny);
+}
+const cameraLive = page => page.waitForFunction(() => !document.getElementById('lensShutter').disabled);
+
+test('＋ opens the camera straight away, with the manual options underneath', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
+  await fakeCamera(page);
   await page.click('#fab');
-  assert.equal(await page.isVisible('#addSheet'), true);
-  assert.equal(await page.isVisible('#addSheetBook'), true);
-  assert.equal(await page.isVisible('#addSheetPage'), true);
+  assert.equal(await page.isVisible('#lens'), true);
+  await cameraLive(page);
+  assert.match(await page.textContent('#lensStatus'), /barcode.*page/i);
+  assert.deepEqual(await page.$$eval('.lens-manual button span', els => els.map(e => e.textContent)),
+                   ['Type a passage', 'Add a word', 'From gallery', 'Find a book']);
+  assert.deepEqual(await page.evaluate(() => window.__formats), ['ean_13', 'ean_8', 'upc_a', 'upc_e']);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.isVisible('#lens'), false);
+  assert.deepEqual(await page.evaluate(() => window.__camStream.getTracks().map(t => t.readyState)), ['ended'],
+                   'the camera is released');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
 
-test('"Add a book" still goes to the scanner', async () => {
+test('a book barcode in view starts adding that book', async () => {
   const { ctx, page } = await openApp(browser, base);
-  await page.evaluate(() => { window.loadZXing = () => new Promise(() => {}); }); // no CDN here
+  await stubCatalogues(page);
+  await fakeCamera(page);
   await page.click('#fab');
-  await page.click('#addSheetBook');
-  assert.equal(await page.isVisible('#addSheet'), false);
-  assert.equal(await page.isVisible('#scannerModal'), true);
+  await cameraLive(page);
+  await page.evaluate(() => { window.__detected = '9780593328354'; });
+  await page.waitForFunction(() => document.getElementById('bookModal').style.display === 'flex');
+  assert.equal(await page.isVisible('#lens'), false);
+  assert.equal(await page.inputValue('#isbnInput'), '9780593328354');
+  assert.deepEqual(await page.evaluate(() => window.__camStream.getTracks().map(t => t.readyState)), ['ended']);
   await ctx.close();
 });
 
-test('"Add a highlight" lists the books being read, the rest one tap away', async () => {
+test('a barcode that is not a book’s is ignored', async () => {
   const { ctx, page } = await openApp(browser, base);
-  await seedShelf(page, [
-    { id: 'r1', title: 'Piranesi', status: 'reading' },
-    { id: 'r2', title: 'Dune', status: 'reading' },
-    { id: 'd1', title: 'Middlemarch', status: 'read', date: '2026-09-01' },
-    { id: 'w1', title: 'Wanted', status: 'wishlist' },
-  ]);
+  await fakeCamera(page);
   await page.click('#fab');
-  await page.click('#addSheetPage');
-
-  const visibleTitles = () => page.$$eval('#addSheet .sheet-book', els =>
-    els.filter(e => e.offsetParent !== null).map(e => e.querySelector('b').textContent));
-  assert.deepEqual(await visibleTitles(), ['Piranesi', 'Dune'], 'currently reading only, at first');
-
-  await page.click('#addSheetMoreBtn');
-  assert.deepEqual(await visibleTitles(), ['Piranesi', 'Dune', 'Middlemarch'],
-    'then the rest — never wishlist, which you don\'t own yet');
+  await cameraLive(page);
+  await page.evaluate(() => { window.__detected = '012345678905'; }); // a grocery UPC
+  await page.waitForFunction(() => /isn’t a book’s/.test(document.getElementById('lensStatus').textContent));
+  assert.equal(await page.isVisible('#lens'), true, 'still the camera');
+  assert.equal(await page.isVisible('#bookModal'), false);
   await ctx.close();
 });
 
-test('choosing a book goes straight to the camera for that book', async () => {
-  const { ctx, page } = await openApp(browser, base);
-  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', author: 'Susanna Clarke', status: 'reading' }]);
+test('Capture page goes to marking the passage, for the one book being read', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', author: 'Susanna Clarke', status: 'reading' },
+                         { id: 'd1', title: 'Middlemarch', status: 'read' }]);
+  await fakeCamera(page);
   await page.click('#fab');
-  await page.click('#addSheetPage');
-
-  const [chooser] = await Promise.all([
-    page.waitForEvent('filechooser'),
-    page.click('#addSheetReading .sheet-book'),
-  ]);
-  assert.equal(await chooser.element().getAttribute('id'), 'hlCamera', 'the camera, not the gallery');
-  assert.equal(await page.isVisible('#addSheet'), false);
-  assert.equal(await page.isVisible('#hlModal'), true);
-  assert.match(await page.textContent('#hlBook'), /Piranesi · Susanna Clarke/, 'for the book that was picked');
-
-  // And the rest of the flow works from here.
-  await chooser.setFiles({ name: 'page.png', mimeType: 'image/png', buffer: await page.screenshot() });
+  await cameraLive(page);
+  await page.click('#lensShutter');
   await page.waitForFunction(() => document.getElementById('hlMark').style.display === 'block');
+  assert.equal(await page.isVisible('#lens'), false);
+  assert.match(await page.textContent('#hlBook'), /Piranesi · Susanna Clarke/, 'the book being read is chosen for you');
   await page.click('#hlRead');
+  assert.equal(await page.isVisible('#hlBooks'), true, 'and can be changed');
+  assert.equal(await page.textContent('#hlBooks .hl-bookchip.on'), 'Piranesi');
   await page.fill('#hlText', 'There is no knowledge that is not valuable.');
   await page.click('#hlSave');
-  const j = await page.evaluate(() => journalDB.r1);
-  assert.equal(j[0].type, 'highlight');
+  assert.equal((await page.evaluate(() => journalDB.r1))[0].type, 'highlight');
+  assert.deepEqual(errors, []);
   await ctx.close();
 });
 
-test('with nothing marked as reading, the library is offered instead of a dead end', async () => {
+test('reading two books: choose which before the highlight saves', async () => {
   const { ctx, page } = await openApp(browser, base);
-  await seedShelf(page, [{ id: 'd1', title: 'Middlemarch', status: 'read' }]);
+  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }, { id: 'r2', title: 'Dune', status: 'reading' },
+                         { id: 'd1', title: 'Middlemarch', status: 'read' }, { id: 'w1', title: 'Wanted', status: 'wishlist' }]);
+  await fakeCamera(page);
   await page.click('#fab');
-  await page.click('#addSheetPage');
-  assert.match(await page.textContent('#addSheetReading'), /Nothing is marked Currently Reading/);
-  assert.equal(await page.isVisible('#addSheetOther .sheet-book'), true);
-  assert.equal(await page.isVisible('#addSheetMoreBtn'), false);
+  await cameraLive(page);
+  await page.click('#lensShutter');
+  await page.waitForFunction(() => document.getElementById('hlMark').style.display === 'block');
+  await page.click('#hlRead');
+  assert.deepEqual(await page.$$eval('#hlBooks .hl-bookchip', els => els.map(e => e.textContent)), ['Piranesi', 'Dune']);
+  assert.deepEqual(await page.$$eval('#hlBooks select option', els => els.map(e => e.textContent)),
+                   ['Another book…', 'Middlemarch'], 'the rest in a menu — never the wishlist');
+  await page.fill('#hlText', 'Fear is the mind-killer.');
+  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#hlModal'), true, 'not saved without a book');
+  assert.deepEqual(await page.evaluate(() => Object.keys(journalDB)), []);
+  await page.click('#hlBooks .hl-bookchip:text-is("Dune")');
+  await page.click('#hlSave');
+  assert.equal((await page.evaluate(() => journalDB.r2))[0].text, 'Fear is the mind-killer.');
   await ctx.close();
 });
 
-test('with no books at all it says why', async () => {
+test('without camera access the manual options still work', async () => {
   const { ctx, page } = await openApp(browser, base);
-  await page.click('#fab');
-  await page.click('#addSheetPage');
-  assert.match(await page.textContent('#addSheetReading'), /Add a book first/);
-  await ctx.close();
-});
-
-test('a title that looks like HTML is listed as text', async () => {
-  const { ctx, page } = await openApp(browser, base);
-  await seedShelf(page, [{ id: 'x', title: '<img src=x onerror="window.__pwned=1">', status: 'reading' }]);
-  await page.click('#fab');
-  await page.click('#addSheetPage');
-  assert.equal(await page.locator('#addSheetReading .sheet-book-text img').count(), 0);
-  assert.equal(await page.evaluate(() => window.__pwned), undefined);
-  await ctx.close();
-});
-
-test('a cover that fails to load shows the gradient placeholder, not a hole', async () => {
-  const { ctx, page } = await openApp(browser, base);
-  await page.route('**://covers.openlibrary.org/**', r => r.fulfill({ status: 404, body: '' }));
   await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }]);
-  await page.evaluate(() => { coversDB.r1 = 'https://covers.openlibrary.org/b/id/1-M.jpg'; });
+  await fakeCamera(page, { deny: true });
   await page.click('#fab');
-  await page.click('#addSheetPage');
-  await page.waitForFunction(() => document.querySelector('#addSheetReading .sheet-book-cover').tagName === 'SPAN');
-  const bg = await page.$eval('#addSheetReading .sheet-book-cover', el => el.style.background);
-  assert.match(bg, /linear-gradient/);
+  await page.waitForFunction(() => /Camera access is off/.test(document.getElementById('lensStatus').textContent));
+  assert.equal(await page.isDisabled('#lensShutter'), true);
+
+  await page.click('#lensWord');
+  assert.equal(await page.isVisible('#lens'), false);
+  assert.equal(await page.isVisible('#vocabModal'), true);
+  assert.equal(await page.inputValue('#vocabBook'), 'r1');
+  await page.click('#vocabCancelBtn');
+
+  await page.click('#fab');
+  await page.click('#lensType');
+  assert.equal(await page.isVisible('#hlConfirm'), true, 'straight to typing the passage');
+  assert.equal(await page.textContent('#hlBooks .hl-bookchip.on'), 'Piranesi');
+  await page.click('#hlClose');
+
+  await page.click('#fab');
+  await page.click('#lensFind');
+  assert.equal(await page.isVisible('#bookModal'), true, 'add a book by title or by hand');
   await ctx.close();
 });
 
-test('the sheet closes with Cancel, a tap outside, or Escape', async () => {
-  const { ctx, page } = await openApp(browser, base);
-  for (const close of [
-    () => page.click('#addSheetCancel'),
-    () => page.mouse.click(10, 10),
-    () => page.keyboard.press('Escape'),
-  ]) {
-    await page.click('#fab');
-    await close();
-    assert.equal(await page.isVisible('#addSheet'), false);
-  }
+test('book titles in the chooser are shown as text', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'x', title: '<img src=x onerror="window.__pwned=1">', status: 'reading' },
+                         { id: 'y', title: 'Dune', status: 'reading' }]);
+  await fakeCamera(page, { deny: true });
+  await page.click('#fab');
+  await page.click('#lensType');
+  assert.equal(await page.locator('#hlBooks img').count(), 0);
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.deepEqual(errors, []);
   await ctx.close();
 });
 
@@ -1379,28 +1406,6 @@ test('the Lists card opens the page and starts a review', async () => {
   await page.click('#vocabCard .list-card-head');
   assert.equal(await page.evaluate(() => location.hash), '#vocab');
   assert.equal(await page.getAttribute('.nav-tab[data-view="lists"]', 'aria-current'), 'page', 'Lists stays lit');
-  await ctx.close();
-});
-
-test('the ＋ button: one "From a page" option, photo first, and a way to just type a word', async () => {
-  const { ctx, page } = await openApp(browser, base);
-  await addBook(page, 'Piranesi', 'Susanna Clarke');
-  await addBook(page, 'Dune', 'Frank Herbert');
-  await page.evaluate(() => { const b = books.find(x => x.title === 'Piranesi'); b.status = 'reading'; saveBooks(b); });
-  await page.click('#fab');
-  assert.equal(await page.locator('#addSheetChoose .sheet-opt').count(), 2, 'Add a book, From a page');
-  await page.click('#addSheetPage');
-  assert.match(await page.textContent('#addSheetBooksTitle'), /From which book/);
-  assert.deepEqual(await page.$$eval('#addSheetReading .sheet-book b', els => els.map(e => e.textContent)), ['Piranesi']);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#addSheetReading .sheet-book')]);
-  assert.ok(chooser, 'the camera opens first');
-  assert.equal(await page.isVisible('#hlModal'), true);
-  assert.match(await page.textContent('#hlTitle'), /From a page/);
-
-  await page.click('#hlWordOnlyBtn');
-  assert.equal(await page.isVisible('#hlModal'), false);
-  assert.equal(await page.isVisible('#vocabModal'), true, 'straight to typing a word');
-  assert.equal(await page.$eval('#vocabBook', s => s.selectedOptions[0].textContent), 'Piranesi');
   await ctx.close();
 });
 

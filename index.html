@@ -453,6 +453,30 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .hl-crop{display:block;max-width:100%;max-height:30vh;margin:0 auto .5rem;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.45)}
 #hlModal .btn-secondary{color:var(--parchment);background:transparent;border-color:#4a5d80} /* the default is styled for parchment, near-invisible here */
 #hlConfirm .fg label{color:#b9c3d8}
+.hl-books{margin:0 0 .8rem}
+.hl-books-label{font-size:.85rem;color:#b9c3d8;margin:0 0 .4rem}
+.hl-books-row{display:flex;flex-wrap:wrap;gap:.45rem}
+.hl-bookchip{min-height:44px;padding:0 .9rem;border-radius:22px;border:1px solid #4a5d80;background:transparent;color:#dfe5f0;font-family:'Playfair Display',serif;font-size:.95rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hl-bookchip.on{border-color:#d6ae4c;background:rgba(47,82,145,.45);color:#fff;box-shadow:inset 0 0 0 1px #d6ae4c}
+.hl-bookchip.on::before{content:'✓ ';color:#d6ae4c}
+.hl-booksel{min-height:44px;padding:0 .7rem;border-radius:22px;border:1px solid #4a5d80;background:#0f1a2e;color:#dfe5f0;font-family:'Lora',serif;max-width:100%}
+#lens{position:fixed;inset:0;z-index:8300;background:#000;color:#fff;overflow:hidden}
+#lensVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.lens-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:calc(.6rem + env(safe-area-inset-top)) .6rem .6rem 1.1rem;background:linear-gradient(180deg,rgba(10,18,34,.85),transparent)}
+.lens-top h3{font-family:'Playfair Display',serif;font-size:1.1rem;margin:0;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.lens-x{width:48px;height:48px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(10,18,34,.5);color:#fff;font-size:1.2rem;cursor:pointer}
+.lens-frame{position:absolute;left:8%;right:8%;top:22%;bottom:38%;pointer-events:none}
+.lens-frame .scan-corner{position:absolute}
+.lens-bottom{position:absolute;left:0;right:0;bottom:0;padding:2.2rem 1rem calc(1rem + env(safe-area-inset-bottom));background:linear-gradient(0deg,rgba(10,18,34,.97) 72%,rgba(10,18,34,.7) 88%,transparent);display:flex;flex-direction:column;align-items:center}
+.lens-status{font-size:.92rem;text-align:center;color:#dfe5f0;margin:0 0 .8rem;min-height:1.3em;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.lens-shutter{width:76px;height:76px;border-radius:50%;border:4px solid #fff;background:transparent;padding:5px;cursor:pointer}
+.lens-shutter span{display:block;width:100%;height:100%;border-radius:50%;background:#d6ae4c}
+.lens-shutter[disabled]{opacity:.35;cursor:default}
+.lens-shutter:not([disabled]):active span{background:#fff}
+.lens-shutter-label{font-size:.82rem;color:#dfe5f0;margin:.35rem 0 .9rem}
+.lens-manual{display:flex;width:100%;max-width:480px;gap:.4rem}
+.lens-manual button{flex:1;min-height:60px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:1.1rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15rem;padding:.3rem .2rem}
+.lens-manual button span{font-family:'Lora',serif;font-size:.72rem;color:#dfe5f0;line-height:1.2;text-align:center}
 .hl-alt{display:flex;flex-direction:column;align-items:center;gap:.1rem;margin-top:.6rem}
 .hl-link{background:none;border:none;color:#d6ae4c;font-family:'Lora',serif;font-size:.95rem;min-height:48px;padding:0 .8rem;cursor:pointer}
 .hl-choose{display:flex;gap:.6rem;margin:.2rem 0 .8rem}
@@ -1146,22 +1170,25 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 </div>
 
 <div class="toast-wrap" id="toastWrap"></div>
-<!-- Add sheet: the floating + opens this — add a book, or jump to a highlight -->
-<div id="addSheet" class="sheet-backdrop" style="display:none">
-  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle">
-    <div class="sheet-grip" aria-hidden="true"></div>
-    <div id="addSheetChoose">
-      <h3 id="addSheetTitle" class="sheet-title">Add to your Reading Room</h3>
-      <button type="button" class="sheet-opt" id="addSheetBook"><span class="sheet-ico" aria-hidden="true">📚</span><span><b>Add a book</b><small>Scan a barcode or search by title</small></span></button>
-      <button type="button" class="sheet-opt" id="addSheetPage"><span class="sheet-ico" aria-hidden="true">✦</span><span><b>From a page</b><small>Photograph a passage — keep it as a highlight, learn its words, or both</small></span></button>
+<!-- The floating ＋: a live camera. A book barcode adds the book; Capture page
+     goes to the highlight/words flow; the row below covers everything by hand. -->
+<div id="lens" style="display:none" role="dialog" aria-modal="true" aria-labelledby="lensTitle">
+  <video id="lensVideo" playsinline muted autoplay></video>
+  <div class="lens-top">
+    <h3 id="lensTitle">Point at a barcode or a page</h3>
+    <button type="button" class="lens-x" id="lensClose" aria-label="Close camera">✕</button>
+  </div>
+  <div class="lens-frame" aria-hidden="true"><span class="scan-corner tl"></span><span class="scan-corner tr"></span><span class="scan-corner bl"></span><span class="scan-corner br"></span></div>
+  <div class="lens-bottom">
+    <p class="lens-status" id="lensStatus" aria-live="polite"></p>
+    <button type="button" class="lens-shutter" id="lensShutter" aria-label="Capture page" disabled><span></span></button>
+    <div class="lens-shutter-label">Capture page</div>
+    <div class="lens-manual">
+      <button type="button" id="lensType">✎<span>Type a passage</span></button>
+      <button type="button" id="lensWord">Aa<span>Add a word</span></button>
+      <button type="button" id="lensGallery">🖼<span>From gallery</span></button>
+      <button type="button" id="lensFind">🔍<span>Find a book</span></button>
     </div>
-    <div id="addSheetBooks" style="display:none">
-      <h3 class="sheet-title" id="addSheetBooksTitle">From which book?</h3>
-      <div id="addSheetReading"></div>
-      <button type="button" class="sheet-more" id="addSheetMoreBtn">Another book…</button>
-      <div id="addSheetOther" style="display:none"></div>
-    </div>
-    <button type="button" class="sheet-cancel" id="addSheetCancel">Cancel</button>
   </div>
 </div>
 
@@ -1262,6 +1289,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
 
     <div id="hlConfirm" style="display:none">
+      <div id="hlBooks" class="hl-books" style="display:none"></div>
       <img id="hlCrop" class="hl-crop" alt="The marked passage">
       <p class="hl-hint" id="hlStatus"></p>
       <div class="fg"><label for="hlText">Passage</label><textarea id="hlText" rows="6"></textarea></div>
@@ -1283,7 +1311,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
 </div>
 
-<button id="fab" aria-label="Add a book, or capture from a page" title="Add a book, or capture from a page" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
+<button id="fab" aria-label="Open the camera: a book's barcode or a page" title="Camera: a book's barcode or a page" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none" onchange="handleImport(event)">
 
 <script src="ortiz-drive.js"></script>
@@ -2352,83 +2380,144 @@ function updateRatingDisplay(v){document.querySelectorAll('#ratingInput .star').
 // JOURNAL
 // ══════════════════════════════════════════
 // ══════════════════════════════════════════
-// ADD SHEET (the floating +)
+// THE CAMERA (the floating ＋)
 // ══════════════════════════════════════════
-// Add a book (the scanner, as before) or add a highlight. Highlights list the
-// books you're reading first, with the rest behind "Another book…".
+// One button for everything that starts with a book in your hand: point at
+// its barcode and the book is added; point at a page and Capture goes to the
+// highlight/words flow. The row underneath does each by hand.
+//
+// Barcodes use Chrome's built-in BarcodeDetector (on Android: no download).
+// Elsewhere the ZXing library is the fallback. Only ISBNs (978/979…) count, so
+// a price sticker or another barcode in view can't hijack the camera.
+let _lens=null; // {stream, timer, detector, reader, busy, warned}
 
-function initAddSheet(){
+function initLens(){
   const $=id=>document.getElementById(id);
-  $('fab').addEventListener('click',openAddSheet);
-  $('addSheetBook').addEventListener('click',()=>{closeAddSheet();openScanner();});
-  $('addSheetPage').addEventListener('click',()=>{renderAddSheetBooks();addSheetStep('books');});
-  $('addSheetMoreBtn').addEventListener('click',()=>{
-    $('addSheetOther').style.display='block';$('addSheetMoreBtn').style.display='none';
-  });
-  $('addSheetCancel').addEventListener('click',closeAddSheet);
-  $('addSheet').addEventListener('click',e=>{if(e.target.id==='addSheet')closeAddSheet();});
-}
-function openAddSheet(){addSheetStep('choose');document.getElementById('addSheet').style.display='flex';}
-function closeAddSheet(){document.getElementById('addSheet').style.display='none';}
-function addSheetStep(step){
-  document.getElementById('addSheetChoose').style.display=step==='choose'?'block':'none';
-  document.getElementById('addSheetBooks').style.display=step==='books'?'block':'none';
+  $('fab').addEventListener('click',openLens);
+  $('lensClose').addEventListener('click',closeLens);
+  $('lensShutter').addEventListener('click',lensCapture);
+  $('lensType').addEventListener('click',()=>{const id=lensAutoBook();closeLens();openHighlight(id,'page',null,{pickBook:true});typePassage();});
+  $('lensWord').addEventListener('click',()=>{const id=lensAutoBook();closeLens();openVocabWord(null,id||null);});
+  // Same tap, nothing awaited: the browser still lets the file picker open.
+  $('lensGallery').addEventListener('click',()=>{const id=lensAutoBook();closeLens();openHighlight(id,'page',null,{pickBook:true});$('hlFile').click();});
+  $('lensFind').addEventListener('click',()=>{closeLens();openAddModal();});
+  // Don't hold the camera while the app is in the background.
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&_lens)closeLens();});
 }
 
-// Built with createElement: titles and authors are user data.
-function bookPickRow(b){
-  const btn=document.createElement('button');
-  btn.type='button';btn.className='sheet-book';
-  const url=coversDB[b.id];
-  const placeholder=()=>{
-    const ph=document.createElement('span');ph.className='sheet-book-cover';
-    ph.style.background=bookGradient(b.title,b.author);return ph;
-  };
-  let cover=placeholder();
-  if(url){
-    // A cover that fails to load falls back to the same gradient as a book
-    // with no cover, rather than leaving a hole in the list.
-    cover=document.createElement('img');cover.className='sheet-book-cover';cover.alt='';
-    cover.addEventListener('error',()=>cover.replaceWith(placeholder()));
-    cover.src=url;
-  }
-  const text=document.createElement('span');text.className='sheet-book-text';
-  const t=document.createElement('b');t.textContent=b.title||'Untitled';
-  const a=document.createElement('small');a.textContent=b.author||'';
-  text.append(t,a);btn.append(cover,text);
-  btn.addEventListener('click',()=>{
-    closeAddSheet();
-    openHighlight(b.id);
-    // Still the same tap, so the browser lets this open the camera: one tap
-    // from choosing the book to the shutter. Cancelling the camera leaves the
-    // photo step open, with "Choose a photo" for a picture already taken.
-    document.getElementById('hlCamera').click();
-  });
-  return btn;
-}
-function sheetText(cls,text){const el=document.createElement('p');el.className=cls;el.textContent=text;return el;}
+function lensAutoBook(){const r=books.filter(b=>b.status==='reading');return r.length===1?r[0].id:'';}
+function setLensStatus(t){document.getElementById('lensStatus').textContent=t;}
 
-function renderAddSheetBooks(){
+async function openLens(){
   const $=id=>document.getElementById(id);
-  const owned=books.filter(b=>b.status!=='wishlist');
-  const reading=owned.filter(b=>b.status==='reading');
-  // Everything else, most recently finished first.
-  const other=owned.filter(b=>b.status!=='reading')
-    .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.addedAt||0)-(x.addedAt||0));
-  const rEl=$('addSheetReading'),oEl=$('addSheetOther'),more=$('addSheetMoreBtn');
-  oEl.replaceChildren(...(other.length?[sheetText('sheet-label','OTHER BOOKS')]:[]),...other.map(bookPickRow));
-
-  if(!owned.length){
-    rEl.replaceChildren(sheetText('sheet-empty','Add a book first — highlights are saved to a book.'));
-    oEl.style.display='none';more.style.display='none';
-  }else if(!reading.length){
-    // Nothing marked as reading: skip straight to the library rather than a dead end.
-    rEl.replaceChildren(sheetText('sheet-empty','Nothing is marked Currently Reading — choose from your library:'));
-    oEl.style.display='block';more.style.display='none';
-  }else{
-    rEl.replaceChildren(sheetText('sheet-label','CURRENTLY READING'),...reading.map(bookPickRow));
-    oEl.style.display='none';more.style.display=other.length?'block':'none';
+  if(_lens)closeLens();
+  const session=_lens={stream:null,timer:0,detector:null,reader:null,busy:false,warned:false};
+  $('lensShutter').disabled=true;
+  $('lens').style.display='block';
+  document.body.style.overflow='hidden';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){setLensStatus('No camera available here — use the options below.');return;}
+  setLensStatus('Starting camera…');
+  let stream;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({audio:false,
+      video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}});
+  }catch(e){
+    if(_lens!==session)return;
+    setLensStatus(e&&e.name==='NotAllowedError'
+      ?'Camera access is off — allow it for this site in Chrome, or use the options below.'
+      :'Couldn’t start the camera — use the options below.');
+    return;
   }
+  if(_lens!==session){stream.getTracks().forEach(t=>t.stop());return;} // closed while asking
+  session.stream=stream;
+  const v=$('lensVideo');
+  v.srcObject=stream;
+  try{await v.play();}catch{}
+  if(_lens!==session)return;
+  $('lensShutter').disabled=false;
+  setLensStatus('Point at a book’s barcode — or at a page, then Capture.');
+  startLensBarcodes(session);
+}
+
+async function startLensBarcodes(session){
+  const v=document.getElementById('lensVideo');
+  if('BarcodeDetector' in window){
+    try{
+      session.detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e']});
+      const tick=async()=>{
+        if(_lens!==session)return;
+        if(!session.busy&&v.readyState>=2){
+          try{for(const c of await session.detector.detect(v))if(lensBarcode(c.rawValue))return;}catch{}
+        }
+        if(_lens===session)session.timer=setTimeout(tick,300);
+      };
+      tick();
+      return;
+    }catch(e){console.warn('BarcodeDetector unavailable, using ZXing',e);}
+  }
+  try{await loadZXing();}
+  catch{if(_lens===session)setLensStatus('Barcodes need a connection the first time — Capture page and the options below still work.');return;}
+  if(_lens!==session)return;
+  try{
+    const hints=new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS,[ZXing.BarcodeFormat.EAN_13,ZXing.BarcodeFormat.EAN_8,ZXing.BarcodeFormat.UPC_A,ZXing.BarcodeFormat.UPC_E]);
+    session.reader=new ZXing.BrowserMultiFormatReader(hints);
+    session.reader.decodeFromVideoElementContinuously(v,r=>{if(r&&_lens===session&&!session.busy)lensBarcode(r.getText());});
+  }catch(e){console.warn('ZXing failed',e);}
+}
+
+// true if it was a book and the camera handed over to adding it.
+function lensBarcode(raw){
+  const digits=String(raw||'').replace(/\D/g,'');
+  if(!/^97[89]\d{10}$/.test(digits)){
+    if(_lens&&!_lens.warned){_lens.warned=true;setLensStatus('That barcode isn’t a book’s — books start 978 or 979.');}
+    return false;
+  }
+  closeLens();
+  openAddModal();
+  document.getElementById('isbnInput').value=digits;
+  setIsbnStatus('Barcode detected — looking up…','');
+  lookupISBN();
+  return true;
+}
+
+// Full resolution where Chrome allows it (ImageCapture); otherwise the frame
+// on screen.
+async function lensCapture(){
+  const session=_lens;
+  if(!session||!session.stream||session.busy)return;
+  session.busy=true;
+  setLensStatus('Capturing…');
+  let blob=null;
+  const track=session.stream.getVideoTracks()[0];
+  if(typeof ImageCapture!=='undefined'&&track){try{blob=await new ImageCapture(track).takePhoto();}catch{}}
+  if(!blob){
+    const v=document.getElementById('lensVideo');
+    if(v.videoWidth){
+      const cv=document.createElement('canvas');cv.width=v.videoWidth;cv.height=v.videoHeight;
+      cv.getContext('2d').drawImage(v,0,0);
+      blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.92));
+    }
+  }
+  if(_lens!==session)return;
+  if(!blob){session.busy=false;setLensStatus('Couldn’t capture that — try again.');return;}
+  closeLens();
+  openHighlight(lensAutoBook(),'page',null,{pickBook:true});
+  await usePhoto(blob);
+}
+
+function closeLens(){
+  const s=_lens;
+  _lens=null;
+  if(s){
+    clearTimeout(s.timer);
+    if(s.reader){try{s.reader.reset();}catch{}}
+    if(s.stream)s.stream.getTracks().forEach(t=>t.stop());
+  }
+  const v=document.getElementById('lensVideo');
+  v.pause();v.srcObject=null;
+  document.getElementById('lens').style.display='none';
+  document.body.style.overflow='';
 }
 
 // ══════════════════════════════════════════
@@ -2522,17 +2611,54 @@ function initHighlights(){
 function highlightStep(step){
   for(const [id,name] of [['hlPick','pick'],['hlMark','mark'],['hlConfirm','confirm']])
     document.getElementById(id).style.display=name===step?'block':'none';
+  if(step==='confirm')renderHlBooks();
+}
+
+// Which book a camera capture belongs to: the books being read as chips, the
+// rest in a menu. Built with createElement — titles are user data.
+function renderHlBooks(){
+  const box=document.getElementById('hlBooks');
+  if(!_hl||!_hl.pickBook){box.style.display='none';box.replaceChildren();return;}
+  const owned=books.filter(b=>b.status!=='wishlist');
+  const reading=owned.filter(b=>b.status==='reading');
+  const rest=owned.filter(b=>b.status!=='reading').sort((a,b)=>String(a.title).localeCompare(String(b.title)));
+  const pick=id=>{
+    _hl.bookId=id;
+    const b=books.find(x=>x.id===id);
+    document.getElementById('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
+    renderHlBooks();
+  };
+  const label=vEl('p','hl-books-label',owned.length?'Which book?':'No books yet — words can still be saved; a highlight needs a book.');
+  const row=vEl('div','hl-books-row');
+  for(const b of reading){
+    const c=vEl('button','hl-bookchip'+(b.id===_hl.bookId?' on':''),b.title||'Untitled');
+    c.type='button';c.setAttribute('aria-pressed',String(b.id===_hl.bookId));
+    c.addEventListener('click',()=>pick(b.id));
+    row.append(c);
+  }
+  if(rest.length){
+    const sel=document.createElement('select');sel.className='hl-booksel';sel.setAttribute('aria-label','Another book');
+    const first=document.createElement('option');first.value='';first.textContent=reading.length?'Another book…':'Choose a book…';
+    sel.append(first,...rest.map(b=>{const o=document.createElement('option');o.value=b.id;o.textContent=b.title||'Untitled';return o;}));
+    if(rest.some(b=>b.id===_hl.bookId))sel.value=_hl.bookId;
+    sel.addEventListener('change',()=>{if(sel.value)pick(sel.value);});
+    row.append(sel);
+  }
+  box.replaceChildren(label,row);
+  box.style.display='block';
 }
 
 // mode 'page' is "From a page": photo first (or typed), then keep the passage
 // as a highlight, pick words from it, or both. Mode 'word' is the word
 // editor's "from a photo": the same capture, ending in picking one word.
 // `stash` is the word editor as it was, put back if the photo is abandoned.
-function openHighlight(bookId,mode='page',stash=null){
+// opts.pickBook: started from the camera, so the book is chosen on the
+// confirm screen (preset when only one is being read).
+function openHighlight(bookId,mode='page',stash=null,opts={}){
   const b=books.find(x=>x.id===bookId);
-  if(!b&&mode!=='word')return;
+  if(!b&&mode!=='word'&&!opts.pickBook)return;
   const word=mode==='word';
-  _hl={bookId:b?b.id:'',mode,stash,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
+  _hl={bookId:b?b.id:'',mode,stash,pickBook:!!opts.pickBook,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
   const $=id=>document.getElementById(id);
   $('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
   $('hlTitle').textContent=word?'A word from the page':'✦ From a page';
@@ -2580,6 +2706,10 @@ async function loadPhotoBitmap(file){
 async function onHighlightPhoto(input){
   const file=input.files&&input.files[0];
   input.value=''; // so choosing the same file again still fires change
+  await usePhoto(file);
+}
+// A photo (file, or a frame from the live camera) → the marking step.
+async function usePhoto(file){
   if(!file||!_hl)return;
   try{
     const bmp=await loadPhotoBitmap(file);
@@ -2727,6 +2857,7 @@ function storeHighlight(){
   const page=document.getElementById('hlPage').value.trim();
   const note=document.getElementById('hlNote').value.trim();
   const id=_hl.bookId,now=new Date();
+  if(!id){toast('Choose which book this is from first.','err');document.getElementById('hlBooks').scrollIntoView({block:'center'});return false;}
   const entry={date:localDateStr(now),time:now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),type:'highlight',text};
   if(page)entry.page=page;
   if(note)entry.note=note;
@@ -6101,7 +6232,7 @@ function mountDriveSettings(){
 document.addEventListener('DOMContentLoaded',async ()=>{
   runMigration();
   initHighlights();
-  initAddSheet();
+  initLens();
   initVocab();
   renderLibrary();updateHdrStreak();
   // Land on the view in the URL hash (refresh keeps your place); replaceState
@@ -6127,7 +6258,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
     if(vis('vocabView')){closeVocabDetail();return;}
     if(vis('wordPick')){closeWordPicker();return;}
     if(vis('hlModal')){closeHighlight();return;}
-    if(vis('addSheet')){closeAddSheet();return;}
+    if(vis('lens')){closeLens();return;}
     if(vis('sessionModal')){closeReadingSession();return;}
     if(vis('scannerModal')){closeScanner();return;}
     if(vis('discModal')){closeM('discModal');return;}
