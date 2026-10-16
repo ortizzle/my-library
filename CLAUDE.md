@@ -53,3 +53,8 @@ without asking, then confirm the `main` run and the Pages deployment
 succeeded. Still send screenshots of visual changes, and still ask before
 anything destructive or outside the app (deleting data, changing the Gist,
 repo settings).
+
+**Other sessions push to `main` too** (e.g. the Google Drive copy,
+`ortiz-drive.js`, came from another session). Merge with a fast-forward only;
+if it refuses, `git merge origin/main` into the branch, run the tests, and
+deploy that — never force-push or overwrite `main`.
