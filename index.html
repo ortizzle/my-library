@@ -453,6 +453,14 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .hl-crop{display:block;max-width:100%;max-height:30vh;margin:0 auto .5rem;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.45)}
 #hlModal .btn-secondary{color:var(--parchment);background:transparent;border-color:#4a5d80} /* the default is styled for parchment, near-invisible here */
 #hlConfirm .fg label{color:#b9c3d8}
+.hl-alt{display:flex;flex-direction:column;align-items:center;gap:.1rem;margin-top:.6rem}
+.hl-link{background:none;border:none;color:#d6ae4c;font-family:'Lora',serif;font-size:.95rem;min-height:48px;padding:0 .8rem;cursor:pointer}
+.hl-choose{display:flex;gap:.6rem;margin:.2rem 0 .8rem}
+.hl-choice{flex:1;text-align:left;min-height:64px;padding:.6rem .75rem;border:1px solid #4a5d80;border-radius:12px;background:transparent;color:#dfe5f0;font-family:'Lora',serif;cursor:pointer}
+.hl-choice b{display:block;font-family:'Playfair Display',serif;font-size:1rem}
+.hl-choice small{display:block;font-size:.78rem;color:#b9c3d8;margin-top:.15rem;line-height:1.35}
+.hl-choice.on{border-color:#d6ae4c;background:rgba(47,82,145,.45);box-shadow:inset 0 0 0 1px #d6ae4c}
+.hl-choice.on b::after{content:' ✓';color:#d6ae4c}
 #hlConfirm .fg textarea,#hlConfirm .fg input[type=text]{font-size:1rem}
 .overlay{position:fixed;inset:0;background:rgba(15,26,46,.62);backdrop-filter:blur(2px);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;animation:fi .2s ease}
 @keyframes fi{from{opacity:0}to{opacity:1}}
@@ -1042,7 +1050,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
           <div class="journal-add">
             <textarea id="journalNewEntry" placeholder="Add a journal note for today's reading session…"></textarea>
             <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
-              <button class="btn btn-secondary btn-sm" id="hlOpenBtn">📷 Add Highlight</button>
+              <button class="btn btn-secondary btn-sm" id="hlOpenBtn">📷 From a page</button>
               <button class="btn btn-teal btn-sm" onclick="addJournalEntry()">＋ Add Note</button>
             </div>
           </div>
@@ -1141,11 +1149,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div id="addSheetChoose">
       <h3 id="addSheetTitle" class="sheet-title">Add to your Reading Room</h3>
       <button type="button" class="sheet-opt" id="addSheetBook"><span class="sheet-ico" aria-hidden="true">📚</span><span><b>Add a book</b><small>Scan a barcode or search by title</small></span></button>
-      <button type="button" class="sheet-opt" id="addSheetHl"><span class="sheet-ico" aria-hidden="true">✦</span><span><b>Add a highlight</b><small>Photograph a passage you want to keep</small></span></button>
-      <button type="button" class="sheet-opt" id="addSheetVocab"><span class="sheet-ico" aria-hidden="true">Aa</span><span><b>Add a word</b><small>Look up a word you met and keep it</small></span></button>
+      <button type="button" class="sheet-opt" id="addSheetPage"><span class="sheet-ico" aria-hidden="true">✦</span><span><b>From a page</b><small>Photograph a passage — keep it as a highlight, learn its words, or both</small></span></button>
     </div>
     <div id="addSheetBooks" style="display:none">
-      <h3 class="sheet-title" id="addSheetBooksTitle">Highlight from which book?</h3>
+      <h3 class="sheet-title" id="addSheetBooksTitle">From which book?</h3>
       <div id="addSheetReading"></div>
       <button type="button" class="sheet-more" id="addSheetMoreBtn">Another book…</button>
       <div id="addSheetOther" style="display:none"></div>
@@ -1235,6 +1242,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <button class="btn btn-secondary hl-big" id="hlChooseBtn">🖼 Choose a photo</button>
       <input type="file" id="hlCamera" accept="image/*" capture="environment" style="display:none">
       <input type="file" id="hlFile" accept="image/*" style="display:none">
+      <div class="hl-alt">
+        <button type="button" class="hl-link" id="hlTypeBtn">✎ Type the passage instead</button>
+        <button type="button" class="hl-link" id="hlWordOnlyBtn">Aa Just type a word</button>
+      </div>
     </div>
 
     <div id="hlMark" style="display:none">
@@ -1254,6 +1265,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <div class="fg" style="flex:0 0 6.5rem"><label for="hlPage">Page</label><input type="text" id="hlPage" inputmode="numeric" placeholder="—"></div>
         <div class="fg" style="flex:1" id="hlNoteWrap"><label for="hlNote">Note (optional)</label><input type="text" id="hlNote" placeholder="Why it stood out"></div>
       </div>
+      <div class="hl-choose" id="hlChoose" role="group" aria-label="What to do with this passage">
+        <button type="button" class="hl-choice on" id="hlChoiceHl" aria-pressed="true"><b>✦ Highlight</b><small>Keep the passage in your journal</small></button>
+        <button type="button" class="hl-choice" id="hlChoiceWords" aria-pressed="false"><b>Aa Words</b><small>Pick words to learn from it</small></button>
+      </div>
       <label class="hl-also" id="hlAlsoWrap" style="display:none"><input type="checkbox" id="hlAlso"> Also save the passage as a highlight</label>
       <button class="btn btn-secondary hl-big" id="hlWordsBtn">Aa Pick words to learn</button>
       <div class="hl-actions">
@@ -1264,7 +1279,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   </div>
 </div>
 
-<button id="fab" aria-label="Add a book, highlight or word" title="Add a book, highlight or word" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
+<button id="fab" aria-label="Add a book, or capture from a page" title="Add a book, or capture from a page" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none" onchange="handleImport(event)">
 
 <script>
@@ -2337,16 +2352,13 @@ function initAddSheet(){
   const $=id=>document.getElementById(id);
   $('fab').addEventListener('click',openAddSheet);
   $('addSheetBook').addEventListener('click',()=>{closeAddSheet();openScanner();});
-  $('addSheetHl').addEventListener('click',()=>{_sheetFor='hl';renderAddSheetBooks();addSheetStep('books');});
-  $('addSheetVocab').addEventListener('click',()=>{_sheetFor='vocab';renderAddSheetBooks();addSheetStep('books');});
+  $('addSheetPage').addEventListener('click',()=>{renderAddSheetBooks();addSheetStep('books');});
   $('addSheetMoreBtn').addEventListener('click',()=>{
     $('addSheetOther').style.display='block';$('addSheetMoreBtn').style.display='none';
   });
   $('addSheetCancel').addEventListener('click',closeAddSheet);
   $('addSheet').addEventListener('click',e=>{if(e.target.id==='addSheet')closeAddSheet();});
 }
-// What a book picked in the sheet is for: 'hl' (a highlight) or 'vocab' (a word).
-let _sheetFor='hl';
 function openAddSheet(){addSheetStep('choose');document.getElementById('addSheet').style.display='flex';}
 function closeAddSheet(){document.getElementById('addSheet').style.display='none';}
 function addSheetStep(step){
@@ -2377,7 +2389,6 @@ function bookPickRow(b){
   text.append(t,a);btn.append(cover,text);
   btn.addEventListener('click',()=>{
     closeAddSheet();
-    if(_sheetFor==='vocab'){openVocabWord(null,b.id);return;}
     openHighlight(b.id);
     // Still the same tap, so the browser lets this open the camera: one tap
     // from choosing the book to the shutter. Cancelling the camera leaves the
@@ -2396,12 +2407,9 @@ function renderAddSheetBooks(){
   const other=owned.filter(b=>b.status!=='reading')
     .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||''))||(y.addedAt||0)-(x.addedAt||0));
   const rEl=$('addSheetReading'),oEl=$('addSheetOther'),more=$('addSheetMoreBtn');
-  const vocab=_sheetFor==='vocab';
-  $('addSheetBooksTitle').textContent=vocab?'A word from which book?':'Highlight from which book?';
   oEl.replaceChildren(...(other.length?[sheetText('sheet-label','OTHER BOOKS')]:[]),...other.map(bookPickRow));
 
   if(!owned.length){
-    if(vocab){closeAddSheet();openVocabWord(null,null);return;} // a word doesn't need a book
     rEl.replaceChildren(sheetText('sheet-empty','Add a book first — highlights are saved to a book.'));
     oEl.style.display='none';more.style.display='none';
   }else if(!reading.length){
@@ -2491,10 +2499,14 @@ function initHighlights(){
   $('hlFile').addEventListener('change',e=>onHighlightPhoto(e.target));
   $('hlRetake').addEventListener('click',()=>highlightStep('pick'));
   $('hlRead').addEventListener('click',readHighlight);
-  $('hlBack').addEventListener('click',()=>highlightStep('mark'));
-  $('hlSave').addEventListener('click',saveHighlight);
+  $('hlBack').addEventListener('click',()=>highlightStep(_hl&&_hl.bitmap?'mark':'pick')); // typed: no photo to go back to
+  $('hlSave').addEventListener('click',savePageCapture);
   $('hlWordsBtn').addEventListener('click',pickWordsFromHighlight);
-  $('hlAlso').addEventListener('change',()=>{$('hlNoteWrap').style.display=$('hlAlso').checked?'':'none';});
+  $('hlTypeBtn').addEventListener('click',typePassage);
+  $('hlWordOnlyBtn').addEventListener('click',()=>{const id=_hl&&_hl.bookId;closeHighlight();openVocabWord(null,id);});
+  for(const id of ['hlChoiceHl','hlChoiceWords'])
+    $(id).addEventListener('click',()=>{const on=!$(id).classList.contains('on');$(id).classList.toggle('on',on);$(id).setAttribute('aria-pressed',String(on));refreshPageChoice();});
+  $('hlAlso').addEventListener('change',refreshPageChoice);
   wireHighlightStage($('hlStage'));
 }
 
@@ -2503,24 +2515,31 @@ function highlightStep(step){
     document.getElementById(id).style.display=name===step?'block':'none';
 }
 
-// mode 'hl' saves a highlight; mode 'word' is the word editor's "from a photo":
-// the same capture, ending in the word picker. `stash` is the word editor as
-// it was, put back if the photo is abandoned.
-function openHighlight(bookId,mode='hl',stash=null){
+// mode 'page' is "From a page": photo first (or typed), then keep the passage
+// as a highlight, pick words from it, or both. Mode 'word' is the word
+// editor's "from a photo": the same capture, ending in picking one word.
+// `stash` is the word editor as it was, put back if the photo is abandoned.
+function openHighlight(bookId,mode='page',stash=null){
   const b=books.find(x=>x.id===bookId);
   if(!b&&mode!=='word')return;
   const word=mode==='word';
   _hl={bookId:b?b.id:'',mode,stash,bitmap:null,scale:1,dispW:0,dispH:0,box:null,cropUrl:''};
   const $=id=>document.getElementById(id);
   $('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
-  $('hlTitle').textContent=word?'A word from the page':'✦ Add a Highlight';
-  $('hlPickHint').textContent=word?'Photograph the page, then drag across the sentence with the word in it.':'Photograph the page, then drag across the passage you want to keep.';
+  $('hlTitle').textContent=word?'A word from the page':'✦ From a page';
+  $('hlPickHint').textContent=word?'Photograph the page, then drag across the sentence with the word in it.':
+    'Photograph the page and drag across the passage. Then keep it as a highlight, learn its words, or both.';
+  // Word mode ends in one button; page mode in the highlight/words choice.
   $('hlSave').style.display=word?'none':'';
-  $('hlWordsBtn').textContent=word?'Aa Pick the word →':'Aa Pick words to learn';
-  $('hlWordsBtn').className='btn hl-big '+(word?'btn-primary':'btn-secondary');
+  $('hlChoose').style.display=word?'none':'flex';
+  $('hlWordsBtn').style.display=word?'':'none';
+  $('hlWordsBtn').textContent='Aa Pick the word →';
+  $('hlWordsBtn').className='btn btn-primary hl-big';
   $('hlAlsoWrap').style.display=word&&b?'flex':'none';
   $('hlAlso').checked=false;
-  $('hlNoteWrap').style.display=word?'none':'';
+  $('hlWordOnlyBtn').style.display=word?'none':'';
+  for(const [id,on] of [['hlChoiceHl',true],['hlChoiceWords',false]]){$(id).classList.toggle('on',on);$(id).setAttribute('aria-pressed',String(on));}
+  refreshPageChoice();
   highlightStep('pick');
   document.getElementById('hlModal').style.display='block';
   document.body.style.overflow='hidden';
@@ -2624,6 +2643,7 @@ async function readHighlight(){
 
   const ta=document.getElementById('hlText'),status=document.getElementById('hlStatus');
   document.getElementById('hlCrop').src=_hl.cropUrl;
+  document.getElementById('hlCrop').style.display='';
   ta.value='';document.getElementById('hlPage').value='';document.getElementById('hlNote').value='';
   highlightStep('confirm');
 
@@ -2648,12 +2668,48 @@ async function readHighlight(){
   }
 }
 
-function saveHighlight(){
+// No photo: straight to the passage, typed or pasted.
+function typePassage(){
   if(!_hl)return;
-  if(!storeHighlight())return;
-  closeHighlight();
-  toast('Highlight saved ✦','ok');
+  if(_hl.bitmap&&_hl.bitmap.close)_hl.bitmap.close();
+  Object.assign(_hl,{bitmap:null,box:null,cropUrl:''});
+  const $=id=>document.getElementById(id);
+  $('hlCrop').removeAttribute('src');$('hlCrop').style.display='none';
+  for(const id of ['hlText','hlPage','hlNote'])$(id).value='';
+  $('hlText').disabled=false;
+  $('hlStatus').textContent=_hl.mode==='word'?'Type or paste the sentence, then pick the word.':'Type or paste the passage.';
+  highlightStep('confirm');
+  $('hlText').focus();
 }
+
+// The save button follows the choice: a highlight, words, or both.
+function refreshPageChoice(){
+  const $=id=>document.getElementById(id);
+  const hl=$('hlChoiceHl').classList.contains('on'),w=$('hlChoiceWords').classList.contains('on');
+  if(_hl&&_hl.mode==='page')$('hlNoteWrap').style.display=hl?'':'none';
+  else if(_hl&&_hl.mode==='word')$('hlNoteWrap').style.display=$('hlAlso').checked?'':'none';
+  $('hlSave').textContent=hl&&w?'Save & pick words →':hl?'Save highlight':w?'Pick words →':'Choose one above';
+  $('hlSave').disabled=!hl&&!w;
+}
+
+function savePageCapture(){
+  if(!_hl)return;
+  const $=id=>document.getElementById(id);
+  const hl=$('hlChoiceHl').classList.contains('on'),w=$('hlChoiceWords').classList.contains('on');
+  const text=$('hlText').value.trim();
+  if(!text){toast('The passage is empty.','err');$('hlText').focus();return;}
+  if(hl){
+    if(!storeHighlight())return;
+    toast('Highlight saved ✦','ok');
+  }
+  if(!w){closeHighlight();return;}
+  // Words: pick as many as you like; Done finishes the page.
+  const session=_hl;
+  openWordPicker(text,{bookId:session.bookId,page:$('hlPage').value.trim(),multi:true,
+    onPick:pre=>openVocabWord(null,session.bookId,pre),
+    onDone:()=>{if(_hl===session)closeHighlight();}});
+}
+function saveHighlight(){savePageCapture();}
 
 // The passage on the confirm screen → a journal entry. false if it's empty.
 function storeHighlight(){
@@ -2674,9 +2730,8 @@ function storeHighlight(){
   return true;
 }
 
-// "Pick words" on the confirm screen. In highlight mode the word editor opens
-// on top and you come back here to save the highlight; in word mode the photo
-// is done once a word is picked.
+// "Pick the word" in word mode (the word editor's photo): the photo is done
+// once a word is picked.
 function pickWordsFromHighlight(){
   if(!_hl)return;
   const text=document.getElementById('hlText').value.trim();
@@ -3118,7 +3173,11 @@ function openWordPicker(text,opts){
   renderWordPicker();
   document.getElementById('wordPick').style.display='flex';
 }
-function closeWordPicker(){_wp=null;document.getElementById('wordPick').style.display='none';}
+function closeWordPicker(){
+  const done=_wp&&_wp.opts&&_wp.opts.onDone;
+  _wp=null;document.getElementById('wordPick').style.display='none';
+  if(done)done();
+}
 
 function renderWordPicker(){
   if(!_wp)return;

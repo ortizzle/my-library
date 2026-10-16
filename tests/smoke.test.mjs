@@ -930,7 +930,7 @@ test('the + offers a book or a highlight', async () => {
   await page.click('#fab');
   assert.equal(await page.isVisible('#addSheet'), true);
   assert.equal(await page.isVisible('#addSheetBook'), true);
-  assert.equal(await page.isVisible('#addSheetHl'), true);
+  assert.equal(await page.isVisible('#addSheetPage'), true);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -954,7 +954,7 @@ test('"Add a highlight" lists the books being read, the rest one tap away', asyn
     { id: 'w1', title: 'Wanted', status: 'wishlist' },
   ]);
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
 
   const visibleTitles = () => page.$$eval('#addSheet .sheet-book', els =>
     els.filter(e => e.offsetParent !== null).map(e => e.querySelector('b').textContent));
@@ -970,7 +970,7 @@ test('choosing a book goes straight to the camera for that book', async () => {
   const { ctx, page } = await openApp(browser, base);
   await seedShelf(page, [{ id: 'r1', title: 'Piranesi', author: 'Susanna Clarke', status: 'reading' }]);
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
 
   const [chooser] = await Promise.all([
     page.waitForEvent('filechooser'),
@@ -996,7 +996,7 @@ test('with nothing marked as reading, the library is offered instead of a dead e
   const { ctx, page } = await openApp(browser, base);
   await seedShelf(page, [{ id: 'd1', title: 'Middlemarch', status: 'read' }]);
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
   assert.match(await page.textContent('#addSheetReading'), /Nothing is marked Currently Reading/);
   assert.equal(await page.isVisible('#addSheetOther .sheet-book'), true);
   assert.equal(await page.isVisible('#addSheetMoreBtn'), false);
@@ -1006,7 +1006,7 @@ test('with nothing marked as reading, the library is offered instead of a dead e
 test('with no books at all it says why', async () => {
   const { ctx, page } = await openApp(browser, base);
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
   assert.match(await page.textContent('#addSheetReading'), /Add a book first/);
   await ctx.close();
 });
@@ -1015,7 +1015,7 @@ test('a title that looks like HTML is listed as text', async () => {
   const { ctx, page } = await openApp(browser, base);
   await seedShelf(page, [{ id: 'x', title: '<img src=x onerror="window.__pwned=1">', status: 'reading' }]);
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
   assert.equal(await page.locator('#addSheetReading .sheet-book-text img').count(), 0);
   assert.equal(await page.evaluate(() => window.__pwned), undefined);
   await ctx.close();
@@ -1027,7 +1027,7 @@ test('a cover that fails to load shows the gradient placeholder, not a hole', as
   await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }]);
   await page.evaluate(() => { coversDB.r1 = 'https://covers.openlibrary.org/b/id/1-M.jpg'; });
   await page.click('#fab');
-  await page.click('#addSheetHl');
+  await page.click('#addSheetPage');
   await page.waitForFunction(() => document.querySelector('#addSheetReading .sheet-book-cover').tagName === 'SPAN');
   const bg = await page.$eval('#addSheetReading .sheet-book-cover', el => el.style.background);
   assert.match(bg, /linear-gradient/);
@@ -1382,25 +1382,70 @@ test('the Lists card opens the page and starts a review', async () => {
   await ctx.close();
 });
 
-test('the ＋ button adds a word to a book you are reading', async () => {
+test('the ＋ button: one "From a page" option, photo first, and a way to just type a word', async () => {
   const { ctx, page } = await openApp(browser, base);
   await addBook(page, 'Piranesi', 'Susanna Clarke');
   await addBook(page, 'Dune', 'Frank Herbert');
   await page.evaluate(() => { const b = books.find(x => x.title === 'Piranesi'); b.status = 'reading'; saveBooks(b); });
   await page.click('#fab');
-  await page.click('#addSheetVocab');
-  assert.match(await page.textContent('#addSheetBooksTitle'), /word/);
+  assert.equal(await page.locator('#addSheetChoose .sheet-opt').count(), 2, 'Add a book, From a page');
+  await page.click('#addSheetPage');
+  assert.match(await page.textContent('#addSheetBooksTitle'), /From which book/);
   assert.deepEqual(await page.$$eval('#addSheetReading .sheet-book b', els => els.map(e => e.textContent)), ['Piranesi']);
-  await page.click('#addSheetReading .sheet-book');
-  assert.equal(await page.isVisible('#vocabModal'), true);
-  assert.equal(await page.isVisible('#hlModal'), false, 'not the highlight camera');
-  assert.equal(await page.$eval('#vocabBook', s => s.selectedOptions[0].textContent), 'Piranesi');
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('#addSheetReading .sheet-book')]);
+  assert.ok(chooser, 'the camera opens first');
+  assert.equal(await page.isVisible('#hlModal'), true);
+  assert.match(await page.textContent('#hlTitle'), /From a page/);
 
-  // The highlight path is unchanged.
-  await page.click('#vocabCancelBtn');
-  await page.click('#fab');
-  await page.click('#addSheetHl');
-  assert.match(await page.textContent('#addSheetBooksTitle'), /Highlight/);
+  await page.click('#hlWordOnlyBtn');
+  assert.equal(await page.isVisible('#hlModal'), false);
+  assert.equal(await page.isVisible('#vocabModal'), true, 'straight to typing a word');
+  assert.equal(await page.$eval('#vocabBook', s => s.selectedOptions[0].textContent), 'Piranesi');
+  await ctx.close();
+});
+
+test('a passage can be typed instead of photographed, and saved as a highlight', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await openCapture(page);
+  await page.click('#hlTypeBtn');
+  assert.equal(await page.isVisible('#hlConfirm'), true);
+  assert.equal(await page.isVisible('#hlCrop'), false, 'no photo to show');
+  assert.equal(await page.textContent('#hlSave'), 'Save highlight', 'highlight is the default');
+  await page.fill('#hlText', 'It was the best of times.');
+  await page.fill('#hlPage', '3');
+  await page.click('#hlSave');
+  const j = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_journal')).b1);
+  assert.deepEqual([j[0].type, j[0].text, j[0].page], ['highlight', 'It was the best of times.', '3']);
+  assert.equal(await page.isVisible('#hlModal'), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the choice decides: words only saves no highlight; neither is not allowed', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await openCapture(page);
+  await page.click('#hlTypeBtn');
+  await page.fill('#hlText', 'A terse reply.');
+  await page.click('#hlChoiceWords');
+  assert.equal(await page.textContent('#hlSave'), 'Save & pick words →');
+  await page.click('#hlChoiceHl');
+  assert.equal(await page.textContent('#hlSave'), 'Pick words →');
+  assert.equal(await page.isVisible('#hlNoteWrap'), false, 'no note without a highlight');
+  await page.click('#hlChoiceWords');
+  assert.equal(await page.isDisabled('#hlSave'), true, 'one of the two must be chosen');
+  await page.click('#hlChoiceWords');
+
+  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#wordPick'), true);
+  await page.click('#wordPickText .wp-word:text-is("terse")');
+  assert.equal(await page.inputValue('#vocabWord'), 'terse');
+  assert.equal(await page.inputValue('#vocabSentence'), 'A terse reply.');
+  await page.fill('#vocabDef', 'Brief.');
+  await page.click('#vocabSaveBtn');
+  await page.click('#wordPickCancel'); // Done
+  assert.equal(await page.isVisible('#hlModal'), false, 'Done finishes the page');
+  assert.equal((await storedVocab(page)).length, 1);
+  assert.deepEqual(await page.evaluate(() => journalDB.b1 || []), [], 'no highlight saved');
   await ctx.close();
 });
 
@@ -1529,7 +1574,7 @@ test('the Journal tab offers words from highlights too', async () => {
   await ctx.close();
 });
 
-test('words can be picked while capturing a highlight, then the highlight saved', async () => {
+test('both: the highlight is saved and words are picked from the same photo', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
   await stubClaudeBoth(page, { read: PASSAGE, define: '{"headword":"obfuscate","pos":"verb","definition":"Make unclear."}' });
@@ -1539,16 +1584,15 @@ test('words can be picked while capturing a highlight, then the highlight saved'
   await page.waitForFunction(() => document.getElementById('hlText').value.length > 0);
   await page.fill('#hlPage', '88');
 
-  await page.click('#hlWordsBtn');
+  await page.click('#hlChoiceWords'); // both: highlight and words
+  await page.click('#hlSave');
   await page.click('#wordPickText .wp-word:text-is("obfuscate")');
   assert.equal(await page.isVisible('#vocabModal'), true, 'the editor opens above the capture screen');
   assert.equal(await page.inputValue('#vocabPage'), '88');
   await page.click('#vocabSaveBtn'); // defines, then saves
   await page.waitForFunction(() => vocabDB.length === 1);
   await page.click('#wordPickCancel');
-
-  assert.equal(await page.isVisible('#hlModal'), true, 'still on the highlight');
-  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#hlModal'), false, 'the page is done');
   const j = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_journal')).b1);
   assert.equal(j[0].text, PASSAGE);
   assert.equal((await storedVocab(page))[0].sentence, 'Every layer of approval seemed designed to obfuscate who had decided.');
