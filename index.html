@@ -587,6 +587,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .settings-card h3{font-family:'Playfair Display',serif;font-size:.94rem;margin-bottom:.8rem}
 .key-wrap{position:relative}.key-wrap .fg{margin-bottom:.26rem}
 .eye-btn{position:absolute;right:.48rem;top:.38rem;background:none;border:none;cursor:pointer;color:var(--ink-faint);font-size:.87rem;padding:.1rem}.eye-btn:hover{color:var(--ink)}
+.drive-btn{width:100%;min-height:48px;justify-content:center;text-align:center;line-height:1.35}
+.drive-bar{width:100%;min-height:48px;justify-content:center;text-align:center;line-height:1.35;margin-bottom:.9rem;background:var(--cream)}
 .hint{font-size:.79rem;color:var(--ink-faint);font-style:italic;margin-top:.28rem;line-height:1.46}
 
 /* LOANED */
@@ -746,6 +748,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <!-- READING LOG -->
 <div class="view active" id="view-log">
   <div class="sec-head"><h2 class="sec-title">📖 Today's Reading</h2></div>
+  <div id="driveBar" style="max-width:560px"></div>
   <div id="logContent" style="max-width:560px"></div>
 </div>
 
@@ -861,6 +864,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <p class="hint" style="margin-top:.38rem">JSON preserves everything. CSV opens cleanly in Excel — one row per book.</p>
     <p class="hint" style="margin-top:.25rem">On your phone, Export JSON opens the share sheet — choose <b>Drive</b> to pick the folder it's saved in. Each backup is named with the date.</p>
   </div>
+  <div class="settings-card" id="driveCard"></div>
   <div class="settings-card">
     <h3>Import &amp; Reset</h3>
     <div style="display:flex;gap:.52rem;flex-wrap:wrap">
@@ -1282,6 +1286,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <button id="fab" aria-label="Add a book, or capture from a page" title="Add a book, or capture from a page" style="position:fixed;bottom:1.5rem;right:1.5rem;z-index:90;width:62px;height:62px;border-radius:50%;background:var(--burgundy);color:#fff;font-size:1.9rem;line-height:1;border:none;box-shadow:0 4px 16px rgba(0,0,0,.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s" onmouseenter="this.style.transform='scale(1.08)';this.style.boxShadow='0 6px 22px rgba(0,0,0,.4)'" onmouseleave="this.style.transform='scale(1)';this.style.boxShadow='0 4px 16px rgba(0,0,0,.3)'">＋</button>
 <input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" style="display:none" onchange="handleImport(event)">
 
+<script src="ortiz-drive.js"></script>
 <script>
 // ══════════════════════════════════════════
 // PERMANENT STORAGE KEYS — never change these
@@ -1341,6 +1346,7 @@ function save(k,v){
     return false;
   }
   scheduleGistPush();
+  scheduleDriveCheck();
   return true;
 }
 
@@ -1669,6 +1675,7 @@ async function gistPush(){
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
+    driveCheck();
   }catch(e){
     // Leave _gistPushPending set so gistRefreshIfStale won't pull over us.
     console.warn('Gist push failed:',e);
@@ -1705,6 +1712,7 @@ async function gistPull(force=false){
     localStorage.setItem(GIST_SYNC_KEY,new Date().toISOString());
     updateGistStatus();
     setGistDot('synced');
+    driveCheck();
   }catch(e){console.warn('Gist pull failed:',e);setGistDot('off');}
   finally{
     _gistPulling=false;
@@ -1896,13 +1904,14 @@ function renderView(n){
   if(n==='keepsake') renderKeepsake();
   if(n==='loaned')   renderLoaned();
   if(n==='lists')    renderLists();
-  if(n==='log')      renderLogSession();
+  if(n==='log')      {renderLogSession();mountDriveBar();}
   if(n==='journal')  renderJournalView();
   if(n==='wishlist') renderWishlist();
   if(n==='vocab')    renderVocab();
   if(n==='settings'){
     document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
+    mountDriveSettings();
   }
 }
 
@@ -5853,8 +5862,15 @@ async function testGbKey(){
   }
 }
 
+// Everything Export JSON writes, minus exportedAt. Also the Drive copy, so a
+// Drive file restores through Import. No API keys or Gist credentials — those
+// are deliberately outside SK's exported set.
+function backupData(){
+  return JSON.parse(JSON.stringify({version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB}));
+}
+
 async function exportJSON(){
-  const d={version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB,exportedAt:new Date().toISOString()};
+  const d={...backupData(),exportedAt:new Date().toISOString()};
   const json=JSON.stringify(d,null,2);
   // Dated, so snapshots kept in one Drive folder don't overwrite or pile up as "(1)".
   const base=`reading-room-backup-${localDateStr()}`;
@@ -6049,6 +6065,37 @@ function syncLinkedProgress(id,prefix,src){
 }
 
 // ══════════════════════════════════════════
+// GOOGLE DRIVE COPY (shared ortiz-drive.js)
+// ══════════════════════════════════════════
+// Guarded: if ortiz-drive.js didn't load, the app carries on without it.
+const Drive=window.OrtizDrive||null;
+let _driveTimer=null;
+function driveCheck(){if(_appReady&&Drive)Drive.check();}
+function scheduleDriveCheck(){
+  if(!_appReady||!Drive)return; // _appReady first: reading Drive before its const line runs would throw
+  clearTimeout(_driveTimer);
+  _driveTimer=setTimeout(driveCheck,2500);
+}
+function mountDriveBar(){
+  const slot=document.getElementById('driveBar');
+  if(Drive&&slot)Drive.mountBar(slot,{className:'btn btn-secondary drive-bar'});
+}
+function initDrive(){
+  if(!Drive)return;
+  Drive.init({app:'Reading Room',prefix:'reading-room',getData:backupData,
+    toast:msg=>toast(msg,'ok'),onChange:mountDriveBar});
+  mountDriveBar();
+  if(document.getElementById('view-settings').classList.contains('active'))mountDriveSettings();
+}
+// Built on first visit to Settings, not at startup: building it preloads
+// Google's sign-in script, which nobody who hasn't opened Settings needs.
+function mountDriveSettings(){
+  const card=document.getElementById('driveCard');
+  if(!_appReady||!Drive||!card||card.firstChild)return; // init runs once _appReady is set
+  card.appendChild(Drive.settingsBlock({labelTag:'h3',labelClass:'drive-h',buttonClass:'btn btn-secondary drive-btn',hintClass:'hint'}));
+}
+
+// ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',async ()=>{
@@ -6064,6 +6111,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   renderView(initial);
   updateGistStatus();
   _appReady=true;
+  initDrive();
   if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){
     setGistDot('pushing');
     await gistPull();
