@@ -1959,28 +1959,47 @@ function browseGenre(genre){
 // The filter dropdowns. Each lists only options some book has, with counts,
 // and hides itself when there's nothing to choose. The first option is the
 // category name, so an unused filter reads "Genre", a used one "Horror".
+// Counts are faceted: each dropdown counts the books that match every OTHER
+// filter and the search, so an option always shows what choosing it gives.
+// (They used to count the whole library — "Favorites (4)" with Unread chosen
+// gave zero books.) Each def's test(b,v) says whether book b matches value v.
 const FILTER_DEFS=[
   {id:'fStatus',label:'Status',get:()=>filters.status==='all'?'':filters.status,
-   set:v=>{filters.status=v||'all';},
-   opts:()=>[['reading','Reading'],['read','Read'],['unread','Unread'],['dnf','Did not finish']]
-     .map(([v,t])=>[v,t,libBooks().filter(b=>b.status===v).length])},
+   set:v=>{filters.status=v||'all';},test:(b,v)=>b.status===v,
+   values:()=>[['reading','Reading'],['read','Read'],['unread','Unread'],['dnf','Did not finish']]},
   {id:'fList',label:'Lists',get:()=>filters.list||'',set:v=>{filters.list=v||null;},
-   opts:()=>[['tbr','To be read',b=>(b.lists||[]).includes('tbr')],['fav','⭐ Favorites',isFav],['loaned','📤 Loaned out',b=>!!activeLoan(b)]]
-     .map(([v,t,f])=>[v,t,libBooks().filter(f).length])},
+   test:(b,v)=>v==='tbr'?(b.lists||[]).includes('tbr'):v==='fav'?isFav(b):v==='loaned'?!!activeLoan(b):false,
+   values:()=>[['tbr','To be read'],['fav','⭐ Favorites'],['loaned','📤 Loaned out']]},
   {id:'fFormat',label:'Format',get:()=>filters.type==='article'?'article':(filters.fmt||''),
    set:v=>{filters.type=v==='article'?'article':null;filters.fmt=v&&v!=='article'?v:null;},
-   opts:()=>[...[['physical','Physical'],['ebook','eBook'],['audio','Audio']]
-     .map(([v,t])=>[v,t,libBooks().filter(b=>(b.formats||[]).includes(v)).length]),
-     ['article','Articles',libBooks().filter(b=>b.itemType==='article').length]]},
+   test:(b,v)=>v==='article'?b.itemType==='article':(b.formats||[]).includes(v),
+   values:()=>[['physical','Physical'],['ebook','eBook'],['audio','Audio'],['article','Articles']]},
   {id:'fGenre',label:'Genre',get:()=>filters.genre||'',set:v=>{filters.genre=v||null;},
-   opts:()=>countBy(libBooks().map(b=>b.genre).filter(Boolean))},
+   test:(b,v)=>b.genre===v,values:pool=>distinct(pool.map(b=>b.genre))},
   {id:'fRoom',label:'Room',get:()=>filters.room||'',set:v=>{filters.room=v||null;},
-   opts:()=>countBy(libBooks().map(b=>b.location&&b.location.room).filter(Boolean))},
+   test:(b,v)=>((b.location&&b.location.room)||'')===v,values:pool=>distinct(pool.map(b=>b.location&&b.location.room))},
 ];
 function libBooks(){return books.filter(b=>b.status!=='wishlist');}
-function countBy(values){
-  const m=new Map();for(const v of values)m.set(v,(m.get(v)||0)+1);
-  return [...m.entries()].sort((a,b)=>String(a[0]).localeCompare(String(b[0]))).map(([v,n])=>[v,v,n]);
+function distinct(values){return [...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b))).map(v=>[v,v]);}
+function libSearch(){return document.getElementById('searchInput').value.toLowerCase().trim();}
+function searchMatch(b,q){
+  return !q||(b.title||'').toLowerCase().includes(q)||(b.author||'').toLowerCase().includes(q)||
+    (b.genre||'').toLowerCase().includes(q)||(b.publication||'').toLowerCase().includes(q);
+}
+// Does book b pass the search and every active filter except `skip`?
+function libMatch(b,skip,q){
+  if(!searchMatch(b,q))return false;
+  for(const d of FILTER_DEFS){
+    if(d===skip)continue;
+    const v=d.get();
+    if(v&&!d.test(b,v))return false;
+  }
+  return true;
+}
+// [value, label, count] for a dropdown, counted against the other filters.
+function filterOptions(d,q){
+  const pool=libBooks().filter(b=>libMatch(b,d,q));
+  return d.values(pool).map(([v,t])=>[v,t,pool.filter(b=>d.test(b,v)).length]);
 }
 function anyFilterOn(){
   return FILTER_DEFS.some(d=>d.get())||!!document.getElementById('searchInput').value.trim();
@@ -1990,7 +2009,7 @@ function renderLibFilters(){
   for(const d of FILTER_DEFS){
     const sel=document.getElementById(d.id),cur=d.get();
     // Keep a chosen option even if its count fell to 0, so it can be cleared.
-    const opts=d.opts().filter(([v,,n])=>n>0||v===cur);
+    const opts=filterOptions(d,libSearch()).filter(([v,,n])=>n>0||v===cur);
     const first=document.createElement('option');first.value='';first.textContent=cur?'Any '+d.label.toLowerCase():d.label;
     sel.replaceChildren(first,...opts.map(([v,t,n])=>{
       const o=document.createElement('option');o.value=v;o.textContent=`${t} (${n})`;return o;
@@ -2022,19 +2041,8 @@ let _searchTimer=null;
 function searchDebounced(){clearTimeout(_searchTimer);_searchTimer=setTimeout(renderLibrary,150);}
 
 function renderLibrary(){
-  const q=document.getElementById('searchInput').value.toLowerCase().trim();
-  let list=[...books].filter(b=>b.status!=='wishlist'); // wishlist lives in its own tab
-  if(filters.status&&filters.status!=='all') list=list.filter(b=>b.status===filters.status);
-  if(filters.list==='tbr') list=list.filter(b=>(b.lists||[]).includes('tbr'));
-  if(filters.list==='fav') list=list.filter(b=>isFav(b));
-  if(filters.list==='loaned') list=list.filter(b=>activeLoan(b));
-  if(filters.fmt) list=list.filter(b=>(b.formats||[]).includes(filters.fmt));
-  if(filters.type==='article') list=list.filter(b=>b.itemType==='article');
-  if(filters.genre) list=list.filter(b=>b.genre===filters.genre);
-  if(filters.room) list=list.filter(b=>(b.location?.room||'')===filters.room);
-  if(q) list=list.filter(b=>
-    b.title.toLowerCase().includes(q)||b.author.toLowerCase().includes(q)||(b.genre||'').toLowerCase().includes(q)||(b.publication||'').toLowerCase().includes(q)
-  );
+  const q=libSearch();
+  let list=libBooks().filter(b=>libMatch(b,null,q)); // the wishlist lives in its own tab
   renderLibFilters();
   list.sort((a,b)=>{
     const aR=a.status==='reading'?0:1;

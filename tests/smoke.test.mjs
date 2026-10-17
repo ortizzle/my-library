@@ -1970,3 +1970,43 @@ test('genre and room names in the dropdowns are shown as text', async () => {
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('filter counts reflect the other filters, so an option never leads to zero books', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => {
+    const B = (id, status, extra = {}) => ({ id, title: 'Book ' + id, author: 'A', status, formats: ['physical'], addedAt: 1, updatedAt: 1, ...extra });
+    books = [B('f1', 'read', { rating: 5, genre: 'Fantasy' }), B('f2', 'read', { rating: 5, genre: 'Horror' }),
+             B('u1', 'unread', { lists: ['tbr'], genre: 'Fantasy' }), B('u2', 'unread', { genre: 'Horror', formats: ['audio'] }),
+             B('r1', 'reading', { lists: ['tbr'], genre: 'Fantasy', loans: [{ to: 'Sam', date: '2026-10-01' }] })];
+    save(SK.books, books); showView('library'); renderLibrary();
+  });
+  await page.waitForFunction(() => location.hash === '#library');
+  const opts = sel => page.$$eval(`${sel} option`, o => o.map(x => x.textContent));
+
+  // The reported case: Unread chosen, Favorites (all read) must not be offered.
+  await page.selectOption('#fStatus', 'unread');
+  assert.deepEqual(await opts('#fList'), ['Lists', 'To be read (1)']);
+  assert.deepEqual(await opts('#fGenre'), ['Genre', 'Fantasy (1)', 'Horror (1)']);
+  assert.deepEqual(await opts('#fFormat'), ['Format', 'Physical (1)', 'Audio (1)']);
+
+  // The search narrows the counts too.
+  await page.selectOption('#fStatus', '');
+  await page.fill('#searchInput', 'Book u');
+  await page.waitForFunction(() => document.querySelectorAll('#booksGrid .book-title').length === 2);
+  assert.deepEqual(await opts('#fStatus'), ['Status', 'Unread (2)']);
+  await page.fill('#searchInput', '');
+  await page.waitForFunction(() => document.querySelectorAll('#booksGrid .book-title').length === 5);
+
+  // Every option, under another filter, gives exactly the count it shows.
+  await page.selectOption('#fGenre', 'Fantasy');
+  for (const sel of ['#fStatus', '#fList', '#fFormat']) {
+    const choices = await page.$$eval(`${sel} option`, o => o.slice(1).map(x => [x.value, +x.textContent.match(/\((\d+)\)/)[1]]));
+    for (const [v, n] of choices) {
+      await page.selectOption(sel, v);
+      assert.equal(await page.locator('#booksGrid .book-title').count(), n, `${sel}=${v} promised ${n}`);
+      await page.selectOption(sel, '');
+    }
+  }
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
