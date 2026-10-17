@@ -989,7 +989,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <label>Genre / Category</label>
         <select id="bGenre">
           <option value="">— Select —</option>
-          <option>Literary Fiction</option><option>Mystery / Thriller</option><option>Historical Fiction</option>
+          <option>Literary Fiction</option><option>Mystery / Thriller</option><option>Horror</option><option>Historical Fiction</option>
           <option>Fantasy</option><option>Science Fiction</option><option>Romance</option><option>Nonfiction</option>
           <option>Memoir / Biography</option><option>Self-Help</option><option>Business</option><option>Short Stories</option>
           <option>Poetry</option><option>Graphic Novel</option><option>Young Adult</option><option>Children's</option>
@@ -4465,13 +4465,15 @@ function previewCoverUrl(){const url=document.getElementById('coverUrlInput').va
 // quality generation; claude-haiku-4-5-20251001 is the cheaper, faster option.
 const CLAUDE_MODEL='claude-sonnet-5';
 
-const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
+const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',horror:'Horror','ghost stories':'Horror',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
 
 function genreFromSubjects(subjects){
   // Longest key first. These are substring matches, so in map order 'fiction'
   // swallowed 'science fiction' and 'young adult fiction' — every sci-fi book
   // was being filed as Literary Fiction.
-  const keys=Object.keys(GENRE_MAP).sort((a,b)=>b.length-a.length);
+  // Plain 'fiction' is the catch-all, so it goes last whatever its length:
+  // otherwise "Horror fiction" (horror is shorter) landed in Literary Fiction.
+  const keys=Object.keys(GENRE_MAP).sort((a,b)=>(a==='fiction')-(b==='fiction')||b.length-a.length);
   for(const s of subjects||[]){
     const sl=String(s&&s.name?s.name:s).toLowerCase();
     for(const k of keys)if(sl.includes(k))return GENRE_MAP[k];

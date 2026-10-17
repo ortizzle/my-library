@@ -8,12 +8,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { loadFunctions } from './extract.mjs';
+import { loadFunctions, extractConst } from './extract.mjs';
 
 const P = loadFunctions(
   ['gbCover', 'gbNormalize', 'genreFromSubjects'],
-  // GENRE_MAP is a top-level const the extracted functions close over.
-  `const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};`
+  // GENRE_MAP is a top-level const the extracted functions close over; read
+  // from index.html so a new genre can't drift from the test's copy.
+  `const GENRE_MAP=${extractConst('GENRE_MAP')};`
 );
 
 // Shaped like a real Google Books volume for the book that prompted this.
@@ -142,4 +143,10 @@ test('the cover URL is https and carries the ISBN-10', () => {
   const url = C.amazonCoverUrl('9780593717202');
   assert.ok(url.startsWith('https://'), 'http would be blocked as mixed content');
   assert.ok(url.includes('0593717201'));
+});
+
+test('horror is its own genre, not swallowed by fiction', () => {
+  assert.equal(P.genreFromSubjects(['Fiction / Horror']), 'Horror');
+  assert.equal(P.genreFromSubjects(['Horror fiction']), 'Horror');
+  assert.equal(P.genreFromSubjects(['Ghost stories']), 'Horror');
 });
