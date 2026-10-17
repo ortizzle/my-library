@@ -543,6 +543,11 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .isbn-bar{display:flex;gap:.4rem;align-items:stretch;margin-bottom:1rem;padding:.8rem .9rem;background:var(--parchment);border:1px solid var(--parchment-dark);border-radius:var(--r)}
 .isbn-bar input{flex:1;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.88rem;outline:none;transition:border-color .2s}
 .isbn-bar input:focus{border-color:var(--burgundy)}
+/* Lookup rows: the text box takes what's left; buttons never push past the edge. */
+.lk-row{display:flex;gap:.4rem;align-items:stretch;min-width:0}
+.lk-row input{min-width:0;min-height:44px}
+.lk-btn{flex-shrink:0;white-space:nowrap;justify-content:center}
+.lk-icon{flex-shrink:0;width:48px;min-height:44px;padding:0;justify-content:center;font-size:1.15rem}
 .isbn-status{font-size:.79rem;color:var(--ink-faint);margin-top:.33rem;font-style:italic;min-height:1em}
 .isbn-ok{color:var(--sage);font-style:normal;font-weight:500}.isbn-err{color:var(--burgundy)}
 
@@ -664,6 +669,15 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   .modal-tab{padding:.52rem .42rem;font-size:.74rem}
   .modal-tabs{padding:0 .8rem}
   .journal-section h4{flex-wrap:wrap;gap:.1rem .5rem}
+  /* Editors: narrower side margins, so a 13-digit ISBN and the lookup
+     buttons fit on one line. */
+  .modal-body{padding:0 1rem 1rem}
+  .modal-hdr{padding:1.1rem 1rem .7rem}
+  .modal-foot{padding:.7rem 1rem 1rem}
+  .modal-tabs{padding:0 .5rem}
+  .isbn-bar{padding:.6rem .6rem}
+  .lk-row input{padding-left:.55rem!important;padding-right:.4rem!important}
+  .lk-btn{padding:0 .7rem}
   main{padding:1rem}.row2,.row3{grid-template-columns:1fr}.books-grid{grid-template-columns:1fr}
   .stats-hero{grid-template-columns:repeat(2,1fr)}.brand h1{font-size:1.3rem}.modal{padding:1.08rem}
   .charts-grid{grid-template-columns:1fr}
@@ -952,9 +966,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <div id="isbnSection">
         <div class="isbn-bar" style="flex-direction:column;gap:.55rem">
           <!-- Title / Author search -->
-          <div style="display:flex;gap:.4rem;align-items:stretch">
+          <div class="lk-row">
             <input type="text" id="titleSearchInput" placeholder="Search by title or author…" onkeydown="if(event.key==='Enter')searchByTitle()" style="flex:1;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.88rem;outline:none">
-            <button class="btn btn-primary" onclick="searchByTitle()" style="white-space:nowrap;flex-shrink:0">🔍 Search</button>
+            <button class="btn btn-primary lk-icon" onclick="searchByTitle()" aria-label="Search" title="Search">🔍</button>
           </div>
           <div style="display:flex;align-items:center;gap:.5rem">
             <div style="flex:1;border-top:1px dashed var(--parchment-dark)"></div>
@@ -962,10 +976,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
             <div style="flex:1;border-top:1px dashed var(--parchment-dark)"></div>
           </div>
           <!-- ISBN + scan -->
-          <div style="display:flex;gap:.4rem;align-items:stretch">
-            <input type="text" id="isbnInput" placeholder="ISBN" maxlength="17" style="flex:1;max-width:140px;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.88rem;outline:none">
-            <button class="btn btn-secondary" onclick="lookupISBN()" style="white-space:nowrap">Look Up</button>
-            <button class="btn btn-secondary" onclick="openScanner()" title="Scan barcode" style="flex-shrink:0">📷 Scan</button>
+          <div class="lk-row">
+            <input type="text" id="isbnInput" placeholder="ISBN" maxlength="17" inputmode="numeric" style="flex:1;padding:.4rem .68rem;border:1px solid var(--parchment-dark);border-radius:6px;background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.88rem;outline:none">
+            <button class="btn btn-secondary lk-btn" onclick="lookupISBN()">Look up</button>
+            <button class="btn btn-secondary lk-icon" onclick="openScanner()" aria-label="Scan barcode" title="Scan barcode">📷</button>
           </div>
         </div>
         <div id="titleSearchResults" class="title-search-results" style="display:none"></div>
