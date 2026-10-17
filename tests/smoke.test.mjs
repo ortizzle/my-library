@@ -1888,3 +1888,85 @@ test('the Today card shows the words waiting, and a word of the day once caught 
   assert.ok(week > 1, 'but not the same word every day');
   await ctx.close();
 });
+
+// ── Library filters (dropdowns) ──────────────────────────────────────────
+
+async function seedLibrary(page) {
+  await page.evaluate(() => {
+    const B = (id, title, status, extra = {}) => ({ id, title, author: 'A', status, formats: ['physical'], addedAt: 1, updatedAt: 1, ...extra });
+    books = [B('a', 'Hill House', 'unread', { genre: 'Horror' }), B('b', 'Dune', 'reading', { genre: 'Science Fiction', formats: ['audio'] }),
+             B('c', 'Piranesi', 'read', { genre: 'Fantasy', lists: ['tbr'] }), B('d', 'House in the Cerulean Sea', 'read', { genre: 'Fantasy' }),
+             B('w', 'Wanted', 'wishlist', { genre: 'Romance' })];
+    save(SK.books, books); showView('library'); renderLibrary();
+  });
+  await page.waitForFunction(() => location.hash === '#library');
+}
+const shownTitles = page => page.$$eval('#booksGrid .book-title', els => els.map(e => e.textContent.trim()));
+
+test('library filters are dropdowns with counts, and only options some book has', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedLibrary(page);
+  assert.equal(await page.locator('#view-library .chip').count(), 0, 'no more rows of pills');
+  assert.deepEqual(await page.$$eval('#fGenre option', o => o.map(x => x.textContent)),
+                   ['Genre', 'Fantasy (2)', 'Horror (1)', 'Science Fiction (1)'], 'the wishlist is not counted');
+  assert.deepEqual(await page.$$eval('#fFormat option', o => o.map(x => x.textContent)),
+                   ['Format', 'Physical (3)', 'Audio (1)'], 'formats nobody uses are left out');
+  assert.equal(await page.isVisible('#fRoom'), false, 'no rooms set, so no Room filter');
+  assert.equal(await page.isVisible('#fClear'), false);
+
+  await page.selectOption('#fGenre', 'Horror');
+  assert.deepEqual(await shownTitles(page), ['Hill House']);
+  assert.equal(await page.$eval('#fGenre', s => s.selectedOptions[0].textContent), 'Horror', 'reads as the choice');
+  assert.equal(await page.$eval('#fGenre', s => s.classList.contains('on')), true);
+  assert.equal(await page.textContent('#libCount'), '1 of 4 books');
+
+  await page.selectOption('#fGenre', 'Fantasy');
+  await page.selectOption('#fStatus', 'read');
+  assert.deepEqual((await shownTitles(page)).sort(), ['House in the Cerulean Sea', 'Piranesi']);
+  await page.selectOption('#fList', 'tbr');
+  assert.deepEqual(await shownTitles(page), ['Piranesi'], 'filters combine');
+
+  await page.click('#fClear');
+  assert.equal((await shownTitles(page)).length, 4);
+  assert.equal(await page.isVisible('#fClear'), false);
+  assert.equal(await page.$eval('#fGenre', s => s.value), '');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('rooms appear as a filter once a book has one; nothing matching says so', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedLibrary(page);
+  await page.evaluate(() => { books[0].location = { room: 'Office' }; save(SK.books, books); renderLibrary(); });
+  assert.equal(await page.isVisible('#fRoom'), true);
+  await page.selectOption('#fRoom', 'Office');
+  assert.deepEqual(await shownTitles(page), ['Hill House']);
+  await page.fill('#searchInput', 'zzz');
+  await page.waitForFunction(() => /Nothing matches/.test(document.getElementById('booksGrid').textContent));
+  assert.equal(await page.isVisible('#emptyLib'), false, 'not "your shelf is empty"');
+  await ctx.close();
+});
+
+test('a genre tapped in Stats opens the Library filtered to it', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedLibrary(page);
+  await page.evaluate(() => browseGenre('Horror'));
+  await page.waitForFunction(() => location.hash === '#library');
+  assert.equal(await page.$eval('#fGenre', s => s.value), 'Horror');
+  assert.deepEqual(await shownTitles(page), ['Hill House']);
+  assert.equal(await page.inputValue('#searchInput'), '', 'a filter, not a search');
+  await ctx.close();
+});
+
+test('genre and room names in the dropdowns are shown as text', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'x', title: 'T', author: 'A', status: 'read', genre: '<img src=x onerror="window.__pwned=1">',
+               location: { room: '<b>Den</b>' }, addedAt: 1, updatedAt: 1 }];
+    save(SK.books, books); showView('library'); renderLibrary();
+  });
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#libFilters img, #libFilters b').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
