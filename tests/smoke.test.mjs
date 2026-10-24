@@ -2290,3 +2290,21 @@ test('opening a book while its map is being made says so instead of starting ano
   assert.equal(calls.length, 1);
   await ctx.close();
 });
+
+test('a file of mind maps imports into the matching books and says how many', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  const dialogs = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
+  const map = JSON.parse(MAP_REPLY);
+  const file = JSON.stringify({ version: 2, books: [], maps: { b1: { map, createdAt: 5, updatedAt: 5, seen: [] } } });
+  await page.evaluate(() => showView('settings'));
+  await page.setInputFiles('#importFile', { name: 'maps.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+  await page.locator('.toast', { hasText: '1 new mind map(s)' }).first().waitFor();
+  assert.match(dialogs[0], /0 new book\(s\), 1 new mind map\(s\)/);
+  await page.evaluate(() => openMindmap('b1'));
+  assert.equal(await page.locator('#mmMap .mm-node').count(), 18);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -6238,7 +6238,9 @@ function handleImport(e){
     try{
       const known=new Set(books.map(b=>b.id));
       const newCount=d.books.filter(b=>b&&b.id&&!known.has(b.id)).length;
-      if(!confirm(`Merge this backup into your library?\n\n${newCount} new book(s), and reading history will be combined with what you already have. Nothing will be overwritten.`))return;
+      const incomingMaps=d.maps&&typeof d.maps==='object'?Object.keys(d.maps):[];
+      const mapNote=incomingMaps.length?`, ${incomingMaps.filter(id=>!mindmapDB[id]).length} new mind map(s)`:'';
+      if(!confirm(`Merge this backup into your library?\n\n${newCount} new book(s)${mapNote}, and reading history will be combined with what you already have. Nothing will be overwritten.`))return;
       // Run the backup through the same per-record merge sync uses. This used
       // to spread-replace progress/journal/covers, so restoring an old backup
       // to recover one book destroyed every newer entry on every other book.
@@ -6250,7 +6252,7 @@ function handleImport(e){
       localStorage.setItem(SK.updated,new Date().toISOString());
       scheduleGistPush();
       renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
-      toast(`Imported — ${newCount} new book(s), history merged.`,'ok');
+      toast(`Imported — ${newCount} new book(s)${mapNote}, history merged.`,'ok');
     }catch(err){console.error('Import failed:',err);toast('Import failed — your library is unchanged.','err');}
   };
   r.readAsText(f);e.target.value='';
