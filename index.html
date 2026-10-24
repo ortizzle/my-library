@@ -278,6 +278,67 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .loan-add-form{background:var(--parchment);border:1px dashed var(--parchment-dark);border-radius:6px;padding:.62rem .78rem;margin-bottom:.42rem}
 .loan-add-form h5{font-family:'Playfair Display',serif;font-size:.85rem;margin-bottom:.48rem;color:var(--ink-light)}
 
+/* MIND MAPS */
+#mindmapView{position:fixed;inset:0;z-index:8350;background:var(--parchment);display:flex;flex-direction:column}
+#mindmapView[style*="display:none"]{display:none!important}
+.mm-head{display:flex;align-items:center;gap:.4rem;padding:calc(.4rem + env(safe-area-inset-top)) .6rem .6rem .3rem;background:linear-gradient(175deg,#0f1a2e,#1b2c4b);color:var(--parchment);flex-shrink:0}
+.mm-x{width:48px;height:48px;border:none;background:none;color:var(--parchment);font-size:2rem;line-height:1;cursor:pointer;flex-shrink:0}
+.mm-head-t{flex:1;min-width:0}
+.mm-kicker{font-family:'IM Fell English SC',serif;font-size:.68rem;letter-spacing:.14em;color:var(--gold-lt)}
+.mm-head h2{font-family:'Playfair Display',serif;font-size:1.2rem;margin:0;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mm-author{font-style:italic;font-size:.82rem;color:#b9c3d8}
+.mm-regen{flex-shrink:0;min-height:40px;padding:0 .8rem;border-radius:20px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:var(--parchment);font-family:'Lora',serif;font-size:.82rem;cursor:pointer}
+.mm-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.mm-empty{text-align:center;padding:2.5rem 1.4rem}
+.mm-empty-ico{font-size:3rem}
+.mm-empty p{color:var(--ink-light);line-height:1.6;max-width:30rem;margin:.6rem auto 1.2rem}
+.mm-create{min-height:52px;padding:0 1.6rem;border:none;border-radius:26px;background:var(--burgundy);color:#fff;font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;cursor:pointer}
+.mm-create[disabled]{opacity:.5;cursor:default}
+.mm-status{font-style:italic;color:var(--ink-light);min-height:1.4em}
+.mm-thesis{margin:.9rem 1rem .4rem;padding:.8rem 1rem;background:var(--cream);border:2px solid var(--ink);border-radius:12px;box-shadow:5px 5px 0 var(--gold);font-family:'Lora',serif;font-size:1rem;line-height:1.5;color:var(--ink)}
+.mm-unsure{margin:.4rem 1rem;font-size:.85rem;color:var(--burgundy);font-style:italic}
+.mm-prog{display:flex;align-items:center;gap:.6rem;margin:.7rem 1rem .5rem;font-size:.8rem;color:var(--ink-faint)}
+.mm-bar{flex:1;height:5px;border-radius:3px;background:var(--parchment-dark);overflow:hidden}
+.mm-bar div{height:100%;width:0;background:var(--gold);transition:width .3s}
+.mm-map svg{display:block;width:100%;height:auto}
+.mm-node{cursor:pointer;outline:none}
+.mm-node:focus-visible rect{stroke-width:4}
+.mm-node:active rect{fill:#fff1d6}
+.mm-tlbtn{display:block;margin:1rem auto .4rem;min-height:48px;padding:0 1.4rem;border-radius:24px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--gold)}
+.mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
+.mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
+.mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
+.mm-take-m{font-size:.82rem;color:var(--ink-faint);margin:.4rem 0 0}
+.mm-scrim{position:fixed;inset:0;background:rgba(15,26,46,.5);z-index:1}
+.mm-sheet{position:fixed;left:0;right:0;bottom:0;max-height:82vh;overflow-y:auto;z-index:2;background:#fffaf2;border-radius:18px 18px 0 0;padding:.5rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.35);animation:su .2s ease}
+.mm-grip{width:40px;height:4px;border-radius:2px;background:var(--parchment-dark);margin:.3rem auto .7rem}
+.mm-s-kind{font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.12em;color:#8a6a1e}
+.mm-s-title{font-family:'Playfair Display',serif;font-size:1.55rem;margin:.15rem 0 0;line-height:1.15}
+.mm-s-sub{font-style:italic;color:var(--ink-light);margin:.15rem 0 0}
+.mm-s-lbl{font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.12em;color:var(--ink-faint);margin:1rem 0 .3rem}
+.mm-s-p{margin:0;line-height:1.6;font-size:.98rem;color:var(--ink)}
+.mm-s-list{margin:0;padding-left:1.2rem;line-height:1.55}
+.mm-s-list li{margin-bottom:.25rem}
+.mm-s-box{padding:.7rem .85rem;border-radius:10px;line-height:1.55;font-size:.95rem}
+.mm-s-box.story{background:var(--parchment-mid);border:1px solid var(--parchment-dark)}
+.mm-s-box.rule{background:#fbf3dc;border:1.5px solid var(--gold);font-style:italic}
+.mm-s-box.tryit{background:#e4f0ec;border:1.5px solid var(--teal)}
+.mm-s-note{border-left:3px solid var(--gold);padding:.2rem 0 .2rem .6rem;margin-bottom:.4rem;font-size:.92rem;line-height:1.5;color:var(--ink-light)}
+.mm-s-note b{font-family:'IM Fell English SC',serif;font-weight:400;color:#8a6a1e;letter-spacing:.05em}
+.mm-s-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.3rem}
+.mm-chip{min-height:38px;padding:0 .8rem;border-radius:19px;border:1.5px solid var(--burgundy);background:#fff;color:var(--ink);font-family:'Lora',serif;font-size:.9rem;cursor:pointer}
+.mm-s-q{margin:0;padding:.7rem .85rem;background:#eaf0f8;border-left:4px solid var(--burgundy);border-radius:6px;font-style:italic;line-height:1.55}
+.mm-s-nav{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-top:1.2rem;padding-top:.9rem;border-top:1px solid var(--parchment-dark)}
+.mm-navbtn{min-height:44px;padding:0 1rem;border-radius:22px;border:1.5px solid var(--ink);background:var(--cream);color:var(--ink);font-family:'Lora',serif;font-size:.92rem;cursor:pointer}
+.mm-navbtn[disabled]{opacity:.35;cursor:default}
+.mm-s-count{font-size:.82rem;color:var(--ink-faint)}
+.mm-tl{list-style:none;margin:.8rem 0 0 .4rem;padding:0 0 0 1.2rem;border-left:3px solid var(--gold);counter-reset:beat}
+.mm-tl li{position:relative;margin-bottom:1rem;counter-increment:beat}
+.mm-tl li::before{content:counter(beat);position:absolute;left:-2.05rem;top:0;width:1.6rem;height:1.6rem;border-radius:50%;background:var(--gold);color:#fff;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;border:3px solid #fffaf2}
+.mm-tl b{display:block;font-family:'Playfair Display',serif;font-size:1.02rem}
+.mm-tl span{display:block;line-height:1.5;font-size:.94rem;color:var(--ink-light);margin-top:.1rem}
+.mm-open{width:100%;min-height:48px;justify-content:center;margin-bottom:.88rem;font-size:1rem}
+
 /* VOCABULARY */
 .voc-btn{min-height:48px}
 .voc-x{min-width:48px;min-height:48px}
@@ -1100,6 +1161,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
           </div>
         </div>
       </div>
+      <div id="mmOpenWrap" style="display:none">
+        <button type="button" class="btn btn-primary mm-open" id="mmOpenBtn">🧠 Make a mind map</button>
+      </div>
       <div id="vocabSection" style="display:none">
         <div class="journal-section">
           <h4>Vocabulary <button type="button" class="btn btn-secondary btn-sm" id="vocabBookAdd">＋ Add a word</button></h4>
@@ -1250,6 +1314,33 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
   <div class="modal vv" role="dialog" aria-modal="true" aria-label="Word"><div id="vocabViewBody"></div></div>
 </div>
 
+<!-- Mind map of a finished book: the map, then a sheet per bubble -->
+<div id="mindmapView" style="display:none" role="dialog" aria-modal="true" aria-labelledby="mmTitle">
+  <div class="mm-head">
+    <button type="button" class="mm-x" id="mmClose" aria-label="Close mind map">‹</button>
+    <div class="mm-head-t"><div class="mm-kicker">MIND MAP</div><h2 id="mmTitle"></h2><div class="mm-author" id="mmAuthor"></div></div>
+    <button type="button" class="mm-regen" id="mmRegen">↻ Remake</button>
+  </div>
+  <div class="mm-scroll" id="mmScroll">
+    <div class="mm-empty" id="mmEmpty">
+      <div class="mm-empty-ico" aria-hidden="true">🧠</div>
+      <p id="mmEmptyText"></p>
+      <button type="button" class="mm-create" id="mmCreate">Make the mind map</button>
+      <p class="mm-status" id="mmStatus" aria-live="polite"></p>
+    </div>
+    <div id="mmBody" style="display:none">
+      <p class="mm-thesis" id="mmThesis"></p>
+      <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map leans on your notes.</p>
+      <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
+      <div class="mm-map" id="mmMap"></div>
+      <button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button>
+      <div class="mm-take" id="mmTake"></div>
+    </div>
+  </div>
+  <div class="mm-scrim" id="mmSheetScrim" style="display:none"></div>
+  <div class="mm-sheet" id="mmSheet" style="display:none" role="dialog" aria-label="Details"></div>
+</div>
+
 <!-- Word picker: a passage as tappable words → the word editor -->
 <div id="wordPick" class="sheet-backdrop" style="display:none;z-index:8600">
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="wordPickTitle">
@@ -1352,6 +1443,7 @@ const SK={
                              // "s|date" removes a streak day (see undoStreakDays)
   streakAt:'trr_v1_streakat',// {date: lastLoggedMs} — lets a re-logged day beat an undo
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
+  maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -1600,6 +1692,7 @@ function mergeState(local,remote){
     // Words are records like books: newest edit (a review counts) wins per
     // id, and deleting one leaves a tombstone in the same `deleted` map.
     vocab:  mergeBooks(local.vocab,remote.vocab,deleted),
+    maps:   mergeMindmaps(local.maps,remote.maps,deleted),
     streak,
     streakAt,
     rooms:  [...new Set([...(remote.rooms||[]),...(local.rooms||[])])].sort(),
@@ -1611,7 +1704,7 @@ function mergeState(local,remote){
 
 function currentState(){
   return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
-          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,vocab:vocabDB};
+          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,vocab:vocabDB,maps:mindmapDB};
 }
 
 // Coerce anything off the wire into the shape the merge expects. A hand-edited
@@ -1623,7 +1716,7 @@ function remoteState(d){
   return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
           cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
           goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel),streakAt:obj(d.streakAt),
-          vocab:arr(d.vocab)};
+          vocab:arr(d.vocab),maps:obj(d.maps)};
 }
 
 // Assign merged state and persist it. Deliberately does not call save(): that
@@ -1631,11 +1724,11 @@ function remoteState(d){
 function applyState(s){
   books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
   cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
-  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};vocabDB=s.vocab||[];
+  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};vocabDB=s.vocab||[];mindmapDB=s.maps||{};
   const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
                [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
                [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB],[SK.streakAt,streakAtDB],
-               [SK.vocab,vocabDB]];
+               [SK.vocab,vocabDB],[SK.maps,mindmapDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
     return true;
@@ -1651,7 +1744,7 @@ function gistPayload(state){
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
   return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
     journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
-    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{},vocab:s.vocab||[]},null,2);
+    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{},vocab:s.vocab||[],maps:s.maps||{}},null,2);
 }
 
 // Gists over ~1MB come back truncated; the full text lives at raw_url.
@@ -1885,6 +1978,7 @@ function reloadStateFromStorage(){
   entryDeletedDB = load(SK.entryDel,'object') || {};
   streakAtDB = load(SK.streakAt,'object') || {};
   vocabDB    = load(SK.vocab,'array')    || [];
+  mindmapDB  = load(SK.maps,'object')    || {};
 }
 
 // ══════════════════════════════════════════
@@ -1903,6 +1997,7 @@ let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tom
 let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry tombstones
 let streakAtDB = load(SK.streakAt,'object') || {};     // {date: lastLoggedMs}
 let vocabDB    = load(SK.vocab,'array')    || [];       // vocabulary words, newest first
+let mindmapDB  = load(SK.maps,'object')    || {};       // {bookId: {map, createdAt, updatedAt, seen}}
 
 // ══════════════════════════════════════════
 // STATE
@@ -2221,6 +2316,7 @@ function bookCard(b){
         ${showProg?`<button class="btn btn-sage btn-sm" onclick="toggleLibraryPanel('${b.id}')">📖 Progress</button>`:''}
         ${b.itemType!=='article'?`<button class="btn btn-gold btn-sm" onclick="openDisc('${b.id}')">${cacheQ[b.id]?'💬 Questions':'✨ Discuss'}</button>`:''}
         <button class="btn btn-teal btn-sm" onclick="openBookJournal('${b.id}')">📓${hasJournal?` (${(journalDB[b.id]||[]).length})`:'+'}</button>
+        ${b.status==='read'&&b.itemType!=='article'?`<button class="btn btn-primary btn-sm mm-cardbtn" onclick="openMindmap('${b.id}')">🧠 Map</button>`:''}
       </div>
     </div>
     ${showProg?`<div class="lib-panel" id="lp-${b.id}" style="display:none">${buildProgressPanel(b,'lp')}</div>`:''}
@@ -2248,6 +2344,7 @@ function openAddModal(){
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
   document.getElementById('vocabSection').style.display='none';
+  document.getElementById('mmOpenWrap').style.display='none';
   document.getElementById('deleteBookBtn').style.display='none';
   document.querySelector('#bookModal .modal').classList.add('add-mode');
   setItemType('book');clearForm();updateRoomsDatalist();switchModalTab('details');
@@ -2320,7 +2417,7 @@ function openEditModal(id){
   document.getElementById('vocabSection').style.display='block';
   document.getElementById('loanAddForm').style.display='none';
   document.getElementById('newLoanDate').value=localDateStr();
-  renderLoanEntries(id);renderJournalEntries(id);renderProgHistoryEdit(id);renderBookVocab(id);
+  renderLoanEntries(id);renderJournalEntries(id);renderProgHistoryEdit(id);renderBookVocab(id);refreshMindmapButton(b);
   document.getElementById('bookModal').style.display='flex';
 }
 
@@ -4234,6 +4331,7 @@ function deleteBook(id){
   delete coversDB[id];save(SK.covers,coversDB);
   delete journalDB[id];save(SK.journal,journalDB);
   delete favQ[id];save(SK.favQ,favQ);   // was leaked, growing every export and push
+  if(mindmapDB[id]){delete mindmapDB[id];save(SK.maps,mindmapDB);}
   renderLibrary();toast('Removed.','ok');
 }
 
@@ -6047,7 +6145,7 @@ async function testGbKey(){
 // Drive file restores through Import. No API keys or Gist credentials — those
 // are deliberately outside SK's exported set.
 function backupData(){
-  return JSON.parse(JSON.stringify({version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB}));
+  return JSON.parse(JSON.stringify({version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB,maps:mindmapDB}));
 }
 
 async function exportJSON(){
@@ -6133,7 +6231,7 @@ function handleImport(e){
       // to recover one book destroyed every newer entry on every other book.
       const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
         covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
-        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt,vocab:d.vocab});
+        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt,vocab:d.vocab,maps:d.maps});
       const merged=mergeState(currentState(),incoming);
       applyState(merged);
       localStorage.setItem(SK.updated,new Date().toISOString());
@@ -6176,7 +6274,7 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];mindmapDB={};
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
   renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');
@@ -6277,6 +6375,529 @@ function mountDriveSettings(){
 }
 
 // ══════════════════════════════════════════
+// MIND MAPS
+// ══════════════════════════════════════════
+// A map of a finished book: a reminder at a glance, and a way to go deeper.
+// Claude writes the content once (branches of bubbles, each with a reminder,
+// a deeper look, where it shows up, links, a question, plus a timeline); the
+// app draws it, styled after the book: Claude's cover-based palette, one of a
+// set of hand-drawn backdrops, and an emoji at the centre. The map is saved
+// with the book (synced like everything else), so it opens instantly after.
+//
+// Everything from Claude is coerced through normalizeMindmap and rendered as
+// text nodes, never HTML: the content is model output.
+
+const MM_MOTIFS=['sea','forest','city','night','gothic','desert','mountain','space','garden','plain'];
+const MM_W=412; // drawn at phone width; the SVG scales to fit
+
+// Newest edit wins per book; a deleted book takes its map with it.
+function mergeMindmaps(local,remote,deleted){
+  const out={};
+  for(const src of [remote||{},local||{}])
+    for(const [id,m] of Object.entries(src)){
+      if(!m||typeof m!=='object'||!m.map)continue;
+      if(!out[id]||(m.updatedAt||0)>=(out[id].updatedAt||0))out[id]=m;
+    }
+  for(const id of Object.keys(out))if((deleted||{})[id])delete out[id];
+  return out;
+}
+
+function mmStr(v,max){return typeof v==='string'?v.trim().replace(/\s+/g,' ').slice(0,max):'';}
+function mmColor(v){return typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v.trim())?v.trim().toLowerCase():'';}
+
+// Model output → a map the renderer can trust. null if there's nothing usable.
+function normalizeMindmap(raw){
+  if(!raw||typeof raw!=='object'||!Array.isArray(raw.branches))return null;
+  const used=new Set();
+  const slug=(s,i)=>{
+    let base=String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,30)||('n'+i);
+    let id=base,k=2;while(used.has(id))id=base+'-'+(k++);
+    used.add(id);return id;
+  };
+  const list=v=>Array.isArray(v)?v:[];
+  const branches=[];
+  let n=0;
+  for(const b of list(raw.branches).slice(0,5)){
+    if(!b||typeof b!=='object')continue;
+    const label=mmStr(b.label,28);
+    const cap=branches.length===0?6:4;
+    const nodes=[];
+    for(const x of list(b.nodes).slice(0,cap)){
+      if(!x||typeof x!=='object')continue;
+      const title=mmStr(x.title,40);
+      if(!title)continue;
+      nodes.push({id:slug(x.id||title,n++),rawId:mmStr(x.id,40),title,sub:mmStr(x.sub,48),
+        remind:mmStr(x.remind,400),deeper:mmStr(x.deeper,1400),
+        seen:list(x.seen).map(s=>mmStr(s,200)).filter(Boolean).slice(0,5),
+        story:mmStr(x.story,900),rule:mmStr(x.rule,300),tryit:mmStr(x.tryit,500),q:mmStr(x.q,300),
+        links:list(x.links).map(l=>mmStr(l,40)).filter(Boolean).slice(0,6)});
+    }
+    if(label&&nodes.length)branches.push({label,nodes});
+  }
+  if(!branches.length)return null;
+  // Links may name the model's own ids or titles; resolve both, drop the rest.
+  const all=branches.flatMap(b=>b.nodes);
+  const key=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'');
+  const byKey=new Map();
+  for(const x of all){byKey.set(key(x.rawId||x.id),x.id);byKey.set(key(x.id),x.id);byKey.set(key(x.title),x.id);}
+  const resolve=ls=>[...new Set(ls.map(l=>byKey.get(key(l))).filter(Boolean))];
+  for(const x of all){x.links=resolve(x.links).filter(id=>id!==x.id);delete x.rawId;}
+  const timeline=list(raw.timeline).slice(0,10).map(t=>t&&typeof t==='object'?{
+    title:mmStr(t.title,60),summary:mmStr(t.summary,500),links:resolve(list(t.links).map(l=>mmStr(l,40)))}:null)
+    .filter(t=>t&&t.title);
+  const palette=list(raw.palette).map(mmColor).filter(Boolean).slice(0,6);
+  const emblem=typeof raw.emblem==='string'&&[...raw.emblem.trim()].length<=4?raw.emblem.trim():'';
+  return {kind:raw.kind==='nonfiction'?'nonfiction':'fiction',thesis:mmStr(raw.thesis,300),
+    emblem:emblem||'📖',motif:MM_MOTIFS.includes(raw.motif)?raw.motif:'plain',
+    palette:palette.length>=3?palette:['#2f8fb3','#e8735a','#e9a03b','#1f7a6e','#5b7fb8'],
+    branches,timeline,unsure:raw.unsure===true};
+}
+
+// Claude's reply → JSON object (tolerating a code fence or a sentence around it).
+function parseMindmapReply(text){
+  const t=String(text||'').replace(/```(?:json)?/gi,'');
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<=a)return null;
+  try{return JSON.parse(t.slice(a,b+1));}catch{return null;}
+}
+
+// Light or dark text on a fill.
+function mmTextOn(hex){
+  const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;
+  return (0.299*r+0.587*g+0.114*b)>160?'#1d2b3a':'#ffffff';
+}
+
+// Where everything goes, at phone width. Branch 1 sits above the centre with
+// its bubbles in rows of three; branches 2 and 3 flank the centre; 4 and 5 sit
+// below it. Returns positions and the total height. Pure, so it's testable.
+function mindmapLayout(map){
+  const B=map.branches,out={branches:[],height:0};
+  const ROW=70,STEP=62;
+  const top=B[0],tRows=Math.ceil(top.nodes.length/3);
+  const tY0=64;
+  const tBranchY=tY0+tRows*ROW+10;
+  out.branches[0]={x:206,y:tBranchY,nodes:top.nodes.map((nd,i)=>{
+    const row=Math.floor(i/3),inRow=Math.min(3,top.nodes.length-row*3),col=i%3;
+    const xs=inRow===1?[206]:inRow===2?[120,292]:[72,206,340];
+    return {x:xs[col],y:tY0+row*ROW,maxW:inRow===1?260:inRow===2?160:126};
+  })};
+  const cy=tBranchY+150;
+  out.center={x:206,y:cy,r:58};
+  let bottom=cy+70;
+  for(const [k,x] of [[1,82],[2,330]]){
+    const b=B[k];if(!b)continue;
+    const by=cy-96;
+    const nodes=b.nodes.map((nd,i)=>({x:k===1?80:332,y:by+74+i*STEP,maxW:144}));
+    out.branches[k]={x,y:by,nodes};
+    if(nodes.length)bottom=Math.max(bottom,nodes[nodes.length-1].y+30);
+  }
+  const lows=[3,4].filter(k=>B[k]);
+  const lowY=Math.max(bottom+56,cy+190);
+  let end=lowY+30;
+  for(const k of lows){
+    const solo=lows.length===1;
+    const x=solo?206:(k===3?96:316);
+    const nodes=B[k].nodes.map((nd,i)=>({x:solo?206:(k===3?100:312),y:lowY+64+i*STEP,maxW:solo?300:186}));
+    out.branches[k]={x,y:lowY,nodes};
+    if(nodes.length)end=Math.max(end,nodes[nodes.length-1].y+30);
+  }
+  out.height=end+60; // room for the footer pill
+  return out;
+}
+
+// Trim text to a pixel width, with an ellipsis. Uses canvas metrics.
+let _mmCtx=null;
+function mmFit(text,font,maxW){
+  if(!_mmCtx)_mmCtx=document.createElement('canvas').getContext('2d');
+  _mmCtx.font=font;
+  if(_mmCtx.measureText(text).width<=maxW)return text;
+  let t=text;
+  while(t.length>1&&_mmCtx.measureText(t+'…').width>maxW)t=t.slice(0,-1);
+  return t.trimEnd()+'…';
+}
+function mmWidth(text,font){if(!_mmCtx)_mmCtx=document.createElement('canvas').getContext('2d');_mmCtx.font=font;return _mmCtx.measureText(text).width;}
+
+const SVGNS='http://www.w3.org/2000/svg';
+function sv(tag,attrs,parent){
+  const e=document.createElementNS(SVGNS,tag);
+  for(const [k,v] of Object.entries(attrs||{}))e.setAttribute(k,v);
+  if(parent)parent.appendChild(e);
+  return e;
+}
+
+// Deterministic "random" so a backdrop looks the same every time.
+function mmRand(seed){let s=seed>>>0||1;return ()=>((s=(s*1664525+1013904223)>>>0)/4294967296);}
+
+// The backdrops: one per motif, drawn in SVG behind the map.
+function drawBackdrop(svg,motif,W,H,seedStr){
+  const defs=sv('defs',{},svg);
+  const grad=(id,stops)=>{const g=sv('linearGradient',{id,x1:0,y1:0,x2:0,y2:1},defs);
+    for(const [o,c] of stops)sv('stop',{offset:o,'stop-color':c},g);return `url(#${id})`;};
+  let seed=0;for(const c of String(seedStr))seed=(seed*31+c.charCodeAt(0))>>>0;
+  const R=mmRand(seed);
+  const wave=(y0,color,op)=>{for(let y=y0;y<H;y+=26)
+    sv('path',{d:`M0 ${y} `+Array.from({length:9},()=> 'q 13 -7 26 0 t 26 0').join(' '),fill:'none',stroke:color,'stroke-opacity':op,'stroke-width':1.4},svg);};
+  const stars=(n,maxY,color)=>{for(let i=0;i<n;i++)sv('circle',{cx:(R()*W).toFixed(1),cy:(R()*maxY).toFixed(1),r:(R()*1.3+.3).toFixed(2),fill:color,opacity:(R()*.6+.3).toFixed(2)},svg);};
+  const dark={night:1,gothic:1,space:1,city:1};
+  switch(motif){
+    case 'sea':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#f6b38a'],[.45,'#f7d6b0'],[.6,'#fbe9d4'],[.61,'#7cc3d6'],[.8,'#2f8fb3'],[1,'#145a7a']])},svg);
+      wave(Math.round(H*.64),'#ffffff',.25);break;
+    case 'forest':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#eef3e6'],[.55,'#c9dcbc'],[1,'#3d6b4a']])},svg);
+      for(let i=0;i<22;i++){const x=R()*W,h=60+R()*90,y=H-R()*80;
+        sv('path',{d:`M${x.toFixed(0)} ${(y-h).toFixed(0)} l ${(h*.32).toFixed(0)} ${h.toFixed(0)} h ${(-h*.64).toFixed(0)} z`,fill:'#2f5a3c',opacity:(.25+R()*.35).toFixed(2)},svg);}
+      break;
+    case 'city':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#2b2d4f'],[.5,'#7a5a7e'],[1,'#e9a27a']])},svg);
+      for(let x=0;x<W;){const w=24+R()*34,h=80+R()*170;
+        sv('rect',{x:x.toFixed(0),y:(H-h).toFixed(0),width:w.toFixed(0),height:h.toFixed(0),fill:'#1d1f38',opacity:.75},svg);
+        for(let wy=H-h+10;wy<H-10;wy+=16)for(let wx=x+5;wx<x+w-6;wx+=10)if(R()<.35)sv('rect',{x:wx.toFixed(0),y:wy.toFixed(0),width:4,height:6,fill:'#f6d58a',opacity:.8},svg);
+        x+=w+2;}
+      break;
+    case 'night':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#0b1424'],[1,'#2a3d66']])},svg);
+      stars(140,H,'#ffffff');sv('circle',{cx:W-60,cy:60,r:26,fill:'#f3ecd2',opacity:.9},svg);break;
+    case 'gothic':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#151019'],[.6,'#3b2f45'],[1,'#5a4a5f']])},svg);
+      stars(50,H*.5,'#d8d0e0');sv('circle',{cx:70,cy:70,r:30,fill:'#e9e4d4',opacity:.85},svg);
+      for(let i=0;i<5;i++){const x=R()*W;sv('path',{d:`M${x.toFixed(0)} ${H} q ${(R()*40-20).toFixed(0)} -120 ${(R()*60-30).toFixed(0)} -${(200+R()*140).toFixed(0)}`,stroke:'#120d16',fill:'none','stroke-width':6,opacity:.6},svg);}
+      sv('rect',{y:H-160,width:W,height:160,fill:grad('mmfog',[[0,'rgba(220,214,230,0)'],[1,'rgba(220,214,230,.25)']])},svg);break;
+    case 'desert':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#fbe7c2'],[.5,'#f2c98a'],[1,'#d99a55']])},svg);
+      for(let i=0;i<5;i++){const y=H*.45+i*90;sv('path',{d:`M0 ${y} Q ${W*.3} ${y-40} ${W*.6} ${y} T ${W} ${y-10} V ${H} H 0 Z`,fill:'#c98a4a',opacity:.18},svg);}
+      sv('circle',{cx:W-70,cy:80,r:34,fill:'#fff3d6',opacity:.8},svg);break;
+    case 'mountain':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#e7eef5'],[.6,'#b9cadb'],[1,'#7f97ad']])},svg);
+      for(let i=0;i<3;i++){const y=H*(.55+i*.13);let d=`M0 ${H} L0 ${y}`;for(let x=0;x<=W;x+=60)d+=` L${x+30} ${(y-40-R()*90).toFixed(0)} L${x+60} ${(y-R()*30).toFixed(0)}`;
+        sv('path',{d:d+` L${W} ${H} Z`,fill:'#4f6a82',opacity:(.18+i*.12).toFixed(2)},svg);}
+      break;
+    case 'space':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#050816'],[1,'#1b1f45']])},svg);
+      stars(200,H,'#ffffff');
+      sv('circle',{cx:W-80,cy:H-140,r:44,fill:'#7a6fd6',opacity:.55},svg);
+      sv('ellipse',{cx:W-80,cy:H-140,rx:72,ry:14,fill:'none',stroke:'#c9c3ff','stroke-width':3,opacity:.5},svg);break;
+    case 'garden':
+      sv('rect',{width:W,height:H,fill:grad('mmbg',[[0,'#f8f5e8'],[1,'#e3ecd2']])},svg);
+      for(let i=0;i<40;i++){const x=R()*W,y=R()*H,c=['#e8a0b4','#f2c14e','#b4a0e8','#f08a6c'][i%4];
+        sv('circle',{cx:x.toFixed(0),cy:y.toFixed(0),r:4,fill:c,opacity:.35},svg);sv('circle',{cx:x.toFixed(0),cy:y.toFixed(0),r:1.5,fill:'#fff8e0',opacity:.6},svg);}
+      break;
+    default:
+      sv('rect',{width:W,height:H,fill:'#faf5ea'},svg);
+      for(let x=0;x<W;x+=28)sv('line',{x1:x,y1:0,x2:x,y2:H,stroke:'#16130e',opacity:.05},svg);
+      for(let y=0;y<H;y+=28)sv('line',{x1:0,y1:y,x2:W,y2:y,stroke:'#16130e',opacity:.05},svg);
+  }
+  return !!dark[motif];
+}
+
+// ── The view ─────────────────────────────────────────────────────
+let _mm=null; // {bookId, order:[nodeIds], at:index}
+
+function mmBook(id){return books.find(b=>b.id===id)||null;}
+function mmRecord(id){return mindmapDB[id]||null;}
+
+function initMindmaps(){
+  const $=id=>document.getElementById(id);
+  $('mmClose').addEventListener('click',closeMindmap);
+  $('mmTimelineBtn').addEventListener('click',()=>showMindmapTimeline());
+  $('mmRegen').addEventListener('click',()=>{if(_mm)confirmRegenerate();});
+  $('mmCreate').addEventListener('click',()=>{if(_mm)generateMindmap(_mm.bookId);});
+  $('mmSheetScrim').addEventListener('click',closeMindmapSheet);
+  $('mmOpenBtn').addEventListener('click',()=>{if(editId)openMindmap(editId);});
+}
+
+function openMindmap(bookId){
+  const b=mmBook(bookId);if(!b)return;
+  _mm={bookId,order:[],at:-1,regenArmed:false};
+  document.getElementById('mmTitle').textContent=b.title||'Untitled';
+  document.getElementById('mmAuthor').textContent=b.author||'';
+  document.getElementById('mindmapView').style.display='flex';
+  document.body.style.overflow='hidden';
+  renderMindmapView();
+}
+function closeMindmap(){
+  closeMindmapSheet();
+  _mm=null;
+  document.getElementById('mindmapView').style.display='none';
+  document.body.style.overflow='';
+}
+
+function renderMindmapView(){
+  if(!_mm)return;
+  const $=id=>document.getElementById(id);
+  const rec=mmRecord(_mm.bookId);
+  $('mmEmpty').style.display=rec?'none':'block';
+  $('mmBody').style.display=rec?'block':'none';
+  $('mmRegen').style.display=rec?'':'none';
+  if(!rec){
+    $('mmEmptyText').textContent=localStorage.getItem(SK.api)
+      ?'A map of the characters, themes, places and story — or for nonfiction, the ideas, stories and how to use them — styled after the book. Made once with Claude, then saved with the book.'
+      :'Mind maps are written by Claude. Add your Anthropic API key in Settings, then come back here.';
+    $('mmCreate').disabled=!localStorage.getItem(SK.api);
+    $('mmStatus').textContent='';
+    return;
+  }
+  const map=rec.map;
+  _mm.order=map.branches.flatMap(b=>b.nodes.map(n=>n.id));
+  $('mmThesis').textContent=map.thesis||'';
+  $('mmThesis').style.display=map.thesis?'':'none';
+  $('mmUnsure').style.display=map.unsure?'':'none';
+  $('mmTimelineBtn').style.display=map.timeline.length?'':'none';
+  $('mmTimelineBtn').textContent=map.kind==='nonfiction'?'🕰 How the book unfolds':'🕰 Chronology';
+  renderMindmapSvg(map);
+  renderMindmapProgress();
+  renderMindmapTake();
+}
+
+function renderMindmapSvg(map){
+  const L=mindmapLayout(map),W=MM_W,H=L.height;
+  const box=document.getElementById('mmMap');
+  const svg=sv('svg',{viewBox:`0 0 ${W} ${H}`,width:'100%',role:'img','aria-label':'Mind map'});
+  const dark=drawBackdrop(svg,map.motif,W,H,mmBook(_mm.bookId)?.title||'');
+  const pal=map.palette;
+  const colorOf=i=>pal[i%pal.length];
+  const curve=(p,q,color,w)=>{const mx=(p.x+q.x)/2,my=(p.y+q.y)/2,dx=q.x-p.x,dy=q.y-p.y;
+    sv('path',{d:`M${p.x} ${p.y} Q${(mx-dy*.15).toFixed(0)} ${(my+dx*.15).toFixed(0)} ${q.x} ${q.y}`,fill:'none',stroke:color,'stroke-width':w,'stroke-linecap':'round',opacity:.85},svg);};
+  map.branches.forEach((b,i)=>{const P=L.branches[i];curve(L.center,P,colorOf(i),5);P.nodes.forEach(n=>curve(P,n,colorOf(i),2));});
+  // centre
+  const c=L.center;
+  const cg=sv('g',{class:'mm-center'},svg);
+  sv('circle',{cx:c.x,cy:c.y,r:c.r,fill:'#fffaf2',stroke:colorOf(0),'stroke-width':3},cg);
+  const em=sv('text',{x:c.x,y:c.y+18,'text-anchor':'middle','font-size':52},cg);em.textContent=map.emblem;
+  const seen=new Set((mmRecord(_mm.bookId)||{}).seen||[]);
+  // bubbles
+  map.branches.forEach((b,i)=>{
+    const P=L.branches[i],col=colorOf(i);
+    b.nodes.forEach((nd,j)=>{
+      const pos=P.nodes[j];
+      const f1="500 13px Lora, Georgia, serif",f2="italic 400 10.5px Lora, Georgia, serif";
+      const t1=mmFit(nd.title,f1,pos.maxW-20),t2=nd.sub?mmFit(nd.sub,f2,pos.maxW-18):'';
+      const w=Math.min(pos.maxW,Math.max(mmWidth(t1,f1),t2?mmWidth(t2,f2):0)+24),h=t2?40:28;
+      const g=sv('g',{class:'mm-node'+(seen.has(nd.id)?' seen':''),tabindex:0,role:'button','data-node':nd.id},svg);
+      sv('rect',{x:(pos.x-w/2).toFixed(1),y:(pos.y-h/2).toFixed(1),width:w.toFixed(1),height:h,rx:t2?12:14,fill:'#fffaf2',stroke:col,'stroke-width':2},g);
+      const a=sv('text',{x:pos.x,y:(t2?pos.y-2:pos.y+4.5).toFixed(1),'text-anchor':'middle','font-size':13,'font-weight':500,fill:'#1d2b3a'},g);a.textContent=t1;
+      if(t2){const s=sv('text',{x:pos.x,y:(pos.y+12).toFixed(1),'text-anchor':'middle','font-size':10.5,'font-style':'italic',fill:'#4a5568'},g);s.textContent=t2;}
+      if(seen.has(nd.id))sv('circle',{cx:(pos.x+w/2-6).toFixed(1),cy:(pos.y-h/2+6).toFixed(1),r:4,fill:col},g);
+      g.addEventListener('click',()=>showMindmapNode(nd.id));
+      g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showMindmapNode(nd.id);}});
+    });
+    // branch pill (drawn after bubbles' lines, on top)
+    const f="700 15px 'Playfair Display', Georgia, serif";
+    const t=mmFit(b.label,f,i===0?260:150);
+    const w=mmWidth(t,f)+30;
+    const g=sv('g',{class:'mm-branch'},svg);
+    sv('rect',{x:(P.x-w/2).toFixed(1),y:P.y-17,width:w.toFixed(1),height:34,rx:17,fill:col},g);
+    const tx=sv('text',{x:P.x,y:P.y+5.5,'text-anchor':'middle','font-size':15,'font-weight':700,'font-family':"'Playfair Display', Georgia, serif",fill:mmTextOn(col)},g);tx.textContent=t;
+  });
+  // Footer sits on a pill so it reads on any backdrop bottom (sea and forest fade dark)
+  sv('rect',{x:W/2-92,y:H-31,width:184,height:24,rx:12,fill:dark?'rgba(11,20,36,.7)':'rgba(255,250,242,.88)'},svg);
+  const ft=sv('text',{x:W/2,y:H-15,'text-anchor':'middle','font-size':11.5,fill:dark?'#e6ecf5':'#1d2b3a'},svg);
+  ft.textContent='Tap any bubble to learn more';
+  box.replaceChildren(svg);
+}
+
+function renderMindmapProgress(){
+  const rec=mmRecord(_mm.bookId);if(!rec)return;
+  const total=_mm.order.length,seen=(rec.seen||[]).filter(id=>_mm.order.includes(id)).length;
+  document.getElementById('mmProgress').textContent=`Explored ${seen} of ${total}`;
+  document.getElementById('mmProgressBar').style.width=`${total?Math.round(seen/total*100):0}%`;
+}
+
+// The reader's own corner of the map: rating, review, and what they kept.
+function renderMindmapTake(){
+  const b=mmBook(_mm.bookId);if(!b)return;
+  const box=document.getElementById('mmTake');
+  const hl=(journalDB[b.id]||[]).filter(isHighlight).length,notes=(journalDB[b.id]||[]).length-hl;
+  const words=vocabDB.filter(w=>w.bookId===b.id).length;
+  const kids=[vEl('div','mm-take-h',`Your take${b.rating?'  '+'★'.repeat(b.rating)+'☆'.repeat(5-b.rating):''}`)];
+  if(b.notes)kids.push(vEl('p','mm-take-q',`“${b.notes.length>220?b.notes.slice(0,217)+'…':b.notes}”`));
+  const bits=[hl&&plural(hl,'highlight'),notes&&plural(notes,'journal note'),words&&plural(words,'saved word')].filter(Boolean);
+  if(bits.length)kids.push(vEl('p','mm-take-m',bits.join(' · ')));
+  if(!b.notes&&!bits.length)kids.push(vEl('p','mm-take-m','Add a review or highlights and they’ll feature in your next map.'));
+  box.replaceChildren(...kids);
+}
+
+function mmNode(id){
+  const rec=mmRecord(_mm&&_mm.bookId);if(!rec)return null;
+  for(const b of rec.map.branches)for(const n of b.nodes)if(n.id===id)return {node:n,branch:b};
+  return null;
+}
+
+// Journal entries, highlights and saved words that mention a bubble.
+function mmFromNotes(bookId,node){
+  const stop=new Set(['the','and','with','from','that','this','their','into','your','what','when','about']);
+  const terms=[node.title,...node.title.split(/[\s\-–—:,&/]+/)].map(t=>t.toLowerCase().trim()).filter(t=>t.length>=4&&!stop.has(t));
+  if(!terms.length)return [];
+  const hit=s=>{const l=String(s||'').toLowerCase();return terms.some(t=>l.includes(t));};
+  const out=[];
+  for(const e of journalDB[bookId]||[])if(hit(e.text)||hit(e.note))out.push({kind:isHighlight(e)?'Highlight':'Journal',text:e.text,page:e.page});
+  for(const w of vocabDB)if(w.bookId===bookId&&(hit(w.word)||hit(w.sentence)))out.push({kind:'Word',text:`${w.word} — ${w.definition}`});
+  return out.slice(0,4);
+}
+
+function showMindmapNode(id){
+  const found=mmNode(id);if(!found)return;
+  const {node:n,branch}=found;
+  _mm.at=_mm.order.indexOf(id);
+  // Mark explored.
+  const rec=mmRecord(_mm.bookId);
+  if(rec&&!(rec.seen||[]).includes(id)){rec.seen=[...(rec.seen||[]),id];save(SK.maps,mindmapDB);renderMindmapProgress();
+    const g=document.querySelector(`#mmMap [data-node="${CSS.escape(id)}"]`);if(g)g.classList.add('seen');}
+  const kids=[vEl('div','mm-s-kind',branch.label.toUpperCase()),vEl('h2','mm-s-title',n.title)];
+  if(n.sub)kids.push(vEl('p','mm-s-sub',n.sub));
+  const sec=(label,el)=>{kids.push(vEl('div','mm-s-lbl',label),el);};
+  if(n.remind)sec('REMINDER',vEl('p','mm-s-p',n.remind));
+  if(n.deeper)sec('GOING DEEPER',vEl('p','mm-s-p',n.deeper));
+  if(n.seen.length){const ul=vEl('ul','mm-s-list');for(const s of n.seen)ul.append(vEl('li',null,s));sec('WHERE IT SHOWS UP',ul);}
+  if(n.story)sec('THE STORY',vEl('div','mm-s-box story',n.story));
+  if(n.rule)sec('THE KEY IDEA',vEl('div','mm-s-box rule',n.rule));
+  if(n.tryit)sec('TRY IT',vEl('div','mm-s-box tryit',n.tryit));
+  const mine=mmFromNotes(_mm.bookId,n);
+  if(mine.length){const box=vEl('div');for(const m of mine){const d=vEl('div','mm-s-note');d.append(vEl('b',null,m.kind+' '),document.createTextNode(m.text+(m.page?` (p. ${m.page})`:'')));box.append(d);}sec('FROM YOUR NOTES',box);}
+  if(n.links.length){
+    const row=vEl('div','mm-s-chips');
+    for(const l of n.links){const t=mmNode(l);if(!t)continue;const c=vEl('button','mm-chip',t.node.title);c.type='button';c.addEventListener('click',()=>showMindmapNode(l));row.append(c);}
+    if(row.childNodes.length)sec('CONNECTED TO',row);
+  }
+  if(n.q)sec('THINK ABOUT',vEl('p','mm-s-q',n.q));
+  // Prev / next through the whole map.
+  const nav=vEl('div','mm-s-nav');
+  const prev=vEl('button','mm-navbtn','‹ Previous'),next=vEl('button','mm-navbtn','Next ›');
+  prev.type=next.type='button';prev.id='mmPrev';next.id='mmNext';
+  prev.disabled=_mm.at<=0;next.disabled=_mm.at>=_mm.order.length-1;
+  prev.addEventListener('click',()=>showMindmapNode(_mm.order[_mm.at-1]));
+  next.addEventListener('click',()=>showMindmapNode(_mm.order[_mm.at+1]));
+  nav.append(prev,vEl('span','mm-s-count',`${_mm.at+1} / ${_mm.order.length}`),next);
+  kids.push(nav);
+  openMindmapSheet(kids);
+}
+
+function showMindmapTimeline(){
+  const rec=mmRecord(_mm&&_mm.bookId);if(!rec)return;
+  const map=rec.map;
+  const kids=[vEl('div','mm-s-kind',map.kind==='nonfiction'?'THE BOOK IN ORDER':'CHRONOLOGY'),
+    vEl('h2','mm-s-title',map.kind==='nonfiction'?'How the book unfolds':'How the story unfolds')];
+  const ol=vEl('ol','mm-tl');
+  map.timeline.forEach(t=>{
+    const li=vEl('li');li.append(vEl('b',null,t.title));
+    if(t.summary)li.append(vEl('span',null,t.summary));
+    if(t.links.length){const row=vEl('div','mm-s-chips');for(const l of t.links){const x=mmNode(l);if(!x)continue;const c=vEl('button','mm-chip',x.node.title);c.type='button';c.addEventListener('click',()=>showMindmapNode(l));row.append(c);}li.append(row);}
+    ol.append(li);
+  });
+  kids.push(ol);
+  openMindmapSheet(kids);
+}
+
+function openMindmapSheet(kids){
+  const s=document.getElementById('mmSheet');
+  s.replaceChildren(vEl('div','mm-grip'),...kids);
+  s.scrollTop=0;
+  s.style.display='block';
+  document.getElementById('mmSheetScrim').style.display='block';
+}
+function closeMindmapSheet(){
+  document.getElementById('mmSheet').style.display='none';
+  document.getElementById('mmSheetScrim').style.display='none';
+}
+
+function confirmRegenerate(){
+  const btn=document.getElementById('mmRegen');
+  // Two taps, not a dialog: it replaces the map (and what you've explored).
+  if(!_mm.regenArmed){_mm.regenArmed=true;btn.textContent='Tap again to remake';setTimeout(()=>{if(_mm){_mm.regenArmed=false;btn.textContent='↻ Remake';}},4000);return;}
+  _mm.regenArmed=false;btn.textContent='↻ Remake';
+  generateMindmap(_mm.bookId);
+}
+
+// What the reader brought to the book, for the prompt. Capped so the request
+// stays small however much they've written.
+function mindmapNotesFor(b){
+  const parts=[];
+  if(b.rating)parts.push(`Their rating: ${b.rating}/5.`);
+  if(b.notes)parts.push(`Their review: "${b.notes}"`);
+  const j=(journalDB[b.id]||[]).map(e=>isHighlight(e)?`Highlight${e.page?` (p. ${e.page})`:''}: "${e.text}"${e.note?` — their note: ${e.note}`:''}`:`Journal: ${e.text}`);
+  if(j.length)parts.push('Their journal and highlights:\n'+j.join('\n'));
+  const w=vocabDB.filter(x=>x.bookId===b.id).map(x=>x.word);
+  if(w.length)parts.push('Words they looked up while reading: '+w.join(', '));
+  let s=parts.join('\n\n');
+  if(s.length>6000)s=s.slice(0,6000)+'…';
+  return s;
+}
+
+function mindmapPrompt(b){
+  return `Make an interactive mind map of a book the reader has finished. It should remind them of the book at a glance and help them go deeper into its characters, themes and chronology (or, for nonfiction, its ideas, examples and how to use them).
+
+Book: "${b.title}"${b.author?` by ${b.author}`:''}${b.genre?` (${b.genre})`:''}.
+${mindmapNotesFor(b)||'(No notes from the reader.)'}
+
+Reply with JSON only, no code fence, in exactly this shape:
+{"kind":"fiction" or "nonfiction",
+ "thesis":"one sentence: what the book is about at heart",
+ "emblem":"one emoji that suits the book, for the centre",
+ "motif":"the backdrop that best suits the book's world or cover — one of: sea, forest, city, night, gothic, desert, mountain, space, garden, plain",
+ "palette":["#rrggbb", "…5 colours taken from the book's cover art, each dark or saturated enough to carry white text"],
+ "branches":[{"label":"2–3 words","nodes":[{
+   "id":"short-kebab-id","title":"a name, at most 18 characters","sub":"a few words, at most 24 characters",
+   "remind":"1–2 sentences: who or what this is",
+   "deeper":"3–5 sentences: role, arc, meaning, why it matters",
+   "seen":["specific moments in the book where it shows up (2–4)"],
+   "story":"optional: one concrete scene or example from the book",
+   "rule":"optional: the key idea in one line",
+   "tryit":"nonfiction only: how the reader could apply it",
+   "links":["ids of related nodes"],
+   "q":"one question to reflect on"}]}],
+ "timeline":[{"title":"at most 28 characters","summary":"1–2 sentences","links":["ids of nodes involved"]}]}
+
+Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Weave in the reader's notes and highlights where they fit. Only state what you are confident is in the book; if you don't know it well, build the map mainly from the reader's notes and add "unsure":true.`;
+}
+
+async function generateMindmap(bookId){
+  const b=mmBook(bookId);if(!b||!_mm)return;
+  const $=id=>document.getElementById(id);
+  const key=localStorage.getItem(SK.api);
+  if(!key){toast('Add your Anthropic API key in Settings first.','err');return;}
+  const session=_mm;
+  // Show the empty state with progress (also when remaking).
+  $('mmEmpty').style.display='block';$('mmBody').style.display='none';
+  $('mmCreate').disabled=true;$('mmRegen').disabled=true;
+  const started=Date.now();
+  const tick=()=>{if(_mm!==session)return;const s=Math.round((Date.now()-started)/1000);
+    $('mmStatus').textContent=`Mapping ${b.title}… ${s}s — this usually takes about a minute.`;};
+  tick();const timer=setInterval(tick,1000);
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:8000,messages:[{role:'user',content:mindmapPrompt(b)}]})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+    const data=await res.json();
+    const text=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
+    const map=normalizeMindmap(parseMindmapReply(text));
+    if(!map)throw new Error(data.stop_reason==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map');
+    const now=Date.now();
+    mindmapDB[bookId]={map,createdAt:(mindmapDB[bookId]&&mindmapDB[bookId].createdAt)||now,updatedAt:now,seen:[]};
+    save(SK.maps,mindmapDB);
+    if(_mm===session){renderMindmapView();toast('Mind map ready 🧠','ok');}
+  }catch(e){
+    console.warn('Mind map failed',e);
+    if(_mm===session){
+      const had=!!mmRecord(bookId);
+      if(had){renderMindmapView();toast(`Couldn’t remake the map (${e.message}).`,'err');}
+      else{$('mmStatus').textContent=`Couldn’t make the map (${e.message}). Try again.`;$('mmCreate').disabled=false;}
+    }
+  }finally{
+    clearInterval(timer);
+    if(_mm===session){$('mmCreate').disabled=!localStorage.getItem(SK.api);$('mmRegen').disabled=false;}
+  }
+}
+
+// The book editor's button: only for finished books.
+function refreshMindmapButton(b){
+  const wrap=document.getElementById('mmOpenWrap');
+  const ok=b&&b.status==='read'&&b.itemType!=='article';
+  wrap.style.display=ok?'':'none';
+  if(ok)document.getElementById('mmOpenBtn').textContent=mindmapDB[b.id]?'🧠 Open mind map':'🧠 Make a mind map';
+}
+
+// ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',async ()=>{
@@ -6284,6 +6905,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   initHighlights();
   initLens();
   initLibFilters();
+  initMindmaps();
   initVocab();
   renderLibrary();updateHdrStreak();
   // Land on the view in the URL hash (refresh keeps your place); replaceState
@@ -6304,6 +6926,8 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
+    if(vis('mmSheet')){closeMindmapSheet();return;}
+    if(vis('mindmapView')){closeMindmap();return;}
     if(vis('vocabQuiz')){closeVocabQuiz();return;}
     if(vis('vocabModal')){cancelVocabWord();return;}
     if(vis('vocabView')){closeVocabDetail();return;}

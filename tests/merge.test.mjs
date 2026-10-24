@@ -10,7 +10,7 @@ import { loadFunctions, extractConst } from './extract.mjs';
 
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
-   'mergeIdMap', 'mergeState', 'remoteState', 'normEntries'],
+   'mergeIdMap', 'mergeMindmaps', 'mergeState', 'remoteState', 'normEntries'],
   `const TOMBSTONE_TTL=${extractConst('TOMBSTONE_TTL')};`
 );
 

@@ -59,6 +59,13 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - On **Today's Reading**: when words are due, a card shows how many and which, with **Review ›**. Once you're caught up it shows a **word of the day** from your own list Reviews don't count toward the reading streak
 - Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 
+### Mind Maps
+- **For books you've finished** — **🧠 Map** on the library card, or in the book's editor. Made once by Claude (needs your Anthropic key), then saved with the book and synced
+- **Styled after the book:** a backdrop that fits its setting (sea, forest, city, night, gothic, desert, mountains, space, garden), colours from the cover, and an emblem at the centre
+- **A one-line thesis**, then branches of bubbles — characters, themes, places (or for nonfiction, the big ideas and stories)
+- **Tap a bubble to learn more:** a reminder, a deeper look, where it shows up, your own highlights that mention it, what it connects to, and a question to think about. ‹ › walk through the whole map; **Explored N of M** remembers what you've opened
+- **🕰 Chronology:** the story beat by beat, each linked into the map. **↻ Remake** (two taps) writes a fresh one
+
 ### Book Details (3-tab edit modal)
 1. **Book Details** — title, author, genre, format, ISBN, cover, series, publisher
 2. **My Reading** — status, rating (⭐ 1–5), dates, journal notes, loan tracking, DNF shelf, reading progress history
@@ -151,7 +158,8 @@ npm run test:unit    # fast — no browser needed
 `tests/merge.test.mjs` covers the sync merge (each case is a bug that actually
 shipped), `tests/stats.test.mjs` the daily page/minute rollup,
 `tests/lookup.test.mjs` the OpenLibrary/Google Books record normalisation,
-`tests/vocab.test.mjs` the vocabulary schedule and quiz logic, and
+`tests/vocab.test.mjs` the vocabulary schedule and quiz logic,
+`tests/mindmap.test.mjs` mind-map parsing, merging and layout, and
 `tests/smoke.test.mjs` drives the real app in Chromium with both catalogues
 stubbed at the network layer. Tests run in CI on every
 push via `.github/workflows/test.yml`.

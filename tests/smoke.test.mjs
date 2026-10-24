@@ -2010,3 +2010,189 @@ test('filter counts reflect the other filters, so an option never leads to zero 
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// ── Mind maps ────────────────────────────────────────────────────────────
+
+const MAP_REPLY = await readFile(join(ROOT, 'tests/fixtures/cerulean-map.json'), 'utf8');
+const storedMaps = page => page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_maps') || '{}'));
+
+async function seedFinished(page, { key = true, status = 'read' } = {}) {
+  await page.evaluate(([key, status]) => {
+    if (key) localStorage.setItem(SK.api, 'sk-ant-test');
+    books = [{ id: 'b1', title: 'The House in the Cerulean Sea', author: 'T. J. Klune', status, rating: 4,
+               notes: 'Lovely and kind.', addedAt: 1, updatedAt: 1 }];
+    journalDB = { b1: [{ date: '2026-06-10', time: '9 PM', type: 'highlight', text: 'Lucy danced to another record.', page: '112', at: 5 }] };
+    save(SK.books, books); save(SK.journal, journalDB); renderLibrary();
+  }, [key, status]);
+}
+
+async function makeMap(page) {
+  await page.evaluate(() => openMindmap('b1'));
+  await page.click('#mmCreate');
+  await page.waitForFunction(() => document.getElementById('mmBody').style.display === 'block');
+}
+
+test('a finished book gets a mind map from Claude, drawn and saved', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  assert.equal(calls.length, 1);
+  const prompt = calls[0].messages[0].content;
+  assert.match(prompt, /Cerulean Sea/);
+  assert.match(prompt, /Lucy danced/, 'the reader’s highlights go in the prompt');
+  assert.equal(await page.locator('#mmMap .mm-node').count(), 18);
+  assert.equal(await page.locator('#mmMap .mm-branch').count(), 5);
+  assert.match(await page.textContent('#mmThesis'), /family is something you choose/);
+  assert.equal(await page.textContent('#mmProgress'), 'Explored 0 of 18');
+  const stored = await storedMaps(page);
+  assert.equal(stored.b1.map.motif, 'sea');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('tapping a bubble teaches more, links jump, prev/next walk the map, and explored sticks', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+
+  await page.click('#mmMap [data-node="lucy"]');
+  const sheet = page.locator('#mmSheet');
+  await sheet.locator('.mm-s-title', { hasText: 'Lucy' }).waitFor();
+  const labels = await sheet.locator('.mm-s-lbl').allTextContents();
+  for (const l of ['REMINDER', 'GOING DEEPER', 'FROM YOUR NOTES', 'CONNECTED TO'])
+    assert.ok(labels.includes(l), `has ${l} (got ${labels.join(', ')})`);
+  assert.match(await sheet.textContent(), /Lucy danced to another record/);
+  assert.equal(await page.textContent('#mmProgress'), 'Explored 1 of 18');
+
+  await sheet.locator('.mm-chip').first().click();
+  await sheet.locator('.mm-s-title', { hasText: 'Linus' }).waitFor();
+
+  await page.keyboard.press('Escape');
+  await page.click('#mmMap [data-node="talia"]');
+  await sheet.locator('.mm-s-title', { hasText: 'Talia' }).waitFor();
+  assert.ok(await page.locator('#mmPrev').isDisabled(), 'first bubble has no previous');
+  await page.click('#mmNext');
+  await sheet.locator('.mm-s-title', { hasText: 'Theodore' }).waitFor();
+  assert.match(await sheet.textContent(), /2 \/ 18/);
+  await page.click('#mmPrev');
+  await sheet.locator('.mm-s-title', { hasText: 'Talia' }).waitFor();
+
+  await page.reload();
+  await page.waitForFunction(() => typeof window.saveBook === 'function');
+  await page.evaluate(() => openMindmap('b1'));
+  assert.equal(await page.textContent('#mmProgress'), 'Explored 4 of 18', 'opens instantly, progress kept');
+  assert.equal(await page.locator('#mmMap .mm-node.seen').count(), 4);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the chronology lists the story in order and links into the map', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  await page.click('#mmTimelineBtn');
+  const beats = page.locator('#mmSheet .mm-tl > li');
+  assert.equal(await beats.count(), 7);
+  assert.match(await beats.first().textContent(), /The assignment/);
+  await beats.first().locator('.mm-chip', { hasText: 'Linus' }).click();
+  await page.locator('#mmSheet .mm-s-title', { hasText: 'Linus' }).waitFor();
+  await page.keyboard.press('Escape');
+  assert.ok(!(await page.locator('#mmSheet').isVisible()), 'Escape closes the card first');
+  await page.keyboard.press('Escape');
+  assert.ok(!(await page.locator('#mindmapView').isVisible()), 'then the map');
+  await ctx.close();
+});
+
+test('remaking takes two taps and replaces the map', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  await page.click('#mmRegen');
+  assert.equal(await page.textContent('#mmRegen'), 'Tap again to remake');
+  assert.equal(calls.length, 1, 'one tap does nothing yet');
+  await page.click('#mmRegen');
+  await page.waitForFunction(() => document.getElementById('mmBody').style.display === 'block');
+  assert.equal(calls.length, 2);
+  await ctx.close();
+});
+
+test('without a key the map explains what to do instead of calling Claude', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page, { key: false });
+  await page.evaluate(() => openMindmap('b1'));
+  assert.match(await page.textContent('#mmEmptyText'), /API key in Settings/);
+  assert.ok(await page.locator('#mmCreate').isDisabled());
+  await ctx.close();
+});
+
+for (const [why, reply, msg] of [['an API error', 500, /Overloaded/], ['a reply that is not a map', 'Sorry, I can’t.', /usable map/]]) {
+  test(`${why} explains itself and leaves Make the map to try again`, async () => {
+    const { ctx, page } = await openApp(browser, base);
+    await seedFinished(page);
+    await stubClaude(page, reply);
+    await page.evaluate(() => openMindmap('b1'));
+    await page.click('#mmCreate');
+    await page.waitForFunction(() => /Couldn’t make the map/.test(document.getElementById('mmStatus').textContent));
+    assert.match(await page.textContent('#mmStatus'), msg);
+    assert.ok(!(await page.locator('#mmCreate').isDisabled()));
+    assert.deepEqual(await storedMaps(page), {});
+    await ctx.close();
+  });
+}
+
+test('markup from the model is shown as text, not run', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  const evil = '<img src=x onerror="window.__pwned=1">';
+  await stubClaude(page, JSON.stringify({ thesis: evil, motif: 'night', branches: [{ label: evil, nodes: [{ title: evil, remind: evil, deeper: evil }] }],
+    timeline: [{ title: evil, summary: evil }] }));
+  await makeMap(page);
+  await page.evaluate(() => showMindmapNode(_mm.order[0]));
+  await page.evaluate(() => showMindmapTimeline());
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#mindmapView img').count(), 0);
+  assert.equal(await page.textContent('#mmThesis'), evil);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the map button is only for finished books, on the card and in the editor', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page, { status: 'reading' });
+  await page.evaluate(() => showView('library'));
+  assert.equal(await page.locator('#booksGrid .mm-cardbtn').count(), 0);
+  await page.evaluate(() => openEditModal('b1'));
+  assert.ok(!(await page.locator('#mmOpenBtn').isVisible()));
+  await page.evaluate(() => { closeM('bookModal'); books[0].status = 'read'; save(SK.books, books); renderLibrary(); });
+  assert.equal(await page.locator('#booksGrid .mm-cardbtn').count(), 1);
+  await page.evaluate(() => openEditModal('b1'));
+  assert.equal(await page.textContent('#mmOpenBtn'), '🧠 Make a mind map');
+  await ctx.close();
+});
+
+test('maps sync (newer wins), go into backups, and go away with their book', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  const r = await page.evaluate(() => {
+    const mine = mindmapDB.b1;
+    const older = { ...mine, updatedAt: mine.updatedAt - 1000, seen: ['old'] };
+    const newer = { ...mine, updatedAt: mine.updatedAt + 1000, seen: ['lucy'] };
+    const keep = mergeState(currentState(), remoteState({ v: 2, books, maps: { b1: older } })).maps.b1.seen;
+    const take = mergeState(currentState(), remoteState({ v: 2, books, maps: { b1: newer } })).maps.b1.seen;
+    return { keep, take, inGist: !!JSON.parse(gistPayload(currentState())).maps?.b1 };
+  });
+  assert.deepEqual(r.keep, []);
+  assert.deepEqual(r.take, ['lucy']);
+  assert.ok(r.inGist, 'the gist payload carries maps');
+  await page.evaluate(() => closeMindmap());
+  await page.evaluate(() => { window.confirm = () => true; deleteBook('b1'); });
+  await page.waitForFunction(() => !mindmapDB.b1);
+  assert.deepEqual(await storedMaps(page), {});
+  await ctx.close();
+});
