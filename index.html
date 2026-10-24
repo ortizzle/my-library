@@ -305,6 +305,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .mm-node:focus-visible rect{stroke-width:4}
 .mm-node:active rect{fill:#fff1d6}
 .mm-tlbtn{display:block;margin:1rem auto .4rem;min-height:48px;padding:0 1.4rem;border-radius:24px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--gold)}
+.mm-auto{display:flex;align-items:center;gap:.6rem;min-height:48px;margin-top:.7rem;font-size:.95rem;cursor:pointer}
+.mm-auto input{width:22px;height:22px;accent-color:var(--burgundy)}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -955,6 +957,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div id="keyStatus" style="margin-top:.55rem;font-size:.84rem;font-style:italic"></div>
     <p class="hint" style="margin-top:.3rem">To check your credit balance, visit <a href="https://console.anthropic.com/settings/billing" target="_blank" style="color:var(--sage)">console.anthropic.com → Billing</a>.</p>
+    <label class="mm-auto"><input type="checkbox" id="mmAutoToggle"> 🧠 Make a mind map for every finished book</label>
+    <p class="hint" id="mmAutoStatus"></p>
   </div>
   <div class="settings-card">
     <h3>Export My Library</h3>
@@ -1444,6 +1448,7 @@ const SK={
   streakAt:'trr_v1_streakat',// {date: lastLoggedMs} — lets a re-logged day beat an undo
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
+  mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -1483,6 +1488,7 @@ function save(k,v){
   }
   scheduleGistPush();
   scheduleDriveCheck();
+  if(k===SK.books)scheduleMindmaps();
   return true;
 }
 
@@ -1731,6 +1737,7 @@ function applyState(s){
                [SK.vocab,vocabDB],[SK.maps,mindmapDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
+    scheduleMindmaps(); // a book finished on another device gets its map too
     return true;
   }catch(e){
     console.error('Failed to persist merged state:',e);
@@ -1998,6 +2005,10 @@ let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry
 let streakAtDB = load(SK.streakAt,'object') || {};     // {date: lastLoggedMs}
 let vocabDB    = load(SK.vocab,'array')    || [];       // vocabulary words, newest first
 let mindmapDB  = load(SK.maps,'object')    || {};       // {bookId: {map, createdAt, updatedAt, seen}}
+// Automatic map-making (see "Making maps on their own")
+const _mmBusy=new Set();   // books being mapped right now, by hand or automatically
+const _mmFailed=new Set(); // failed this session: not retried until the app reloads
+let _mmAutoTimer=null,_mmAutoRunning=false,_mmAutoStop='';
 
 // ══════════════════════════════════════════
 // STATE
@@ -2049,6 +2060,8 @@ function renderView(n){
   if(n==='vocab')    renderVocab();
   if(n==='settings'){
     document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
+    document.getElementById('mmAutoToggle').checked=localStorage.getItem(SK.mmAuto)!=='off';
+    renderMindmapAutoStatus();
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
     mountDriveSettings();
   }
@@ -6087,7 +6100,7 @@ function renderKeepsake(){
 // ══════════════════════════════════════════
 // SETTINGS / EXPORT
 // ══════════════════════════════════════════
-function saveKey(){const raw=document.getElementById('apiKeyInput').value;const k=raw.replace(/[^\x20-\x7E]/g,'').trim();if(!k){toast('Enter an API key.','err');return;}localStorage.setItem(SK.api,k);document.getElementById('apiKeyInput').value=k;toast('Key saved!','ok');}
+function saveKey(){const raw=document.getElementById('apiKeyInput').value;const k=raw.replace(/[^\x20-\x7E]/g,'').trim();if(!k){toast('Enter an API key.','err');return;}localStorage.setItem(SK.api,k);document.getElementById('apiKeyInput').value=k;toast('Key saved!','ok');_mmAutoStop='';scheduleMindmaps(1500);renderMindmapAutoStatus();}
 function clearKey(){localStorage.removeItem(SK.api);document.getElementById('apiKeyInput').value='';document.getElementById('keyStatus').innerHTML='';toast('Key cleared.','ok');}
 async function testKey(){
   const k=document.getElementById('apiKeyInput').value.trim()||localStorage.getItem(SK.api)||'';
@@ -6604,6 +6617,7 @@ function initMindmaps(){
   $('mmCreate').addEventListener('click',()=>{if(_mm)generateMindmap(_mm.bookId);});
   $('mmSheetScrim').addEventListener('click',closeMindmapSheet);
   $('mmOpenBtn').addEventListener('click',()=>{if(editId)openMindmap(editId);});
+  $('mmAutoToggle').addEventListener('change',e=>setMindmapAuto(e.target.checked));
 }
 
 function openMindmap(bookId){
@@ -6611,6 +6625,7 @@ function openMindmap(bookId){
   _mm={bookId,order:[],at:-1,regenArmed:false};
   document.getElementById('mmTitle').textContent=b.title||'Untitled';
   document.getElementById('mmAuthor').textContent=b.author||'';
+  document.getElementById('mmStatus').textContent='';
   document.getElementById('mindmapView').style.display='flex';
   document.body.style.overflow='hidden';
   renderMindmapView();
@@ -6633,8 +6648,10 @@ function renderMindmapView(){
     $('mmEmptyText').textContent=localStorage.getItem(SK.api)
       ?'A map of the characters, themes, places and story — or for nonfiction, the ideas, stories and how to use them — styled after the book. Made once with Claude, then saved with the book.'
       :'Mind maps are written by Claude. Add your Anthropic API key in Settings, then come back here.';
-    $('mmCreate').disabled=!localStorage.getItem(SK.api);
-    $('mmStatus').textContent='';
+    const busy=_mmBusy.has(_mm.bookId);
+    $('mmCreate').disabled=!localStorage.getItem(SK.api)||busy;
+    if(busy)$('mmStatus').textContent='Being made now — it will appear here in about a minute.';
+    else if($('mmStatus').textContent.startsWith('Being made'))$('mmStatus').textContent='';
     return;
   }
   const map=rec.map;
@@ -6850,12 +6867,34 @@ Reply with JSON only, no code fence, in exactly this shape:
 Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Weave in the reader's notes and highlights where they fit. Only state what you are confident is in the book; if you don't know it well, build the map mainly from the reader's notes and add "unsure":true.`;
 }
 
+// One request to Claude for a book's map. Throws with .status on an API error.
+async function requestMindmap(b){
+  const key=localStorage.getItem(SK.api);
+  if(!key)throw Object.assign(new Error('no API key'),{status:401});
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:8000,messages:[{role:'user',content:mindmapPrompt(b)}]})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw Object.assign(new Error((e.error&&e.error.message)||`HTTP ${res.status}`),{status:res.status});}
+  const data=await res.json();
+  const text=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
+  const map=normalizeMindmap(parseMindmapReply(text));
+  if(!map)throw Object.assign(new Error(data.stop_reason==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map'),{status:0});
+  return map;
+}
+
+function storeMindmap(bookId,map){
+  const now=Date.now();
+  mindmapDB[bookId]={map,createdAt:(mindmapDB[bookId]&&mindmapDB[bookId].createdAt)||now,updatedAt:now,seen:[]};
+  save(SK.maps,mindmapDB);
+}
+
 async function generateMindmap(bookId){
   const b=mmBook(bookId);if(!b||!_mm)return;
   const $=id=>document.getElementById(id);
-  const key=localStorage.getItem(SK.api);
-  if(!key){toast('Add your Anthropic API key in Settings first.','err');return;}
+  if(!localStorage.getItem(SK.api)){toast('Add your Anthropic API key in Settings first.','err');return;}
+  if(_mmBusy.has(bookId))return; // already being made; it shows up here when done
   const session=_mm;
+  _mmBusy.add(bookId);
   // Show the empty state with progress (also when remaking).
   $('mmEmpty').style.display='block';$('mmBody').style.display='none';
   $('mmCreate').disabled=true;$('mmRegen').disabled=true;
@@ -6864,17 +6903,8 @@ async function generateMindmap(bookId){
     $('mmStatus').textContent=`Mapping ${b.title}… ${s}s — this usually takes about a minute.`;};
   tick();const timer=setInterval(tick,1000);
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:8000,messages:[{role:'user',content:mindmapPrompt(b)}]})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
-    const data=await res.json();
-    const text=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
-    const map=normalizeMindmap(parseMindmapReply(text));
-    if(!map)throw new Error(data.stop_reason==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map');
-    const now=Date.now();
-    mindmapDB[bookId]={map,createdAt:(mindmapDB[bookId]&&mindmapDB[bookId].createdAt)||now,updatedAt:now,seen:[]};
-    save(SK.maps,mindmapDB);
+    storeMindmap(bookId,await requestMindmap(b));
+    _mmFailed.delete(bookId);
     if(_mm===session){renderMindmapView();toast('Mind map ready 🧠','ok');}
   }catch(e){
     console.warn('Mind map failed',e);
@@ -6885,8 +6915,75 @@ async function generateMindmap(bookId){
     }
   }finally{
     clearInterval(timer);
+    _mmBusy.delete(bookId);
     if(_mm===session){$('mmCreate').disabled=!localStorage.getItem(SK.api);$('mmRegen').disabled=false;}
+    renderMindmapAutoStatus();
   }
+}
+
+// ── Making maps on their own ─────────────────────────────────────
+// Every finished book gets a map without being asked: a pass over the backlog
+// after the app loads (and has had a chance to sync, so two devices don't both
+// pay for the same map), and a new one whenever a book is marked read. One
+// request at a time, in the background. Settings can turn it off.
+// (state for this lives up with mindmapDB, since save() can run before here)
+
+function mmAutoOn(){return localStorage.getItem(SK.mmAuto)!=='off'&&!!localStorage.getItem(SK.api);}
+function mmEligible(b){return b&&b.status==='read'&&b.itemType!=='article';}
+function mindmapBacklog(){
+  return books.filter(b=>mmEligible(b)&&!mindmapDB[b.id]&&!_mmBusy.has(b.id)&&!_mmFailed.has(b.id))
+    .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.updatedAt||0)-(a.updatedAt||0));
+}
+function scheduleMindmaps(delay=4000){
+  if(!mmAutoOn()||_mmAutoStop)return;
+  clearTimeout(_mmAutoTimer);
+  _mmAutoTimer=setTimeout(runMindmapQueue,delay);
+}
+async function runMindmapQueue(){
+  if(_mmAutoRunning)return;
+  _mmAutoRunning=true;
+  const quiet=mindmapBacklog().length>2; // a backlog pass doesn't toast every book
+  try{
+    while(mmAutoOn()&&!_mmAutoStop&&navigator.onLine!==false){
+      const b=mindmapBacklog()[0];if(!b)break;
+      _mmBusy.add(b.id);renderMindmapAutoStatus();
+      if(_mm&&_mm.bookId===b.id)renderMindmapView();
+      try{
+        const map=await requestMindmap(b);
+        if(!mindmapDB[b.id]&&books.some(x=>x.id===b.id)){ // not synced in, or deleted, meanwhile
+          storeMindmap(b.id,map);
+          if(!quiet)toast(`Mind map ready for ${b.title} 🧠`,'ok');
+        }
+      }catch(e){
+        console.warn('Auto mind map failed for',b.title,e);
+        if([401,403,429].includes(e.status)||/credit|billing/i.test(e.message))_mmAutoStop=e.message; // key or account problem: stop asking
+        else if(e.status>=500||e.status===undefined)break; // overloaded or offline: try again next time the app opens
+        else _mmFailed.add(b.id);
+      }finally{
+        _mmBusy.delete(b.id);
+        if(_mm&&_mm.bookId===b.id)renderMindmapView();
+        if(editId===b.id)refreshMindmapButton(b);
+      }
+    }
+  }finally{_mmAutoRunning=false;renderMindmapAutoStatus();}
+}
+
+// The Settings line: how many finished books have maps, and what's happening.
+function renderMindmapAutoStatus(){
+  const el=document.getElementById('mmAutoStatus');if(!el)return;
+  const read=books.filter(mmEligible),done=read.filter(b=>mindmapDB[b.id]).length;
+  const busy=read.find(b=>_mmBusy.has(b.id));
+  let t=`${done} of ${read.length} finished books have a map.`;
+  if(!localStorage.getItem(SK.api))t+=' Add an Anthropic key above to make them.';
+  else if(_mmAutoStop)t+=` Paused: ${_mmAutoStop}`;
+  else if(busy)t+=` Making ${busy.title}…`;
+  el.textContent=t;
+}
+function setMindmapAuto(on){
+  localStorage.setItem(SK.mmAuto,on?'on':'off');
+  _mmAutoStop='';
+  if(on)scheduleMindmaps(500);
+  renderMindmapAutoStatus();
 }
 
 // The book editor's button: only for finished books.
@@ -6916,6 +7013,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   updateGistStatus();
   _appReady=true;
   initDrive();
+  scheduleMindmaps(20000); // after the first sync has had time to land
   if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){
     setGistDot('pushing');
     await gistPull();

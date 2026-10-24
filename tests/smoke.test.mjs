@@ -51,6 +51,10 @@ async function openApp(browser, base) {
   // internet timed out on CI, where the real cover loaded. None of these tests
   // exercise the worker itself.
   const ctx = await browser.newContext({ serviceWorkers: 'block' });
+  // Mind maps are made automatically for finished books with a key set. Most
+  // tests seed exactly that and count Claude calls, so it starts off here; the
+  // tests for it turn it on.
+  await ctx.addInitScript(() => { if (localStorage.getItem('trr_v1_mm_auto') === null) localStorage.setItem('trr_v1_mm_auto', 'off'); });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -2194,5 +2198,95 @@ test('maps sync (newer wins), go into backups, and go away with their book', asy
   await page.evaluate(() => { window.confirm = () => true; deleteBook('b1'); });
   await page.waitForFunction(() => !mindmapDB.b1);
   assert.deepEqual(await storedMaps(page), {});
+  await ctx.close();
+});
+
+// ── Mind maps, made automatically ────────────────────────────────────────
+
+async function seedShelfForMaps(page, list) {
+  await page.evaluate(list => {
+    localStorage.setItem(SK.api, 'sk-ant-test');
+    books = list.map(([id, title, status, date]) => ({ id, title, author: 'A', status, date, addedAt: 1, updatedAt: 1 }));
+    save(SK.books, books); renderLibrary();
+  }, list);
+}
+
+test('every finished book gets a map in the background, newest first, and nothing else does', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedShelfForMaps(page, [['r1', 'Older Read', 'read', '2025-01-02'], ['r2', 'Newer Read', 'read', '2026-09-01'],
+                                ['n1', 'Still Reading', 'reading'], ['a1', 'An Article', 'read']]);
+  await page.evaluate(() => { books.find(b => b.id === 'a1').itemType = 'article'; });
+  const calls = await stubClaude(page, MAP_REPLY);
+  await page.evaluate(() => setMindmapAuto(true));
+  await page.waitForFunction(() => mindmapDB.r1 && mindmapDB.r2, null, { timeout: 15000 });
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].messages[0].content, /Newer Read/, 'most recently finished first');
+  const stored = await storedMaps(page);
+  assert.deepEqual(Object.keys(stored).sort(), ['r1', 'r2']);
+  await page.evaluate(() => showView('settings'));
+  assert.ok(await page.locator('#mmAutoToggle').isChecked());
+  assert.match(await page.textContent('#mmAutoStatus'), /2 of 2 finished books have a map/);
+  await page.evaluate(() => openMindmap('r2'));
+  assert.equal(await page.locator('#mmMap .mm-node').count(), 18, 'opens straight to the map');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('marking a book read makes its map, with a note when it is ready', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_mm_auto', 'on'));
+  await seedShelfForMaps(page, [['b1', 'Dune', 'reading']]);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await page.waitForTimeout(500);
+  assert.equal(calls.length, 0);
+  await page.evaluate(() => { books[0].status = 'read'; save(SK.books, books); });
+  await page.waitForFunction(() => mindmapDB.b1, null, { timeout: 15000 });
+  await page.locator('.toast', { hasText: 'Mind map ready for Dune' }).first().waitFor();
+  assert.equal(calls.length, 1);
+  await ctx.close();
+});
+
+test('a key problem pauses the queue instead of retrying every book', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelfForMaps(page, [['b1', 'One', 'read'], ['b2', 'Two', 'read'], ['b3', 'Three', 'read']]);
+  const calls = await stubClaude(page, 401);
+  await page.evaluate(() => setMindmapAuto(true));
+  await page.evaluate(() => showView('settings'));
+  await page.waitForFunction(() => /Paused/.test(document.getElementById('mmAutoStatus').textContent), null, { timeout: 15000 });
+  await page.waitForTimeout(300);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(await storedMaps(page), {});
+  await ctx.close();
+});
+
+test('turned off in Settings, nothing is made', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_mm_auto', 'on'));
+  await seedShelfForMaps(page, []);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await page.evaluate(() => showView('settings'));
+  assert.ok(await page.locator('#mmAutoToggle').isChecked());
+  await page.click('#mmAutoToggle');
+  assert.equal(await page.evaluate(() => localStorage.getItem('trr_v1_mm_auto')), 'off');
+  await page.evaluate(() => { books = [{ id: 'b1', title: 'Dune', status: 'read', addedAt: 1, updatedAt: 1 }]; save(SK.books, books); scheduleMindmaps(0); });
+  await page.waitForTimeout(800);
+  assert.equal(calls.length, 0);
+  await ctx.close();
+});
+
+test('opening a book while its map is being made says so instead of starting another', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelfForMaps(page, [['b1', 'Dune', 'read']]);
+  const calls = await stubClaude(page, MAP_REPLY);
+  // Hold the reply until the map screen is open.
+  await page.evaluate(() => { const f = window.fetch; window.fetch = async (u, o) => { await new Promise(r => { window.__release = r; }); return f(u, o); }; });
+  await page.evaluate(() => setMindmapAuto(true));
+  await page.waitForFunction(() => typeof window.__release === 'function');
+  await page.evaluate(() => openMindmap('b1'));
+  assert.match(await page.textContent('#mmStatus'), /Being made now/);
+  assert.ok(await page.locator('#mmCreate').isDisabled());
+  await page.evaluate(() => window.__release());
+  await page.waitForFunction(() => document.getElementById('mmBody').style.display === 'block');
+  assert.equal(calls.length, 1);
   await ctx.close();
 });

@@ -60,7 +60,8 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 
 ### Mind Maps
-- **For books you've finished** — **🧠 Map** on the library card, or in the book's editor. Made once by Claude (needs your Anthropic key), then saved with the book and synced
+- **Made for every book you finish** — automatically, in the background: a pass over books you've already read, then a new map whenever you mark one read (one at a time; about 5–10¢ each on your Anthropic key). Turn it off in Settings, under the Anthropic key, which also shows how many have maps. A key or billing problem pauses it rather than retrying
+- **🧠 Map** on the library card, or in the book's editor. Saved with the book and synced, so it opens instantly
 - **Styled after the book:** a backdrop that fits its setting (sea, forest, city, night, gothic, desert, mountains, space, garden), colours from the cover, and an emblem at the centre
 - **A one-line thesis**, then branches of bubbles — characters, themes, places (or for nonfiction, the big ideas and stories)
 - **Tap a bubble to learn more:** a reminder, a deeper look, where it shows up, your own highlights that mention it, what it connects to, and a question to think about. ‹ › walk through the whole map; **Explored N of M** remembers what you've opened
