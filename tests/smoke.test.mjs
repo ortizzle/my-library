@@ -2191,7 +2191,7 @@ test('maps sync (newer wins), go into backups, and go away with their book', asy
     const take = mergeState(currentState(), remoteState({ v: 2, books, maps: { b1: newer } })).maps.b1.seen;
     return { keep, take, inGist: !!JSON.parse(gistPayload(currentState())).maps?.b1 };
   });
-  assert.deepEqual(r.keep, []);
+  assert.deepEqual(r.keep, ['old'], 'explored bubbles from either copy are kept');
   assert.deepEqual(r.take, ['lucy']);
   assert.ok(r.inGist, 'the gist payload carries maps');
   await page.evaluate(() => closeMindmap());
@@ -2476,6 +2476,126 @@ test('markup in a map is shown as text in the deep dive', async () => {
   await page.locator('#ddSheet .dd-opt').first().click();
   assert.equal(await page.evaluate(() => window.__pwned), undefined);
   assert.equal(await page.locator('#ddView img').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+// ── Map summaries ────────────────────────────────────────────────────────
+
+// Claude answers from a queue, for tests that need a map and then a summary.
+async function stubClaudeQueue(page, replies) {
+  const calls = [];
+  await page.exposeFunction('__claudeQueued', body => { calls.push(JSON.parse(body)); });
+  await page.evaluate(replies => {
+    window.__replies = replies;
+    window.fetch = async (url, opts) => {
+      await window.__claudeQueued(opts.body);
+      const r = window.__replies.shift();
+      return new Response(JSON.stringify({ content: [{ type: 'text', text: r }] }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    };
+  }, replies);
+  return calls;
+}
+
+const SUMMARY = { line: 'Family is something you choose.', story: ['Linus goes to the island.', 'He falls for the house.'],
+  ideas: [{ title: 'Chosen family', text: 'Care over blood.' }], ending: 'He goes back to stay.', worth: 'A sequel exists.' };
+
+test('the Summary button opens the one line, story, ideas, ending and context', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaude(page, JSON.stringify({ ...JSON.parse(MAP_REPLY), summary: SUMMARY }));
+  await makeMap(page);
+  await page.click('#mmSummaryBtn');
+  const sheet = page.locator('#mmSheet');
+  await sheet.locator('.sm-line', { hasText: 'Family is something you choose.' }).waitFor();
+  const labels = await sheet.locator('.mm-s-lbl').allTextContents();
+  assert.deepEqual(labels, ['IN ONE LINE', 'THE STORY', 'WHAT IT’S REALLY GETTING AT', 'THE ENDING, EXPLAINED', 'WORTH KNOWING']);
+  assert.equal(await sheet.locator('.sm-para').count(), 2);
+  assert.match(await sheet.locator('.mm-s-title').textContent(), /The House in the Cerulean Sea, in short/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('new maps ask Claude for a summary too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  assert.match(calls[0].messages[0].content, /"summary":\{"line"/);
+  await ctx.close();
+});
+
+test('an older map without a summary can have one written, keeping what was explored', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  const calls = await stubClaudeQueue(page, [MAP_REPLY, JSON.stringify(SUMMARY)]);
+  await makeMap(page);
+  await page.evaluate(() => { mindmapDB.b1.seen = ['lucy']; save(SK.maps, mindmapDB); });
+  await page.click('#mmSummaryBtn');
+  await page.click('#mmSumCreate');
+  await page.locator('#mmSheet .sm-line', { hasText: 'Family is something you choose.' }).waitFor();
+  assert.equal(calls.length, 2);
+  assert.match(calls[1].messages[0].content, /Spoilers are fine/);
+  const stored = await storedMaps(page);
+  assert.equal(stored.b1.map.summary.line, 'Family is something you choose.');
+  assert.deepEqual(stored.b1.seen, ['lucy']);
+  assert.equal(stored.b1.map.branches.length, 5, 'the map itself is untouched');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a failed summary explains itself and can be retried; no key explains what to do', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeQueue(page, [MAP_REPLY, 'not json']);
+  await makeMap(page);
+  await page.click('#mmSummaryBtn');
+  await page.click('#mmSumCreate');
+  await page.locator('#mmSumStatus', { hasText: 'Couldn’t write it' }).waitFor();
+  assert.ok(!(await page.locator('#mmSumCreate').isDisabled()));
+  await page.evaluate(() => { localStorage.removeItem(SK.api); closeMindmapSheet(); showMindmapSummary(); });
+  assert.match(await page.textContent('#mmSheet'), /Add your Anthropic API key/);
+  assert.equal(await page.locator('#mmSumCreate').count(), 0);
+  await ctx.close();
+});
+
+test('a map file with summaries imports without resetting explored bubbles', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaude(page, MAP_REPLY);
+  await makeMap(page);
+  await page.evaluate(() => { mindmapDB.b1.seen = ['lucy', 'talia']; save(SK.maps, mindmapDB); });
+  const map = { ...JSON.parse(MAP_REPLY), summary: SUMMARY };
+  const file = JSON.stringify({ version: 2, books: [], maps: { b1: { map, createdAt: 1, updatedAt: Date.now() + 1000, seen: [] } } });
+  await page.evaluate(() => { closeMindmap(); showView('settings'); });
+  await page.setInputFiles('#importFile', { name: 'summaries.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+  await page.waitForFunction(() => mindmapDB.b1.map.summary);
+  await page.locator('.toast', { hasText: '1 mind map(s) updated' }).first().waitFor();
+  assert.deepEqual((await storedMaps(page)).b1.seen.sort(), ['lucy', 'talia']);
+  await ctx.close();
+});
+
+// ── Finishing a book on Today ────────────────────────────────────────────
+
+test('finishing a book on Today goes straight to its final review', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'f1', title: 'Dune', author: 'Frank Herbert', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    save(SK.books, books); showView('log'); renderLogSession();
+  });
+  await page.evaluate(() => toggleLogCard('f1'));
+  await page.locator('#logcard-f1 >> text=Finished this book').click();
+  await page.waitForFunction(() => document.getElementById('bookModal').classList.contains('open') || getComputedStyle(document.getElementById('bookModal')).display !== 'none');
+  await page.locator('.final-review-tip').waitFor();
+  assert.equal(await page.evaluate(() => books[0].status), 'read');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'bNotes');
+  assert.ok(await page.locator('.modal-tab-panel[data-panel="reading"]').isVisible(), 'the My Reading tab is showing');
+  await page.fill('#bNotes', 'A classic for a reason.');
+  await page.evaluate(() => saveBook());
+  await page.waitForFunction(() => books[0].notes === 'A classic for a reason.');
+  // The highlight doesn't linger on the next open.
+  await page.evaluate(() => openEditModal('f1'));
+  assert.equal(await page.locator('.final-review-tip').count(), 0);
   assert.deepEqual(errors, []);
   await ctx.close();
 });

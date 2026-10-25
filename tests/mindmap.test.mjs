@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { loadFunctions, extractConst } from './extract.mjs';
 
-const MM = loadFunctions(['mergeMindmaps', 'mmStr', 'mmColor', 'normalizeMindmap', 'parseMindmapReply',
+const MM = loadFunctions(['mergeMindmaps', 'mmStr', 'mmColor', 'normalizeSummary', 'normalizeMindmap', 'parseMindmapReply',
                           'mmTextOn', 'mindmapLayout'],
   `const MM_MOTIFS=${extractConst('MM_MOTIFS')};`);
 
@@ -142,4 +142,32 @@ test('text on a branch pill picks light or dark for contrast', () => {
   assert.equal(MM.mmTextOn('#ffffff'), '#1d2b3a');
   assert.equal(MM.mmTextOn('#e9a03b'), '#1d2b3a');
   assert.equal(MM.mmTextOn('#1f3a68'), '#ffffff');
+});
+
+// ── summary ──────────────────────────────────────────────────────────────
+
+test('a summary is kept when it has content, and capped', () => {
+  const S = MM.normalizeSummary({ line: ' In short. ', story: ['One.', '', 'Two.', 7], ideas: [{ title: 'Idea', text: 'Why.' }, { title: 'No text' }, 'x'],
+    ending: 'It ends.', takeaways: ['A', null], worth: 'Context.' });
+  assert.deepEqual(S, { line: 'In short.', story: ['One.', 'Two.'], ideas: [{ title: 'Idea', text: 'Why.' }], ending: 'It ends.', takeaways: ['A'], worth: 'Context.' });
+  assert.equal(MM.normalizeSummary(null), null);
+  assert.equal(MM.normalizeSummary({ worth: 'only context' }), null, 'needs a line, story or ideas');
+  assert.equal(MM.normalizeSummary({ story: Array(9).fill('p') }).story.length, 5);
+});
+
+test('maps without a summary still normalize, with summary null', () => {
+  assert.equal(MM.normalizeMindmap(fixture).summary, null);
+  const m = MM.normalizeMindmap({ ...fixture, summary: { line: 'Family is chosen.' } });
+  assert.equal(m.summary.line, 'Family is chosen.');
+});
+
+test('merge keeps explored bubbles from both copies, without changing the inputs', () => {
+  const map = { branches: [] };
+  const local = { a: { map, updatedAt: 1, seen: ['lucy', 'talia'] } };
+  const remote = { a: { map: { branches: [], summary: { line: 'x' } }, updatedAt: 9, seen: [] } };
+  const out = MM.mergeMindmaps(local, remote, {});
+  assert.equal(out.a.updatedAt, 9, 'the newer map wins');
+  assert.equal(out.a.map.summary.line, 'x');
+  assert.deepEqual(out.a.seen.sort(), ['lucy', 'talia'], 'explored bubbles survive the newer copy');
+  assert.deepEqual(remote.a.seen, [], 'inputs untouched');
 });

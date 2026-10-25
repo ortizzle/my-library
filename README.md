@@ -66,6 +66,10 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **A one-line thesis**, then branches of bubbles — characters, themes, places (or for nonfiction, the big ideas and stories)
 - **Tap a bubble to learn more:** a reminder, a deeper look, where it shows up, your own highlights that mention it, what it connects to, and a question to think about. ‹ › walk through the whole map; **Explored N of M** remembers what you've opened
 - **🕰 Chronology:** the story beat by beat, each linked into the map. **↻ Remake** (two taps) writes a fresh one
+- **📜 Summary:** the book in one line, the story start to finish, what it's really getting at (three or four big ideas), the ending explained — or the takeaways, for nonfiction — and context worth knowing. Maps made before summaries offer **Write the summary** (one small Claude request) instead of a remake. Syncing and importing keep the bubbles you've explored
+
+### Finishing a book
+- **🏁 Finished this book** on Today marks it read, then opens its editor at **My Reading** with the review box ready, so the final review gets written while the book is fresh
 
 ### Daily Deep Dive
 - **One question a day on Today**, from a finished book's mind map, in a small card under the vocabulary card. Tap **Play ›** to open it

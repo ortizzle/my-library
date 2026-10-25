@@ -344,6 +344,16 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .dd-btn.ghost{background:transparent;color:var(--burgundy);border:1.5px solid var(--burgundy)}
 .dd-ta{width:100%;min-height:96px;border-radius:12px;border:1.5px solid var(--parchment-dark);padding:.6rem .8rem;font:inherit;font-size:1rem;background:#fff;box-sizing:border-box}
 .dd-foot{font-size:.85rem;color:var(--ink-faint);margin:.7rem 0 0}
+.fg.final-review textarea,.fg.final-review textarea:focus{border:2px solid var(--gold);box-shadow:0 0 0 4px rgba(184,144,47,.18);min-height:8rem}
+.final-review-tip{font-family:'Playfair Display',serif;font-weight:700;color:var(--burgundy);margin-bottom:.35rem}
+.mm-pills{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:1rem 1rem .4rem}
+.mm-pills .mm-tlbtn{margin:0}
+.sm-line{font-family:'Playfair Display',serif;font-size:1.12rem;line-height:1.45;margin:.4rem 0 0;padding:.8rem 1rem;background:var(--cream);border:2px solid var(--ink);border-radius:12px;box-shadow:4px 4px 0 var(--gold)}
+.sm-para{margin:0 0 .75rem}
+.sm-pts{margin:0;padding:0;list-style:none;display:grid;gap:.6rem}
+.sm-pts li{padding:.7rem .85rem;border-radius:12px;background:#eef2f8;border-left:4px solid var(--burgundy);line-height:1.55}
+.sm-pts li b{display:block;font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.15rem}
+.sm-end{padding:.75rem .9rem;border-radius:12px;background:#fdf6e3;border-left:4px solid var(--gold);line-height:1.6}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -1374,7 +1384,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map leans on your notes.</p>
       <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
       <div class="mm-map" id="mmMap"></div>
-      <button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button>
+      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button></div>
       <div class="mm-take" id="mmTake"></div>
     </div>
   </div>
@@ -2391,6 +2401,7 @@ function setItemType(type){
 
 function openAddModal(){
   editId=null;curRating=0;activeFmts=new Set();activeLists=new Set();pendingCoverUrl='';
+  clearFinalReview();
   document.getElementById('modalTitle').textContent='Add to Library';
   document.getElementById('loanHistorySection').style.display='none';
   document.getElementById('journalSection').style.display='none';
@@ -2405,6 +2416,7 @@ function openAddModal(){
 
 function openEditModal(id){
   const b=books.find(x=>x.id===id);if(!b)return;
+  clearFinalReview();
   editId=id;curRating=b.rating||0;
   activeFmts=new Set(b.formats||[]);activeLists=new Set(b.lists||[]);
   pendingCoverUrl=coversDB[id]||'';
@@ -5811,7 +5823,30 @@ function logSessionFinish(id, el){
   if(doneChk)doneChk.checked=true;
   confettiBurst(el);
   logProgressAndJournalInline(id,'ls');
-  setTimeout(()=>renderLogSession(),950);
+  setTimeout(()=>{
+    renderLogSession();
+    // Straight on to the final review while the book is fresh.
+    const b=books.find(x=>x.id===id);
+    if(b&&b.status==='read')openFinalReview(id);
+  },950);
+}
+
+function clearFinalReview(){document.querySelectorAll('.final-review').forEach(el=>{el.classList.remove('final-review');el.querySelector('.final-review-tip')?.remove();});}
+
+// The book's editor, opened at My Reading with the review box ready.
+function openFinalReview(id){
+  openEditModal(id);
+  switchModalTab('reading');
+  const ta=document.getElementById('bNotes');if(!ta)return;
+  const fg=ta.closest('.fg');
+  if(fg){
+    fg.classList.add('final-review');
+    let tip=fg.querySelector('.final-review-tip');
+    if(!tip){tip=vEl('div','final-review-tip','🎉 Finished! Your final review — what will you want to remember?');fg.prepend(tip);}
+  }
+  ta.scrollIntoView({block:'center'});
+  ta.focus();
+  ta.setSelectionRange(ta.value.length,ta.value.length);
 }
 
 function logQuick(id, note){
@@ -6279,7 +6314,9 @@ function handleImport(e){
       const known=new Set(books.map(b=>b.id));
       const newCount=d.books.filter(b=>b&&b.id&&!known.has(b.id)).length;
       const incomingMaps=d.maps&&typeof d.maps==='object'?Object.keys(d.maps):[];
-      const mapNote=incomingMaps.length?`, ${incomingMaps.filter(id=>!mindmapDB[id]).length} new mind map(s)`:'';
+      const newMaps=incomingMaps.filter(id=>!mindmapDB[id]).length;
+      const updMaps=incomingMaps.filter(id=>mindmapDB[id]&&(d.maps[id]?.updatedAt||0)>(mindmapDB[id].updatedAt||0)).length;
+      const mapNote=!incomingMaps.length?'':updMaps&&!newMaps?`, ${updMaps} mind map(s) updated`:`, ${newMaps} new mind map(s)${updMaps?` and ${updMaps} updated`:''}`;
       if(!confirm(`Merge this backup into your library?\n\n${newCount} new book(s)${mapNote}, and reading history will be combined with what you already have. Nothing will be overwritten.`))return;
       // Run the backup through the same per-record merge sync uses. This used
       // to spread-replace progress/journal/covers, so restoring an old backup
@@ -6480,6 +6517,12 @@ function mergeMindmaps(local,remote,deleted){
       if(!m||typeof m!=='object'||!m.map)continue;
       if(!out[id]||(m.updatedAt||0)>=(out[id].updatedAt||0))out[id]=m;
     }
+  // Explored bubbles from either copy count — a remade or imported map
+  // shouldn't wipe out what was opened on another device.
+  for(const id of Object.keys(out)){
+    const seen=new Set([...((remote||{})[id]?.seen||[]),...((local||{})[id]?.seen||[])]);
+    if(seen.size!==(out[id].seen||[]).length)out[id]={...out[id],seen:[...seen]};
+  }
   for(const id of Object.keys(out))if((deleted||{})[id])delete out[id];
   return out;
 }
@@ -6532,7 +6575,22 @@ function normalizeMindmap(raw){
   return {kind:raw.kind==='nonfiction'?'nonfiction':'fiction',thesis:mmStr(raw.thesis,300),
     emblem:emblem||'📖',motif:MM_MOTIFS.includes(raw.motif)?raw.motif:'plain',
     palette:palette.length>=3?palette:['#2f8fb3','#e8735a','#e9a03b','#1f7a6e','#5b7fb8'],
-    branches,timeline,unsure:raw.unsure===true};
+    branches,timeline,summary:normalizeSummary(raw.summary),unsure:raw.unsure===true};
+}
+
+// The Summary sheet's content: a one-line shorthand, the story, what the book
+// is really getting at, the ending explained (or the takeaways, for
+// nonfiction), and context worth knowing. null when there's nothing usable.
+function normalizeSummary(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const list=v=>Array.isArray(v)?v:[];
+  const s={line:mmStr(raw.line,300),
+    story:list(raw.story).map(p=>mmStr(p,1200)).filter(Boolean).slice(0,5),
+    ideas:list(raw.ideas).map(i=>i&&typeof i==='object'?{title:mmStr(i.title,70),text:mmStr(i.text,700)}:null).filter(i=>i&&i.title&&i.text).slice(0,5),
+    ending:mmStr(raw.ending,1400),
+    takeaways:list(raw.takeaways).map(t=>mmStr(t,500)).filter(Boolean).slice(0,6),
+    worth:mmStr(raw.worth,900)};
+  return s.line||s.story.length||s.ideas.length?s:null;
 }
 
 // Claude's reply → JSON object (tolerating a code fence or a sentence around it).
@@ -6682,6 +6740,7 @@ function initMindmaps(){
   const $=id=>document.getElementById(id);
   $('mmClose').addEventListener('click',closeMindmap);
   $('mmTimelineBtn').addEventListener('click',()=>showMindmapTimeline());
+  $('mmSummaryBtn').addEventListener('click',()=>showMindmapSummary());
   $('mmRegen').addEventListener('click',()=>{if(_mm)confirmRegenerate();});
   $('mmCreate').addEventListener('click',()=>{if(_mm)generateMindmap(_mm.bookId);});
   $('mmSheetScrim').addEventListener('click',closeMindmapSheet);
@@ -6874,6 +6933,78 @@ function showMindmapTimeline(){
   openMindmapSheet(kids);
 }
 
+
+function showMindmapSummary(){
+  const rec=mmRecord(_mm&&_mm.bookId);if(!rec)return;
+  const map=rec.map,S=map.summary,b=mmBook(_mm.bookId);
+  const title=String(b?.title||'').split(/\s*:\s/)[0];
+  const kids=[vEl('div','mm-s-kind','SUMMARY'),vEl('h2','mm-s-title',`${title}, in short`)];
+  if(!S){
+    const p=vEl('p','mm-s-p',localStorage.getItem(SK.api)
+      ?'This map was made before summaries. Claude can write one now — the story, what the book is really getting at, and the ending — without remaking the map.'
+      :'This map was made before summaries. Add your Anthropic API key in Settings and Claude can write one.');
+    kids.push(p);
+    if(localStorage.getItem(SK.api)){
+      const go=vEl('button','mm-create','Write the summary');go.type='button';go.id='mmSumCreate';
+      const st=vEl('p','mm-status');st.id='mmSumStatus';
+      go.addEventListener('click',()=>generateSummary(_mm.bookId));
+      kids.push(go,st);
+    }
+    openMindmapSheet(kids);return;
+  }
+  const sec=(label,...els)=>kids.push(vEl('div','mm-s-lbl',label),...els);
+  if(S.line)sec('IN ONE LINE',vEl('p','sm-line',S.line));
+  if(S.story.length)sec(map.kind==='nonfiction'?'WHAT IT COVERS':'THE STORY',...S.story.map(t=>vEl('p','mm-s-p sm-para',t)));
+  if(S.ideas.length){
+    const ul=vEl('ul','sm-pts');
+    for(const i of S.ideas){const li=vEl('li');li.append(vEl('b',null,i.title),document.createTextNode(i.text));ul.append(li);}
+    sec('WHAT IT’S REALLY GETTING AT',ul);
+  }
+  if(S.ending)sec('THE ENDING, EXPLAINED',vEl('div','sm-end',S.ending));
+  if(S.takeaways.length){const ul=vEl('ul','mm-s-list');for(const t of S.takeaways)ul.append(vEl('li',null,t));sec('THE TAKEAWAYS',ul);}
+  if(S.worth)sec('WORTH KNOWING',vEl('p','mm-s-p',S.worth));
+  openMindmapSheet(kids);
+}
+
+function summaryPrompt(b,map){
+  return `Write a summary for a reader who has finished this book, to remind them of it and help them understand what it was really getting at. Spoilers are fine.
+
+Book: "${b.title}"${b.author?` by ${b.author}`:''}.${map.thesis?`\nIn one sentence: ${map.thesis}`:''}
+
+Reply with JSON only, no code fence, in exactly this shape:
+{"line":"the book's shorthand in one or two sentences — what it's about at heart",
+ "story":["2–4 short paragraphs: the plot from start to finish (for nonfiction: what the book covers, in order)"],
+ "ideas":[{"title":"3–6 words","text":"2–3 sentences"}],
+ "ending":"fiction only: 3–5 sentences on how it ends and what the ending means",
+ "takeaways":["nonfiction only: 3–5 practical or memorable takeaways"],
+ "worth":"1–3 sentences of context that deepens it: the title, the author's intent, allusions — or empty"}
+
+Rules: 3–4 ideas, about what the book is really exploring, not plot. Plain, warm language. Only state what you are confident is true of this book; if you don't know it well, keep it short and general rather than inventing details.`;
+}
+
+async function generateSummary(bookId){
+  const b=mmBook(bookId),rec=mmRecord(bookId);if(!b||!rec)return;
+  const key=localStorage.getItem(SK.api);if(!key)return;
+  const btn=document.getElementById('mmSumCreate'),st=document.getElementById('mmSumStatus');
+  if(btn)btn.disabled=true;if(st)st.textContent='Writing the summary… about 20 seconds.';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:3000,messages:[{role:'user',content:summaryPrompt(b,rec.map)}]})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+    const data=await res.json();
+    const S=normalizeSummary(parseMindmapReply((data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n')));
+    if(!S)throw new Error('the reply wasn’t a usable summary');
+    const cur=mmRecord(bookId);if(!cur)return;
+    cur.map={...cur.map,summary:S};cur.updatedAt=Date.now();save(SK.maps,mindmapDB);
+    if(_mm&&_mm.bookId===bookId)showMindmapSummary();
+  }catch(e){
+    console.warn('Summary failed',e);
+    const st2=document.getElementById('mmSumStatus'),b2=document.getElementById('mmSumCreate');
+    if(st2)st2.textContent=`Couldn’t write it (${e.message}). Try again.`;if(b2)b2.disabled=false;
+  }
+}
+
 function openMindmapSheet(kids){
   const s=document.getElementById('mmSheet');
   s.replaceChildren(vEl('div','mm-grip'),...kids);
@@ -6931,7 +7062,8 @@ Reply with JSON only, no code fence, in exactly this shape:
    "tryit":"nonfiction only: how the reader could apply it",
    "links":["ids of related nodes"],
    "q":"one question to reflect on"}]}],
- "timeline":[{"title":"at most 28 characters","summary":"1–2 sentences","links":["ids of nodes involved"]}]}
+ "timeline":[{"title":"at most 28 characters","summary":"1–2 sentences","links":["ids of nodes involved"]}],
+ "summary":{"line":"the book's shorthand in one or two sentences","story":["2–4 short paragraphs: the plot start to finish (nonfiction: what it covers)"],"ideas":[{"title":"3–6 words","text":"2–3 sentences on what the book is really exploring"}],"ending":"fiction only: how it ends and what that means","takeaways":["nonfiction only: 3–5 takeaways"],"worth":"context that deepens it, or empty"}}
 
 Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Weave in the reader's notes and highlights where they fit. Only state what you are confident is in the book; if you don't know it well, build the map mainly from the reader's notes and add "unsure":true.`;
 }

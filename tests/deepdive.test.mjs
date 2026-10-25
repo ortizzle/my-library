@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { loadFunctions, extractConst } from './extract.mjs';
 
 const D = loadFunctions(['localDateStr', 'ddHash', 'ddShuffle', 'ddShort', 'ddAddDays', 'ddTypeFor', 'ddMask', 'ddCan',
-                         'deepDivePick', 'deepDiveStreak', 'mmStr', 'mmColor', 'normalizeMindmap'],
+                         'deepDivePick', 'deepDiveStreak', 'mmStr', 'mmColor', 'normalizeSummary', 'normalizeMindmap'],
   `const MM_MOTIFS=${extractConst('MM_MOTIFS')};`);
 
 const cerulean = D.normalizeMindmap(JSON.parse(readFileSync(new URL('./fixtures/cerulean-map.json', import.meta.url), 'utf8')));
