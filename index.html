@@ -6259,15 +6259,30 @@ function handleImport(e){
   r.readAsText(f);e.target.value='';
 }
 
-// Books that arrive in a file (a list from another app, say) come without
-// covers. Look them up the way adding a book does, one at a time.
+// Books without a cover — imported from a file, synced from another device,
+// or added offline — get one looked up the way adding a book does, one at a
+// time. A miss is remembered on this device for a week, so a book with no
+// cover anywhere isn't searched again on every launch (and doesn't eat the
+// Google Books quota the lookups share).
+const COVER_TRIED_KEY='trr_v1_cover_tried'; // {bookId: lastTriedMs}; device-local cache, deliberately not in SK
 async function fillMissingCovers(ids){
+  let tried={};try{tried=JSON.parse(localStorage.getItem(COVER_TRIED_KEY))||{};}catch{}
   for(const id of ids){
     const b=books.find(x=>x.id===id);
     if(!b||coversDB[id]||b.itemType==='article')continue;
     const url=await fetchCoverByISBN(b.isbn)||await fetchCoverByTitle(b.title,b.author);
     if(url&&books.some(x=>x.id===id)&&!coversDB[id]){coversDB[id]=url;save(SK.covers,coversDB);renderLibrary();}
+    else if(!url){tried[id]=Date.now();try{localStorage.setItem(COVER_TRIED_KEY,JSON.stringify(tried));}catch{}}
   }
+}
+function scheduleCoverFill(delay=8000){
+  setTimeout(()=>{
+    if(navigator.onLine===false)return;
+    let tried={};try{tried=JSON.parse(localStorage.getItem(COVER_TRIED_KEY))||{};}catch{}
+    const now=Date.now(),WEEK=7*864e5;
+    const ids=books.filter(b=>!coversDB[b.id]&&b.itemType!=='article'&&now-(tried[b.id]||0)>WEEK).map(b=>b.id);
+    if(ids.length)fillMissingCovers(ids);
+  },delay);
 }
 
 // "Delete ALL data" used to leave Gist sync connected while wiping the keys it
@@ -7028,6 +7043,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   _appReady=true;
   initDrive();
   scheduleMindmaps(20000); // after the first sync has had time to land
+  scheduleCoverFill();
   if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){
     setGistDot('pushing');
     await gistPull();

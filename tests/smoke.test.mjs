@@ -2322,3 +2322,32 @@ test('books imported from a file look up their own covers', async () => {
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('books already in the library without a cover get one, and a miss is not retried every launch', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const calls = await stubCatalogues(page, { olSearch: { docs: [{ cover_i: 77 }] } });
+  await page.evaluate(() => {
+    books = [{ id: 'c1', title: 'Kindred', author: 'Octavia Butler', status: 'read', addedAt: 1, updatedAt: 1 },
+             { id: 'c2', title: 'Has One', author: 'A', status: 'read', addedAt: 2, updatedAt: 2 },
+             { id: 'c3', title: 'An Article', author: 'B', itemType: 'article', status: 'read', addedAt: 3, updatedAt: 3 }];
+    coversDB = { c2: 'https://example.com/c2.jpg' };
+    save(SK.books, books); save(SK.covers, coversDB); renderLibrary();
+    scheduleCoverFill(0);
+  });
+  await page.waitForFunction(() => coversDB.c1, null, { timeout: 15000 });
+  assert.equal(await page.evaluate(() => coversDB.c1), 'https://covers.openlibrary.org/b/id/77-M.jpg');
+  assert.equal(await page.evaluate(() => coversDB.c3), undefined, 'articles are left alone');
+  assert.equal(calls.filter(c => c === 'ol-search').length, 1, 'only the book without a cover is looked up');
+
+  // Nothing found anywhere: remembered, so the next launch doesn't search again.
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  const calls2 = await stubCatalogues(page);
+  await page.evaluate(() => { books.push({ id: 'c4', title: 'Obscure', author: 'Nobody', status: 'read', addedAt: 4, updatedAt: 4 }); save(SK.books, books); scheduleCoverFill(0); });
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('trr_v1_cover_tried') || '{}').c4, null, { timeout: 15000 });
+  const before = calls2.length;
+  await page.evaluate(() => scheduleCoverFill(0));
+  await page.waitForTimeout(500);
+  assert.equal(calls2.length, before);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
