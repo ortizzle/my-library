@@ -2351,3 +2351,131 @@ test('books already in the library without a cover get one, and a miss is not re
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// ── Daily Deep Dive ──────────────────────────────────────────────────────
+
+// A finished book with a map, and today's question fixed to a given type.
+async function seedDive(page, type, map = JSON.parse(MAP_REPLY)) {
+  return page.evaluate(([type, raw]) => {
+    books = [{ id: 'b1', title: 'The House in the Cerulean Sea: A Novel', author: 'T. J. Klune', status: 'read', addedAt: 1, updatedAt: 1 }];
+    mindmapDB = { b1: { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] } };
+    save(SK.books, books); save(SK.maps, mindmapDB);
+    const today = localDateStr(); let d = today, q = null;
+    for (let i = 0; i < 40 && !(q && q.type === type); i++) { q = deepDivePick(d, books, mindmapDB, {}); d = ddAddDays(d, 1); }
+    q.date = today; deepDiveDB = { days: { [today]: q }, seenOn: {} }; ddSave();
+    showView('log'); renderLogSession();
+    return q;
+  }, [type, map]);
+}
+
+test('Today shows the deep dive card only when a finished book has a map', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => { showView('log'); renderLogSession(); });
+  assert.equal(await page.locator('#deepDiveCard').count(), 0);
+  await seedDive(page, 'who');
+  const card = page.locator('#deepDiveCard');
+  assert.match(await card.textContent(), /DAILY DEEP DIVE/);
+  assert.match(await card.textContent(), /The House in the Cerulean Sea/);
+  assert.doesNotMatch(await card.textContent(), /A Novel/, 'subtitle trimmed');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a "who or what" question: pick, see the answer and more, and the bubble counts as explored', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const q = await seedDive(page, 'who');
+  await page.click('#deepDiveCard');
+  const sheet = page.locator('#ddSheet');
+  const answer = await page.evaluate(id => mmNodeIn(mindmapDB.b1.map, id), q.nodeId);
+  assert.doesNotMatch(await sheet.locator('.dd-q').textContent(), new RegExp(`\\b${answer.title}\\b`), 'the clue doesn\'t give it away');
+  assert.equal(await sheet.locator('.dd-opt').count(), 3);
+  const wrong = q.options.find(id => id !== q.nodeId);
+  const wrongTitle = await page.evaluate(id => mmNodeIn(mindmapDB.b1.map, id).title, wrong);
+  await sheet.locator('.dd-opt', { hasText: wrongTitle }).click();
+  await sheet.locator('.dd-verdict', { hasText: `It was ${answer.title}` }).waitFor();
+  assert.equal(await sheet.locator('.dd-opt.right').count(), 1);
+  assert.equal(await sheet.locator('.dd-opt.wrong').count(), 1);
+  assert.match(await sheet.textContent(), /GOING DEEPER/);
+  assert.ok(await page.evaluate(id => mindmapDB.b1.seen.includes(id), q.nodeId));
+  assert.ok(await page.evaluate(id => JSON.parse(localStorage.getItem('trr_v1_maps')).b1.seen.includes(id), q.nodeId));
+
+  await sheet.locator('text=Open in the map').click();
+  await page.locator('#mmSheet .mm-s-title', { hasText: answer.title }).waitFor();
+  await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
+
+  // Same question all day, remembered as answered.
+  await page.reload(); await page.waitForFunction(() => typeof window.saveBook === 'function');
+  await page.evaluate(() => { showView('log'); renderLogSession(); });
+  assert.match(await page.textContent('#deepDiveCard'), /Done — back tomorrow/);
+  assert.match(await page.textContent('#deepDiveCard'), /1 day/);
+  await page.click('#deepDiveCard');
+  assert.equal(await page.locator('#ddSheet .dd-opt.wrong').count(), 1, 'reopening shows how you answered');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a chronology question: tap in order, tap again to undo, then see the chronology', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const q = await seedDive(page, 'order');
+  await page.click('#deepDiveCard');
+  const beats = page.locator('#ddSheet .dd-beat');
+  assert.equal(await beats.count(), 3);
+  // Tap the beats in true order (with an undo along the way).
+  const pos = i => q.shown.indexOf(q.beats[i]);
+  await beats.nth(pos(0)).click();
+  await beats.nth(pos(1)).click(); await beats.nth(pos(1)).click(); // undo
+  assert.equal(await page.locator('#ddSheet .dd-beat.sel').count(), 1);
+  await beats.nth(pos(1)).click();
+  await beats.nth(pos(2)).click();
+  await page.locator('#ddSheet .dd-verdict', { hasText: 'Right' }).waitFor();
+  assert.equal(await page.locator('#ddSheet .dd-beat.right').count(), 3);
+  await page.locator('#ddSheet', { hasText: 'See the chronology' }).locator('text=See the chronology').click();
+  await page.locator('#mmSheet .mm-tl').waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('"think about it" saves a thought to that book\'s journal', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const q = await seedDive(page, 'think');
+  await page.click('#deepDiveCard');
+  await page.click('#ddSheet >> text=Save to journal');
+  assert.equal(await page.evaluate(() => (journalDB.b1 || []).length), 0, 'nothing written, nothing saved');
+  await page.fill('#ddNote', 'Family is chosen.');
+  await page.click('#ddSheet >> text=Save to journal');
+  await page.locator('#ddSheet .dd-reveal', { hasText: 'Family is chosen.' }).waitFor();
+  const entry = await page.evaluate(() => journalDB.b1[0]);
+  assert.match(entry.text, /Family is chosen\./);
+  assert.equal(entry.date, await page.evaluate(() => localDateStr()));
+  assert.ok(await page.evaluate(id => mindmapDB.b1.seen.includes(id), q.nodeId));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('"Not today" hides the card until tomorrow, and Escape closes the sheet', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedDive(page, 'who');
+  await page.click('#deepDiveCard');
+  await page.keyboard.press('Escape');
+  assert.ok(!(await page.locator('#ddSheet').isVisible()));
+  await page.click('#deepDiveCard');
+  await page.click('#ddSheet >> text=Not today');
+  assert.equal(await page.locator('#deepDiveCard').count(), 0);
+  await page.reload(); await page.waitForFunction(() => typeof window.saveBook === 'function');
+  await page.evaluate(() => { showView('log'); renderLogSession(); });
+  assert.equal(await page.locator('#deepDiveCard').count(), 0);
+  await ctx.close();
+});
+
+test('markup in a map is shown as text in the deep dive', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const evil = '<img src=x onerror="window.__pwned=1">';
+  await seedDive(page, 'who', { emblem: '📖', branches: [{ label: 'X', nodes: [
+    { title: evil, remind: evil + ' is here' }, { title: 'B', remind: 'b' }, { title: 'C', remind: 'c' }] }] });
+  await page.click('#deepDiveCard');
+  await page.locator('#ddSheet .dd-opt').first().click();
+  assert.equal(await page.evaluate(() => window.__pwned), undefined);
+  assert.equal(await page.locator('#ddView img').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

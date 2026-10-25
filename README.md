@@ -67,6 +67,14 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Tap a bubble to learn more:** a reminder, a deeper look, where it shows up, your own highlights that mention it, what it connects to, and a question to think about. ‹ › walk through the whole map; **Explored N of M** remembers what you've opened
 - **🕰 Chronology:** the story beat by beat, each linked into the map. **↻ Remake** (two taps) writes a fresh one
 
+### Daily Deep Dive
+- **One question a day on Today**, from a finished book's mind map, in a small card under the vocabulary card. Tap **Play ›** to open it
+- **Who or what?** — a bubble's reminder with the name hidden; pick from three. Then the deeper look, a question to think about, and **Open in the map**
+- **What came first?** — three moments from a book's chronology to tap in order (tap again to undo), then **See the chronology**
+- **Sundays: Think about it** — a reflection question; **Save to journal** adds your answer to that book's journal
+- Books you haven't seen lately and bubbles you haven't explored come first; answering marks the bubble explored in its map. The same question all day; **Not today** hides it until tomorrow. A small 🧠 streak counts days in a row, separate from the reading streak
+- Made from the saved maps alone — no Claude call, works offline. Today's question and the streak stay on this device
+
 ### Book Details (3-tab edit modal)
 1. **Book Details** — title, author, genre, format, ISBN, cover, series, publisher
 2. **My Reading** — status, rating (⭐ 1–5), dates, journal notes, loan tracking, DNF shelf, reading progress history

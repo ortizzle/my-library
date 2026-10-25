@@ -307,6 +307,43 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .mm-tlbtn{display:block;margin:1rem auto .4rem;min-height:48px;padding:0 1.4rem;border-radius:24px;border:2px solid var(--ink);background:var(--cream);color:var(--ink);font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:4px 4px 0 var(--gold)}
 .mm-auto{display:flex;align-items:center;gap:.6rem;min-height:48px;margin-top:.7rem;font-size:.95rem;cursor:pointer}
 .mm-auto input{width:22px;height:22px;accent-color:var(--burgundy)}
+/* DAILY DEEP DIVE */
+.dd-card{width:100%;margin:.6rem 0 0;text-align:left;cursor:pointer;font:inherit}
+.dd-card.dd-done{opacity:.85}
+.dd-badge{background:#fffaf2!important;font-size:1.75rem}
+.dd-scrim{position:fixed;inset:0;background:rgba(15,26,46,.55);z-index:8400}
+.dd-sheet{position:fixed;left:0;right:0;bottom:0;max-height:88vh;overflow-y:auto;z-index:8401;background:#fffaf2;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);animation:su .2s ease;padding-bottom:env(safe-area-inset-bottom)}
+.dd-sheet .mm-grip{margin:.5rem auto .5rem}
+.dd-head{display:flex;align-items:center;gap:.6rem;padding:.7rem .6rem .7rem 1rem;color:#fff}
+.dd-emb{width:44px;height:44px;border-radius:50%;background:#fffaf2;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;box-shadow:0 0 0 2px rgba(255,255,255,.5)}
+.dd-titles{flex:1;min-width:0}
+.dd-k{font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.12em;opacity:.92}
+.dd-bk{font-family:'Playfair Display',serif;font-weight:700;font-size:1.08rem;line-height:1.2}
+.dd-x{width:48px;height:48px;border:none;background:none;color:#fff;font-size:1.8rem;cursor:pointer;flex-shrink:0}
+.dd-body{padding:.95rem 1rem 1.2rem;color:var(--ink)}
+.dd-q{font-family:'Playfair Display',serif;font-size:1.15rem;line-height:1.4;margin:0 0 .8rem}
+.dd-clue{font-style:italic;color:var(--ink-light);margin:-.3rem 0 .8rem;line-height:1.5}
+.dd-opts,.dd-beats{display:grid;gap:.5rem}
+.dd-opt,.dd-beat{min-height:52px;border-radius:12px;border:1.5px solid var(--parchment-dark);background:#fff;font:inherit;font-size:1rem;text-align:left;padding:.6rem .9rem;color:var(--ink);cursor:pointer}
+.dd-beat{display:flex;gap:.7rem;align-items:center;font-size:.96rem;line-height:1.4}
+.dd-beat i{font-style:normal;width:30px;height:30px;border-radius:50%;background:var(--parchment-dark);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:700;flex-shrink:0}
+.dd-beat.sel{border-color:var(--burgundy);background:#f3f6fb}
+.dd-beat.sel i{background:var(--burgundy);color:#fff}
+.dd-opt.right,.dd-beat.right{border-color:#1f7a4d;background:#e7f5ec;color:var(--ink)}
+.dd-beat.right i{background:#1f7a4d;color:#fff}
+.dd-opt.wrong,.dd-beat.wrong{border-color:#b91c1c;background:#fdecec;color:#7a1f1f}
+.dd-opt.wrong{text-decoration:line-through}
+.dd-beat.wrong i{background:#b91c1c;color:#fff}
+.dd-opt.dim{opacity:.5}
+.dd-verdict{font-family:'Playfair Display',serif;font-weight:700;margin:.9rem 0 .2rem}
+.dd-reveal{margin-top:.7rem;padding:.75rem .85rem;border-radius:12px;background:#eef2f8;border-left:4px solid var(--burgundy);line-height:1.55;font-size:.96rem;white-space:pre-line}
+.dd-reveal.gold{border-left-color:var(--gold)}
+.dd-reveal b{font-family:'IM Fell English SC',serif;font-weight:400;letter-spacing:.1em;font-size:.72rem;color:var(--ink-faint);display:block;margin-bottom:.2rem}
+.dd-row{display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap}
+.dd-btn{min-height:48px;padding:0 1.15rem;border-radius:24px;border:none;font-family:'Playfair Display',serif;font-weight:700;font-size:.98rem;background:var(--burgundy);color:#fff;cursor:pointer}
+.dd-btn.ghost{background:transparent;color:var(--burgundy);border:1.5px solid var(--burgundy)}
+.dd-ta{width:100%;min-height:96px;border-radius:12px;border:1.5px solid var(--parchment-dark);padding:.6rem .8rem;font:inherit;font-size:1rem;background:#fff;box-sizing:border-box}
+.dd-foot{font-size:.85rem;color:var(--ink-faint);margin:.7rem 0 0}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -1449,6 +1486,7 @@ const SK={
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
+  deepDive:'trr_v1_deepdive',// {days:{date:question}, seenOn:{bookId:date}} — the daily mind-map question (this device only)
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
 // NOTE: the gist keys below are deliberately NOT in SK — SK is what gets exported
@@ -5640,6 +5678,8 @@ function renderLogSession(){
   }
   const nudge=vocabNudge();
   if(nudge)el.prepend(nudge);
+  const dive=deepDiveCard();
+  if(dive)nudge?nudge.after(dive):el.prepend(dive);
 }
 
 function buildLogCard(b){
@@ -6316,7 +6356,7 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];mindmapDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];mindmapDB={};deepDiveDB={};
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
   renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');
@@ -7024,6 +7064,270 @@ function refreshMindmapButton(b){
 }
 
 // ══════════════════════════════════════════
+// DAILY DEEP DIVE
+// ══════════════════════════════════════════
+// One question a day from a finished book's mind map, behind a small card
+// under the vocabulary card on Today. Built from the saved maps alone — no
+// Claude call, works offline. Mostly "Who or what?" (a bubble's reminder,
+// pick the name) and "What came first?" (three chronology beats in order);
+// Sundays are "Think about it", a reflection question that can go to the
+// journal. Books not seen lately and bubbles not yet explored come first.
+// Answering marks the bubble explored in its map (which syncs); the day's
+// question and the little streak stay on this device.
+
+function ddHash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619)>>>0;return h;}
+function ddShuffle(arr,seed){const a=arr.slice();let s=ddHash(seed)||1;for(let i=a.length-1;i>0;i--){s=(Math.imul(s,1664525)+1013904223)>>>0;const j=s%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+// "Babel : Or the Necessity of Violence" → "Babel": subtitles crowd a small card.
+function ddShort(t){return String(t||'').split(/\s*:\s/)[0].trim()||String(t||'');}
+function ddAddDays(d,n){const t=new Date(d+'T12:00:00');t.setDate(t.getDate()+n);return localDateStr(t);}
+
+// Today's question type: Sunday is for thinking; other days alternate.
+function ddTypeFor(date){
+  const t=new Date(date+'T12:00:00');
+  if(t.getDay()===0)return 'think';
+  return Math.floor(t.getTime()/864e5)%2?'order':'who';
+}
+
+// Hide the answer in a clue ("Ramy, Robin's friend" → "___, Robin's friend").
+function ddMask(text,title){
+  let out=String(text||'');
+  const words=String(title||'').split(/[^\p{L}\p{N}]+/u).filter(w=>w.length>2&&!/^(the|and|of|von|van)$/i.test(w));
+  for(const w of [String(title||'').trim(),...words]){
+    if(!w)continue;
+    const esc=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    out=out.replace(new RegExp(`(?<![\\p{L}\\p{N}])${esc}(?![\\p{L}\\p{N}])`,'giu'),'___');
+  }
+  return out;
+}
+
+// What can each type be made from, for one map?
+function ddCan(type,map){
+  const nodes=map.branches.flatMap(b=>b.nodes);
+  if(type==='who')return nodes.filter(n=>n.remind).length>=3;
+  if(type==='order')return (map.timeline||[]).length>=3;
+  if(type==='think')return nodes.some(n=>n.q);
+  return false;
+}
+
+// Build the question for a day. Pure: everything comes in as arguments.
+// books: the library; maps: mindmapDB; seenOn: {bookId: lastDate shown}.
+function deepDivePick(date,books,maps,seenOn){
+  const pool=books.filter(b=>b&&b.status==='read'&&maps[b.id]&&maps[b.id].map);
+  if(!pool.length)return null;
+  const order=pool.slice().sort((a,b)=>String(seenOn[a.id]||'').localeCompare(String(seenOn[b.id]||''))||ddHash(date+a.id)-ddHash(date+b.id));
+  const first=ddTypeFor(date);
+  for(const type of [first,...['who','order','think'].filter(t=>t!==first)]){
+    const b=order.find(x=>ddCan(type,maps[x.id].map));
+    if(!b)continue;
+    const rec=maps[b.id],map=rec.map,seen=new Set(rec.seen||[]),seed=date+b.id;
+    const nodes=map.branches.flatMap(br=>br.nodes.map(n=>({...n,branch:br.label})));
+    const prefer=list=>{const fresh=list.filter(n=>!seen.has(n.id));const from=fresh.length?fresh:list;return from[ddHash(seed+type)%from.length];};
+    if(type==='who'){
+      const target=prefer(nodes.filter(n=>n.remind));
+      const sameBranch=nodes.filter(n=>n.branch===target.branch&&n.id!==target.id);
+      const others=(sameBranch.length>=2?sameBranch:nodes.filter(n=>n.id!==target.id))
+        .filter((n,i,a)=>n.title!==target.title&&a.findIndex(x=>x.title===n.title)===i);
+      const wrong=ddShuffle(others,seed+'w').slice(0,2).map(n=>n.id);
+      return {date,type,bookId:b.id,nodeId:target.id,options:ddShuffle([target.id,...wrong],seed+'o')};
+    }
+    if(type==='order'){
+      const idx=ddShuffle(map.timeline.map((_,i)=>i),seed+'t').slice(0,3).sort((x,y)=>x-y);
+      return {date,type,bookId:b.id,beats:idx,shown:ddShuffle(idx,seed+'s')};
+    }
+    const target=prefer(nodes.filter(n=>n.q));
+    return {date,type,bookId:b.id,nodeId:target.id};
+  }
+  return null;
+}
+
+// Consecutive days answered, counting back from today (or yesterday, so the
+// streak isn't shown as broken before today's question is done).
+function deepDiveStreak(days,today){
+  let d=days[today]&&days[today].done?today:ddAddDays(today,-1),n=0;
+  while(days[d]&&days[d].done){n++;d=ddAddDays(d,-1);}
+  return n;
+}
+
+let deepDiveDB=load(SK.deepDive,'object')||{};
+function ddState(){
+  if(!deepDiveDB.days||typeof deepDiveDB.days!=='object')deepDiveDB.days={};
+  if(!deepDiveDB.seenOn||typeof deepDiveDB.seenOn!=='object')deepDiveDB.seenOn={};
+  return deepDiveDB;
+}
+function ddSave(){
+  const s=ddState(),cut=ddAddDays(localDateStr(),-120);
+  for(const d of Object.keys(s.days))if(d<cut)delete s.days[d];
+  save(SK.deepDive,s);
+}
+// Today's question, made once and kept — unless its book or map has gone.
+function deepDiveToday(){
+  const s=ddState(),today=localDateStr();
+  let q=s.days[today];
+  const ok=q&&books.some(b=>b.id===q.bookId)&&mindmapDB[q.bookId]&&(q.type==='order'
+    ?q.beats.every(i=>mindmapDB[q.bookId].map.timeline[i])
+    :mmNodeIn(mindmapDB[q.bookId].map,q.nodeId)&&(!q.options||q.options.every(id=>mmNodeIn(mindmapDB[q.bookId].map,id))));
+  if(!ok){
+    q=deepDivePick(today,books,mindmapDB,s.seenOn);
+    if(!q)return null;
+    s.days[today]=q;s.seenOn[q.bookId]=today;ddSave();
+  }
+  return q;
+}
+function mmNodeIn(map,id){for(const b of map.branches)for(const n of b.nodes)if(n.id===id)return n;return null;}
+
+// The card on Today.
+function deepDiveCard(){
+  const q=deepDiveToday();if(!q||q.skipped)return null;
+  const rec=mindmapDB[q.bookId],book=books.find(b=>b.id===q.bookId);
+  const streak=deepDiveStreak(ddState().days,localDateStr());
+  const card=vEl('button','vn vn-due dd-card'+(q.done?' dd-done':''));card.type='button';card.id='deepDiveCard';
+  const badge=vEl('span','vn-badge dd-badge',rec.map.emblem);
+  const text=vEl('span','vn-text');
+  const head=vEl('span','vn-kicker');
+  head.append(vEl('span',null,q.done?'DAILY DEEP DIVE ✓':'DAILY DEEP DIVE'));
+  if(streak)head.append(vEl('span',null,`🧠 ${plural(streak,'day')}`));
+  const title=q.done?'Done — back tomorrow'
+    :q.type==='who'?'Who or what is this?':q.type==='order'?'What came first?':'Something to think about';
+  const chips=vEl('span','vn-chips');
+  chips.append(vEl('span','vn-chip',ddShort(book.title)),vEl('span','vn-chip',q.type==='who'?'Who or what?':q.type==='order'?'Chronology':'Think about it'));
+  text.append(head,vEl('b','vn-title',title),chips);
+  card.append(badge,text,vEl('span','vn-go',q.done?'See ›':'Play ›'));
+  card.addEventListener('click',()=>openDeepDive());
+  return card;
+}
+
+// The question sheet.
+function ddSheet(){
+  let wrap=document.getElementById('ddView');
+  if(wrap)return wrap;
+  wrap=vEl('div');wrap.id='ddView';wrap.style.display='none';
+  const scrim=vEl('div','dd-scrim');scrim.addEventListener('click',closeDeepDive);
+  const sheet=vEl('div','dd-sheet');sheet.id='ddSheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');
+  wrap.append(scrim,sheet);document.body.append(wrap);
+  return wrap;
+}
+function closeDeepDive(){const w=document.getElementById('ddView');if(w)w.style.display='none';document.body.style.overflow='';renderLogSession();}
+function deepDiveOpen(){const w=document.getElementById('ddView');return !!w&&w.style.display!=='none';}
+
+function openDeepDive(){
+  const q=deepDiveToday();if(!q)return;
+  ddSheet().style.display='block';document.body.style.overflow='hidden';
+  renderDeepDive(q);
+}
+
+function ddFinish(q,patch){
+  Object.assign(q,patch,{done:true});
+  const s=ddState();s.days[q.date]=q;ddSave();
+  if(q.nodeId){ // counts as exploring that bubble
+    const rec=mindmapDB[q.bookId];
+    if(rec&&!(rec.seen||[]).includes(q.nodeId)){rec.seen=[...(rec.seen||[]),q.nodeId];save(SK.maps,mindmapDB);}
+  }
+}
+
+function renderDeepDive(q){
+  const sheet=document.getElementById('ddSheet');
+  const rec=mindmapDB[q.bookId],map=rec.map,book=books.find(b=>b.id===q.bookId);
+  const pal=map.palette;
+  const head=vEl('div','dd-head');
+  head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
+  const titles=vEl('div','dd-titles');
+  titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='order'?'WHAT CAME FIRST?':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
+  const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeDeepDive);
+  head.append(vEl('div','dd-emb',map.emblem),titles,x);
+  const body=vEl('div','dd-body');
+  const openMap=(label,then)=>{const b=vEl('button','dd-btn',label);b.type='button';b.addEventListener('click',()=>{closeDeepDive();openMindmap(q.bookId);then();});return b;};
+  const row=(...btns)=>{const r=vEl('div','dd-row');r.append(...btns);return r;};
+  const reveal=(label,text,cls)=>{const d=vEl('div','dd-reveal'+(cls?' '+cls:''));d.append(vEl('b',null,label),document.createTextNode(text));return d;};
+  const skip=()=>{const b=vEl('button','dd-btn ghost','Not today');b.type='button';b.addEventListener('click',()=>{q.skipped=true;const s=ddState();s.days[q.date]=q;ddSave();closeDeepDive();});return b;};
+
+  if(q.type==='who'){
+    const target=mmNodeIn(map,q.nodeId);
+    body.append(vEl('p','dd-q',`“${ddMask(target.remind,target.title)}”`));
+    const opts=vEl('div','dd-opts');
+    const after=vEl('div');
+    const paint=()=>{
+      opts.replaceChildren(...q.options.map(id=>{
+        const n=mmNodeIn(map,id);
+        const b=vEl('button','dd-opt',n.title);b.type='button';
+        if(q.done){
+          b.disabled=true;
+          if(id===q.nodeId){b.classList.add('right');b.textContent='✓ '+n.title;}
+          else if(id===q.picked)b.classList.add('wrong');
+          else b.classList.add('dim');
+        }else b.addEventListener('click',()=>{ddFinish(q,{picked:id,right:id===q.nodeId});paint();});
+        return b;
+      }));
+      after.replaceChildren();
+      if(q.done){
+        after.append(vEl('p','dd-verdict',q.right?'Right — nicely remembered.':`It was ${target.title}.`));
+        if(target.deeper)after.append(reveal('GOING DEEPER',target.deeper));
+        if(target.q)after.append(reveal('THINK ABOUT',target.q,'gold'));
+        after.append(row(openMap('🧠 Open in the map',()=>showMindmapNode(q.nodeId))));
+      }else after.append(row(skip()));
+    };
+    paint();
+    body.append(opts,after);
+  }else if(q.type==='order'){
+    const tl=map.timeline;
+    body.append(vEl('p','dd-q',map.kind==='nonfiction'?'Put these in the order the book takes them.':'Put these in story order.'));
+    const list=vEl('div','dd-beats'),after=vEl('div');
+    let picks=[];
+    const paint=()=>{
+      list.replaceChildren(...q.shown.map(i=>{
+        const b=vEl('button','dd-beat');b.type='button';
+        const pos=q.done?q.beats.indexOf(i):picks.indexOf(i);
+        const num=vEl('i',null,pos>=0?String(pos+1):'?');
+        b.append(num,vEl('span',null,tl[i].summary||tl[i].title));
+        if(q.done){b.disabled=true;b.classList.add((q.order||[]).indexOf(i)===pos?'right':'wrong');}
+        else{
+          if(pos>=0)b.classList.add('sel');
+          b.addEventListener('click',()=>{
+            if(picks.includes(i))picks=picks.filter(p=>p!==i);else picks.push(i);
+            if(picks.length===q.beats.length)ddFinish(q,{order:picks.slice(),right:picks.every((p,k)=>p===q.beats[k])});
+            paint();
+          });
+        }
+        return b;
+      }));
+      after.replaceChildren();
+      if(q.done){
+        after.append(vEl('p','dd-verdict',q.right?'Right — that’s the order.':'Here’s the real order: the numbers show where each one falls.'));
+        after.append(row(openMap('🕰 See the chronology',()=>showMindmapTimeline())));
+      }else after.append(vEl('p','dd-foot','Tap them in the order they happen. Tap again to undo.'),row(skip()));
+    };
+    paint();
+    body.append(list,after);
+  }else{
+    const target=mmNodeIn(map,q.nodeId);
+    body.append(vEl('p','dd-q',target.q));
+    if(target.remind)body.append(vEl('p','dd-clue',`${target.title} — ${target.remind}`));
+    if(q.done){
+      if(q.note)body.append(reveal('YOUR THOUGHT',q.note,'gold'));
+      body.append(row(openMap('🧠 Open in the map',()=>showMindmapNode(q.nodeId))));
+    }else{
+      const ta=vEl('textarea','dd-ta');ta.id='ddNote';ta.placeholder=`A thought or two — saved to your ${ddShort(book.title)} journal`;
+      const saveBtn=vEl('button','dd-btn','Save to journal');saveBtn.type='button';
+      saveBtn.addEventListener('click',()=>{
+        const text=ta.value.trim();
+        if(!text){toast('Write a thought first — or just open the map.','err');ta.focus();return;}
+        const now=new Date();
+        if(!journalDB[q.bookId])journalDB[q.bookId]=[];
+        journalDB[q.bookId].push({date:localDateStr(now),time:now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),text:`🧠 ${target.q}\n${text}`});
+        save(SK.journal,journalDB);
+        ddFinish(q,{note:text});toast('Saved to your journal','ok');renderDeepDive(q);
+      });
+      const look=vEl('button','dd-btn ghost','🧠 Just open the map');look.type='button';
+      look.addEventListener('click',()=>{ddFinish(q,{});closeDeepDive();openMindmap(q.bookId);showMindmapNode(q.nodeId);});
+      body.append(ta,row(saveBtn,look),row(skip()));
+    }
+  }
+  const streak=deepDiveStreak(ddState().days,localDateStr());
+  if(q.done&&streak)body.append(vEl('p','dd-foot',`🧠 ${plural(streak,'day')} in a row`));
+  sheet.replaceChildren(vEl('div','mm-grip'),head,body);
+  sheet.scrollTop=0;
+}
+
+// ══════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',async ()=>{
@@ -7054,6 +7358,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   document.addEventListener('keydown',e=>{
     if(e.key!=='Escape')return;
     const vis=id=>{const el=document.getElementById(id);return el&&el.style.display!=='none';};
+    if(deepDiveOpen()){closeDeepDive();return;}
     if(vis('mmSheet')){closeMindmapSheet();return;}
     if(vis('mindmapView')){closeMindmap();return;}
     if(vis('vocabQuiz')){closeVocabQuiz();return;}
