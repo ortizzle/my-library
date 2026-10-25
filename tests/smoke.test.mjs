@@ -2308,3 +2308,17 @@ test('a file of mind maps imports into the matching books and says how many', as
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('books imported from a file look up their own covers', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await stubCatalogues(page, { olSearch: { docs: [{ cover_i: 4242 }] } });
+  const file = JSON.stringify({ version: 2, books: [
+    { id: 'k1', title: 'Kindred', author: 'Octavia Butler', status: 'read', rating: 5, date: '2026-02-21', addedAt: 1, updatedAt: 1 },
+    { id: 'k2', title: 'Piranesi', author: 'Susanna Clarke', status: 'read', rating: 3, date: '2026-03-30', addedAt: 2, updatedAt: 2 }] });
+  await page.evaluate(() => showView('settings'));
+  await page.setInputFiles('#importFile', { name: 'reads.json', mimeType: 'application/json', buffer: Buffer.from(file) });
+  await page.waitForFunction(() => coversDB.k1 && coversDB.k2, null, { timeout: 15000 });
+  assert.equal(await page.evaluate(() => coversDB.k1), 'https://covers.openlibrary.org/b/id/4242-M.jpg');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

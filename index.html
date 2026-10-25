@@ -6253,9 +6253,21 @@ function handleImport(e){
       scheduleGistPush();
       renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
       toast(`Imported — ${newCount} new book(s)${mapNote}, history merged.`,'ok');
+      fillMissingCovers(d.books.filter(b=>b&&b.id&&!known.has(b.id)).map(b=>b.id));
     }catch(err){console.error('Import failed:',err);toast('Import failed — your library is unchanged.','err');}
   };
   r.readAsText(f);e.target.value='';
+}
+
+// Books that arrive in a file (a list from another app, say) come without
+// covers. Look them up the way adding a book does, one at a time.
+async function fillMissingCovers(ids){
+  for(const id of ids){
+    const b=books.find(x=>x.id===id);
+    if(!b||coversDB[id]||b.itemType==='article')continue;
+    const url=await fetchCoverByISBN(b.isbn)||await fetchCoverByTitle(b.title,b.author);
+    if(url&&books.some(x=>x.id===id)&&!coversDB[id]){coversDB[id]=url;save(SK.covers,coversDB);renderLibrary();}
+  }
 }
 
 // "Delete ALL data" used to leave Gist sync connected while wiping the keys it
