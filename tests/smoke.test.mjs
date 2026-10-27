@@ -2044,7 +2044,9 @@ test('a finished book gets a mind map from Claude, drawn and saved', async () =>
   assert.equal(calls.length, 1);
   const prompt = calls[0].messages[0].content;
   assert.match(prompt, /Cerulean Sea/);
-  assert.match(prompt, /Lucy danced/, 'the reader’s highlights go in the prompt');
+  assert.doesNotMatch(prompt, /Lucy danced|Lovely and kind/, 'the map describes the book, not the reader’s notes');
+  assert.equal(calls[0].tools?.[0]?.type, 'web_search_20260209', 'web search is on offer');
+  assert.match(prompt, /use web search/);
   assert.equal(await page.locator('#mmMap .mm-node').count(), 18);
   assert.equal(await page.locator('#mmMap .mm-branch').count(), 5);
   assert.match(await page.textContent('#mmThesis'), /family is something you choose/);
@@ -2717,5 +2719,90 @@ test('a wrong word gets no second try, and the spelling shows the letters it mis
   assert.match(await page.textContent('#vqSpell'), /you typed “croquette”/);
   assert.equal((await storedVocab(page))[0].box, 0, 'wrong is still wrong');
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+// ── Reception, sources and web search ────────────────────────────────────
+
+// Claude answers through a scripted list of {status, body} responses; each
+// request body is recorded so tests can see what was asked.
+async function stubClaudeScript(page, script) {
+  await page.evaluate(script => {
+    window.__reqs = []; window.__script = script;
+    window.fetch = async (url, opts) => {
+      window.__reqs.push(JSON.parse(opts.body));
+      const r = window.__script.shift();
+      return new Response(JSON.stringify(r.body), { status: r.status || 200, headers: { 'Content-Type': 'application/json' } });
+    };
+  }, script);
+}
+const textReply = (text, extra = {}) => ({ body: { content: [{ type: 'text', text }], stop_reason: 'end_turn', ...extra } });
+
+test('the Summary shows reception & critique and the sources Claude cited', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  const map = { ...JSON.parse(MAP_REPLY), summary: { ...SUMMARY,
+    reception: { praised: ['Warm, funny, kind.'], criticized: ['Its premise echoes real history it never reckons with.'], debates: ['Is it too gentle?'], recognition: 'A long-running bestseller.' } } };
+  const json = JSON.stringify(map), cut = json.indexOf('"line"');
+  await stubClaudeScript(page, [{ body: { stop_reason: 'end_turn', content: [
+    { type: 'server_tool_use', id: 's1', name: 'web_search', input: { query: 'review' } },
+    { type: 'web_search_tool_result', tool_use_id: 's1', content: [{ type: 'web_search_result', url: 'https://example.org/r', title: 'Searched only' }] },
+    { type: 'text', text: json.slice(0, cut) },
+    { type: 'text', text: json.slice(cut, cut + 40), citations: [{ type: 'web_search_result_location', url: 'https://news.example.com/review', title: 'A Review' }] },
+    { type: 'text', text: json.slice(cut + 40) }] } }]);
+  await makeMap(page);
+  await page.click('#mmSummaryBtn');
+  const sheet = page.locator('#mmSheet');
+  await sheet.locator('.sm-rec').waitFor();
+  assert.match(await sheet.textContent(), /Praised for.*Warm, funny, kind\..*Criticized for.*never reckons with\..*Debated.*too gentle/s);
+  assert.match(await sheet.textContent(), /A long-running bestseller/);
+  const link = sheet.locator('.sm-src a');
+  assert.equal(await link.count(), 1, 'cited pages win over pages merely searched');
+  assert.equal(await link.getAttribute('href'), 'https://news.example.com/review');
+  assert.equal(await link.getAttribute('rel'), 'noopener noreferrer');
+  assert.match(await sheet.locator('.sm-src').textContent(), /A Review · news\.example\.com/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('if web search isn\'t available on the account, the map is made without it', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [{ status: 400, body: { error: { message: 'web_search is not enabled for this organization' } } }, textReply(MAP_REPLY)]);
+  await makeMap(page);
+  const reqs = await page.evaluate(() => window.__reqs);
+  assert.equal(reqs.length, 2);
+  assert.ok(reqs[0].tools, 'first try offers search');
+  assert.equal(reqs[1].tools, undefined, 'second try goes without');
+  await ctx.close();
+});
+
+test('a search that pauses is resumed, and the reply is read from every turn', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  const half = Math.floor(MAP_REPLY.length / 2);
+  await stubClaudeScript(page, [
+    { body: { stop_reason: 'pause_turn', content: [{ type: 'server_tool_use', id: 's1', name: 'web_search', input: {} }, { type: 'text', text: MAP_REPLY.slice(0, half) }] } },
+    textReply(MAP_REPLY.slice(half))]);
+  await makeMap(page);
+  const reqs = await page.evaluate(() => window.__reqs);
+  assert.equal(reqs.length, 2);
+  assert.equal(reqs[1].messages.length, 2, 'the paused turn is sent back');
+  assert.equal(reqs[1].messages[1].role, 'assistant');
+  assert.equal(await page.locator('#mmMap .mm-node').count(), 18);
+  await ctx.close();
+});
+
+test('a summary written for an older map asks for reception and can search', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [textReply(MAP_REPLY), textReply(JSON.stringify({ line: 'x', reception: { praised: ['p'] } }))]);
+  await makeMap(page);
+  await page.click('#mmSummaryBtn');
+  await page.click('#mmSumCreate');
+  await page.locator('#mmSheet .sm-rec').waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[1];
+  assert.match(req.messages[0].content, /"reception":/);
+  assert.equal(req.tools?.[0]?.name, 'web_search');
   await ctx.close();
 });

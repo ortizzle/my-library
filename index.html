@@ -368,6 +368,18 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .st-lbl{font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.12em;color:var(--ink-faint);margin:1rem 0 0}
 .st-clear{margin-top:.9rem;min-height:48px}
 .st-note{font-style:italic;color:var(--ink-light);margin:.8rem 0 0;line-height:1.5}
+.sm-rec{display:grid;gap:.6rem}
+.sm-rec-part{padding:.65rem .8rem;border-radius:12px;background:#f4f1ea;border-left:4px solid var(--ink-faint)}
+.sm-rec-part.up{border-left-color:#2f7a4d}
+.sm-rec-part.down{border-left-color:var(--burgundy)}
+.sm-rec-part.mid{border-left-color:var(--gold)}
+.sm-rec-part b{font-family:'Playfair Display',serif;font-size:.98rem}
+.sm-rec-part ul{margin:.25rem 0 0;padding-left:1.1rem;line-height:1.55}
+.sm-rec-part li{margin-bottom:.2rem}
+.sm-rec-rcg{margin:0;line-height:1.55;font-style:italic;color:var(--ink-light)}
+.sm-src{margin:0;padding-left:1.1rem;line-height:1.6;font-size:.92rem}
+.sm-src a{color:var(--burgundy);word-break:break-word}
+.sm-src-host{color:var(--ink-faint);font-size:.85rem}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -1413,7 +1425,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div id="mmBody" style="display:none">
       <p class="mm-thesis" id="mmThesis"></p>
-      <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map leans on your notes.</p>
+      <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map is short — treat its details with care.</p>
       <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
       <div class="mm-map" id="mmMap"></div>
       <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button></div>
@@ -6644,6 +6656,20 @@ function mountDriveSettings(){
 const MM_MOTIFS=['sea','forest','city','night','gothic','desert','mountain','space','garden','plain'];
 const MM_W=412; // drawn at phone width; the SVG scales to fit
 
+// Shared by the map and summary prompts. Reception is what critics and readers
+// actually said, balanced and attributed — never Claude's verdict as fact.
+const MM_SUMMARY_SHAPE=`{"line":"the book's shorthand in one or two sentences — what it's about at heart",
+ "story":["2–4 short paragraphs: the plot start to finish (nonfiction: what it covers, in order)"],
+ "ideas":[{"title":"3–6 words","text":"2–3 sentences on what the book is really exploring"}],
+ "ending":"fiction only: 3–5 sentences on how it ends and what the ending means",
+ "takeaways":["nonfiction only: 3–5 practical or memorable takeaways"],
+ "reception":{"praised":["2–3 things critics and readers admired, each one sentence"],
+   "criticized":["2–3 common, fair criticisms — even of acclaimed books — each one sentence"],
+   "debates":["0–2 questions readers genuinely disagree about"],
+   "recognition":"awards, adaptations, influence or comparisons — only what you're sure of, or empty"},
+ "worth":"1–3 sentences of context that deepens it: the title, the author's intent, allusions — or empty"}`;
+const MM_SEARCH_RULE=`If you aren't confident you know this book well — especially anything published after 2023 — use web search to check its plot and how it was received (reviews in major outlets) before writing. If you know it well, don't search. Attribute reception in general terms ("many critics", "some readers"); never present your own opinion as the consensus.`;
+
 // Newest edit wins per book; a deleted book takes its map with it.
 function mergeMindmaps(local,remote,deleted){
   const out={};
@@ -6725,6 +6751,10 @@ function normalizeSummary(raw){
     ending:mmStr(raw.ending,1400),
     takeaways:list(raw.takeaways).map(t=>mmStr(t,500)).filter(Boolean).slice(0,6),
     worth:mmStr(raw.worth,900)};
+  const rc=raw.reception&&typeof raw.reception==='object'?raw.reception:{};
+  const pts=(v,n)=>list(v).map(t=>mmStr(t,400)).filter(Boolean).slice(0,n);
+  s.reception={praised:pts(rc.praised,4),criticized:pts(rc.criticized,4),debates:pts(rc.debates,3),recognition:mmStr(rc.recognition,600)};
+  s.sources=list(raw.sources).map(x=>x&&typeof x==='object'&&/^https?:\/\//i.test(String(x.url||''))?{url:String(x.url).slice(0,500),title:mmStr(x.title,120)}:null).filter(Boolean).slice(0,6);
   return s.line||s.story.length||s.ideas.length?s:null;
 }
 
@@ -7097,39 +7127,49 @@ function showMindmapSummary(){
   }
   if(S.ending)sec('THE ENDING, EXPLAINED',vEl('div','sm-end',S.ending));
   if(S.takeaways.length){const ul=vEl('ul','mm-s-list');for(const t of S.takeaways)ul.append(vEl('li',null,t));sec('THE TAKEAWAYS',ul);}
+  const R=S.reception||{};
+  if(R.praised?.length||R.criticized?.length||R.debates?.length||R.recognition){
+    const box=vEl('div','sm-rec');
+    const part=(label,items,cls)=>{if(!items?.length)return;const d=vEl('div','sm-rec-part '+cls);d.append(vEl('b',null,label));const ul=vEl('ul');for(const t of items)ul.append(vEl('li',null,t));d.append(ul);box.append(d);};
+    part('Praised for',R.praised,'up');part('Criticized for',R.criticized,'down');part('Debated',R.debates,'mid');
+    if(R.recognition)box.append(vEl('p','sm-rec-rcg',R.recognition));
+    sec('RECEPTION & CRITIQUE',box);
+  }
   if(S.worth)sec('WORTH KNOWING',vEl('p','mm-s-p',S.worth));
+  if(S.sources?.length){
+    const ul=vEl('ul','sm-src');
+    for(const x of S.sources){
+      const a=document.createElement('a');a.href=x.url;a.target='_blank';a.rel='noopener noreferrer';
+      let host='';try{host=new URL(x.url).hostname.replace(/^www\./,'');}catch{}
+      a.textContent=x.title||host;const li=vEl('li');li.append(a);if(x.title&&host)li.append(vEl('span','sm-src-host',' · '+host));ul.append(li);
+    }
+    sec('SOURCES',ul);
+  }
   openMindmapSheet(kids);
 }
 
 function summaryPrompt(b,map){
-  return `Write a summary for a reader who has finished this book, to remind them of it and help them understand what it was really getting at. Spoilers are fine.
+  return `Write a summary for a reader who has finished this book: to remind them of it, help them understand what it was really getting at, and show how it was received. Spoilers are fine. Describe the book itself, not any one reader's opinion of it.
 
 Book: "${b.title}"${b.author?` by ${b.author}`:''}.${map.thesis?`\nIn one sentence: ${map.thesis}`:''}
+${MM_SEARCH_RULE}
 
 Reply with JSON only, no code fence, in exactly this shape:
-{"line":"the book's shorthand in one or two sentences — what it's about at heart",
- "story":["2–4 short paragraphs: the plot from start to finish (for nonfiction: what the book covers, in order)"],
- "ideas":[{"title":"3–6 words","text":"2–3 sentences"}],
- "ending":"fiction only: 3–5 sentences on how it ends and what the ending means",
- "takeaways":["nonfiction only: 3–5 practical or memorable takeaways"],
- "worth":"1–3 sentences of context that deepens it: the title, the author's intent, allusions — or empty"}
+${MM_SUMMARY_SHAPE}
 
-Rules: 3–4 ideas, about what the book is really exploring, not plot. Plain, warm language. Only state what you are confident is true of this book; if you don't know it well, keep it short and general rather than inventing details.`;
+Rules: 3–4 ideas, about what the book is really exploring, not plot. Plain, warm language. Only state what you are confident is true of this book; if you don't know it well even after searching, keep it short and general rather than inventing details.`;
 }
 
 async function generateSummary(bookId){
   const b=mmBook(bookId),rec=mmRecord(bookId);if(!b||!rec)return;
   const key=localStorage.getItem(SK.api);if(!key)return;
   const btn=document.getElementById('mmSumCreate'),st=document.getElementById('mmSumStatus');
-  if(btn)btn.disabled=true;if(st)st.textContent='Writing the summary… about 20 seconds.';
+  if(btn)btn.disabled=true;if(st)st.textContent='Writing the summary… about 20 seconds (longer if Claude looks up reviews).';
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:3000,messages:[{role:'user',content:summaryPrompt(b,rec.map)}]})});
-    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
-    const data=await res.json();
-    const S=normalizeSummary(parseMindmapReply((data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n')));
+    const {text,sources}=await askClaude(summaryPrompt(b,rec.map),4000);
+    const S=normalizeSummary(parseMindmapReply(text));
     if(!S)throw new Error('the reply wasn’t a usable summary');
+    if(sources.length)S.sources=sources;
     const cur=mmRecord(bookId);if(!cur)return;
     cur.map={...cur.map,summary:S};cur.updatedAt=Date.now();save(SK.maps,mindmapDB);
     if(_mm&&_mm.bookId===bookId)showMindmapSummary();
@@ -7162,24 +7202,13 @@ function confirmRegenerate(){
 
 // What the reader brought to the book, for the prompt. Capped so the request
 // stays small however much they've written.
-function mindmapNotesFor(b){
-  const parts=[];
-  if(b.rating)parts.push(`Their rating: ${b.rating}/5.`);
-  if(b.notes)parts.push(`Their review: "${b.notes}"`);
-  const j=(journalDB[b.id]||[]).map(e=>isHighlight(e)?`Highlight${e.page?` (p. ${e.page})`:''}: "${e.text}"${e.note?` — their note: ${e.note}`:''}`:`Journal: ${e.text}`);
-  if(j.length)parts.push('Their journal and highlights:\n'+j.join('\n'));
-  const w=vocabDB.filter(x=>x.bookId===b.id).map(x=>x.word);
-  if(w.length)parts.push('Words they looked up while reading: '+w.join(', '));
-  let s=parts.join('\n\n');
-  if(s.length>6000)s=s.slice(0,6000)+'…';
-  return s;
-}
-
 function mindmapPrompt(b){
   return `Make an interactive mind map of a book the reader has finished. It should remind them of the book at a glance and help them go deeper into its characters, themes and chronology (or, for nonfiction, its ideas, examples and how to use them).
 
 Book: "${b.title}"${b.author?` by ${b.author}`:''}${b.genre?` (${b.genre})`:''}.
-${mindmapNotesFor(b)||'(No notes from the reader.)'}
+
+Describe the book itself — its story, people, ideas and how it was received — not any one reader's opinion of it. (The reader keeps their own notes separately.)
+${MM_SEARCH_RULE}
 
 Reply with JSON only, no code fence, in exactly this shape:
 {"kind":"fiction" or "nonfiction",
@@ -7198,23 +7227,60 @@ Reply with JSON only, no code fence, in exactly this shape:
    "links":["ids of related nodes"],
    "q":"one question to reflect on"}]}],
  "timeline":[{"title":"at most 28 characters","summary":"1–2 sentences","links":["ids of nodes involved"]}],
- "summary":{"line":"the book's shorthand in one or two sentences","story":["2–4 short paragraphs: the plot start to finish (nonfiction: what it covers)"],"ideas":[{"title":"3–6 words","text":"2–3 sentences on what the book is really exploring"}],"ending":"fiction only: how it ends and what that means","takeaways":["nonfiction only: 3–5 takeaways"],"worth":"context that deepens it, or empty"}}
+ "summary":${MM_SUMMARY_SHAPE}}
 
-Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Weave in the reader's notes and highlights where they fit. Only state what you are confident is in the book; if you don't know it well, build the map mainly from the reader's notes and add "unsure":true.`;
+Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Only state what you are confident is in the book; if you still don't know it well after searching, keep the map short rather than inventing details, and add "unsure":true.`;
+}
+
+// One request to Claude for maps and summaries, with web search on offer: the
+// prompt asks Claude to search only for books it doesn't know well, so most
+// books cost no searches. Returns the reply text and the sources it cited.
+// A long search can pause (stop_reason pause_turn); the turn is sent back to
+// resume it. If the account can't use web search, it's retried without.
+async function askClaude(prompt,maxTokens){
+  const key=localStorage.getItem(SK.api);
+  if(!key)throw Object.assign(new Error('no API key'),{status:401});
+  const messages=[{role:'user',content:prompt}];
+  let search=true,blocks=[],stop='';
+  for(let turn=0;turn<4;turn++){
+    const body={model:CLAUDE_MODEL,max_tokens:maxTokens,messages};
+    if(search)body.tools=[{type:'web_search_20260209',name:'web_search',max_uses:4}];
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify(body)});
+    if(!res.ok){
+      const e=await res.json().catch(()=>({}));const msg=(e.error&&e.error.message)||`HTTP ${res.status}`;
+      if(search&&res.status===400&&/web.?search|tool/i.test(msg)){search=false;continue;}
+      throw Object.assign(new Error(msg),{status:res.status});
+    }
+    const data=await res.json();
+    blocks=blocks.concat(data.content||[]);stop=data.stop_reason;
+    if(stop!=='pause_turn')break;
+    messages.push({role:'assistant',content:data.content||[]});
+  }
+  // Joined with nothing: citations can split one JSON string across text blocks.
+  const text=blocks.filter(x=>x.type==='text').map(x=>x.text).join('');
+  return {text,stop,sources:claudeSources(blocks)};
+}
+
+// The pages Claude cited (or, failing that, the search results it read).
+function claudeSources(blocks){
+  const out=[],seen=new Set();
+  const add=(url,title)=>{
+    if(!/^https?:\/\//i.test(String(url||''))||seen.has(url)||out.length>=6)return;
+    seen.add(url);out.push({url:String(url),title:mmStr(title,120)});
+  };
+  for(const b of blocks||[])if(b&&b.type==='text')for(const c of b.citations||[])add(c.url,c.title);
+  if(!out.length)for(const b of blocks||[])if(b&&b.type==='web_search_tool_result'&&Array.isArray(b.content))for(const r of b.content)add(r.url,r.title);
+  return out;
 }
 
 // One request to Claude for a book's map. Throws with .status on an API error.
 async function requestMindmap(b){
-  const key=localStorage.getItem(SK.api);
-  if(!key)throw Object.assign(new Error('no API key'),{status:401});
-  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:8000,messages:[{role:'user',content:mindmapPrompt(b)}]})});
-  if(!res.ok){const e=await res.json().catch(()=>({}));throw Object.assign(new Error((e.error&&e.error.message)||`HTTP ${res.status}`),{status:res.status});}
-  const data=await res.json();
-  const text=(data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
+  const {text,stop,sources}=await askClaude(mindmapPrompt(b),10000);
   const map=normalizeMindmap(parseMindmapReply(text));
-  if(!map)throw Object.assign(new Error(data.stop_reason==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map'),{status:0});
+  if(!map)throw Object.assign(new Error(stop==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map'),{status:0});
+  if(map.summary&&sources.length)map.summary.sources=sources;
   return map;
 }
 

@@ -149,7 +149,8 @@ test('text on a branch pill picks light or dark for contrast', () => {
 test('a summary is kept when it has content, and capped', () => {
   const S = MM.normalizeSummary({ line: ' In short. ', story: ['One.', '', 'Two.', 7], ideas: [{ title: 'Idea', text: 'Why.' }, { title: 'No text' }, 'x'],
     ending: 'It ends.', takeaways: ['A', null], worth: 'Context.' });
-  assert.deepEqual(S, { line: 'In short.', story: ['One.', 'Two.'], ideas: [{ title: 'Idea', text: 'Why.' }], ending: 'It ends.', takeaways: ['A'], worth: 'Context.' });
+  assert.deepEqual(S, { line: 'In short.', story: ['One.', 'Two.'], ideas: [{ title: 'Idea', text: 'Why.' }], ending: 'It ends.', takeaways: ['A'], worth: 'Context.',
+    reception: { praised: [], criticized: [], debates: [], recognition: '' }, sources: [] });
   assert.equal(MM.normalizeSummary(null), null);
   assert.equal(MM.normalizeSummary({ worth: 'only context' }), null, 'needs a line, story or ideas');
   assert.equal(MM.normalizeSummary({ story: Array(9).fill('p') }).story.length, 5);
@@ -170,4 +171,12 @@ test('merge keeps explored bubbles from both copies, without changing the inputs
   assert.equal(out.a.map.summary.line, 'x');
   assert.deepEqual(out.a.seen.sort(), ['lucy', 'talia'], 'explored bubbles survive the newer copy');
   assert.deepEqual(remote.a.seen, [], 'inputs untouched');
+});
+
+test('reception and sources are kept, capped, and only real web links survive', () => {
+  const S = MM.normalizeSummary({ line: 'x',
+    reception: { praised: ['Vivid prose.', '', 3], criticized: ['Slow middle.'], debates: Array(6).fill('d'), recognition: ' Won a prize. ' },
+    sources: [{ url: 'https://example.com/review', title: 'A review' }, { url: 'javascript:alert(1)', title: 'bad' }, { url: 'ftp://x' }, 'nope'] });
+  assert.deepEqual(S.reception, { praised: ['Vivid prose.'], criticized: ['Slow middle.'], debates: ['d', 'd', 'd'], recognition: 'Won a prize.' });
+  assert.deepEqual(S.sources, [{ url: 'https://example.com/review', title: 'A review' }]);
 });
