@@ -9,7 +9,7 @@ import { loadFunctions, extractConst } from './extract.mjs';
 const V = loadFunctions(['vocabInterval', 'addDaysStr', 'vocabStatus', 'vocabGrade', 'vocabDue',
                          'vocabNextDue', 'escRegExp', 'vocabBlank', 'vocabNorm', 'vocabCheckAnswer',
                          'vocabDistractorPool', 'vocabChoices', 'vocabFormat', 'parseDefinition',
-                         'parseDictionary', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap', 'cleanPron', 'pronShown']);
+                         'parseDictionary', 'vocabEditDistance', 'vocabNearMiss', 'vocabHintPattern', 'vocabSpellDiff', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap', 'cleanPron', 'pronShown']);
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
    'mergeIdMap', 'mergeMindmaps', 'mergeState', 'remoteState'],
@@ -284,4 +284,47 @@ test('a batch of pronunciations maps back to the words, whatever their case', ()
   assert.deepEqual(V.parsePronMap('no json here'), {});
   assert.deepEqual(V.parsePronMap('{"bad json"'), {});
   assert.deepEqual(V.parsePronMap('["a list"]'), {});
+});
+
+
+// ── help in the sentence test ────────────────────────────────────────────
+
+test('right with help holds the word in place instead of moving it up', () => {
+  const w = word('h1', 'coquettish', { box: 3 });
+  const plain = V.vocabGrade(w, true, '2026-10-27', 5);
+  const helped = V.vocabGrade(w, true, '2026-10-27', 5, true);
+  assert.equal(plain.box, 4);
+  assert.equal(helped.box, 3, 'no promotion');
+  assert.equal(helped.due, V.addDaysStr('2026-10-27', V.vocabInterval(3)), 'back on its usual schedule');
+  assert.equal(helped.lapses, undefined, 'not counted as a miss');
+  assert.equal(V.vocabGrade(w, false, '2026-10-27', 5, true).box, 0, 'wrong is still wrong');
+});
+
+test('edit distance counts a swapped pair of letters as one slip', () => {
+  assert.equal(V.vocabEditDistance('coquettish', 'coquettish'), 0);
+  assert.equal(V.vocabEditDistance('coqeuttish', 'coquettish'), 1);
+  assert.equal(V.vocabEditDistance('coquetish', 'coquettish'), 1);
+  assert.equal(V.vocabEditDistance('croquette', 'coquettish'), 4);
+});
+
+test('a near miss is a slip or two from the word or its sentence form, never a right answer', () => {
+  assert.ok(V.vocabNearMiss('coquetish', 'coquettish'));
+  assert.ok(V.vocabNearMiss('coquetishh', 'coquettish'), 'two slips allowed on a long word');
+  assert.ok(!V.vocabNearMiss('croquette', 'coquettish'), 'a different word is just wrong');
+  assert.ok(!V.vocabNearMiss('coquettish', 'coquettish'), 'right is not a near miss');
+  assert.ok(V.vocabNearMiss('paried', 'parry', 'parried'), 'checked against the form in the sentence too');
+  assert.ok(!V.vocabNearMiss('cat', 'bag'), 'short words allow only one slip');
+  assert.ok(!V.vocabNearMiss('', 'bag'));
+});
+
+test('hint tiles show the first letters and blanks for the rest', () => {
+  assert.deepEqual(V.vocabHintPattern('coquettish', 1), ['c', '', '', '', '', '', '', '', '', '']);
+  assert.deepEqual(V.vocabHintPattern('well-read', 3), ['w', 'e', 'l', '', '-', '', '', '', ''], 'hyphens show as themselves');
+});
+
+test('the spelling breakdown marks the letters the attempt missed', () => {
+  const marks = d => d.map(x => x.hit ? x.ch : x.ch.toUpperCase()).join('');
+  assert.equal(marks(V.vocabSpellDiff('croquette', 'coquettish')), 'coquettISH');
+  assert.equal(marks(V.vocabSpellDiff('coquetish', 'coquettish')), 'coquetTish');
+  assert.equal(marks(V.vocabSpellDiff('', 'bag')), 'BAG');
 });

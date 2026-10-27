@@ -544,6 +544,20 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .vq-input{width:100%;min-height:52px;margin-top:1rem;padding:0 .9rem;border:1px solid var(--parchment-dark);border-radius:10px;background:#fff;font-family:'Lora',serif;font-size:1.05rem;color:var(--ink);outline:none}
 .vq-input:focus{border-color:var(--burgundy)}
 .vq-feedback{margin-top:.8rem;font-size:.95rem;line-height:1.5}
+.vq-nearmiss{margin:.5rem 0 0;color:#8a6a1e;font-weight:600}
+.vq-nearmiss:empty{display:none}
+.vq-hints:empty{display:none}
+.vq-hints{margin-top:.8rem;padding:.7rem .8rem;border-radius:10px;background:#fdf6e3;border:1px dashed var(--gold)}
+.vq-tiles{display:flex;flex-wrap:wrap;gap:4px}
+.vq-tile{width:1.05em;height:1.8em;display:inline-flex;align-items:flex-end;justify-content:center;border-bottom:2px solid var(--ink-faint);font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;color:var(--burgundy)}
+.vq-hintmeta{margin:.45rem 0 0;font-size:.85rem;color:var(--ink-light)}
+.vq-hints .vq-say{margin-top:.4rem}
+.vq-spell{margin:.7rem 0 0;line-height:1.6}
+.vq-spell-lbl{font-size:.85rem;color:var(--ink-faint)}
+.vq-spell-word{font-family:'Playfair Display',serif;font-size:1.2rem}
+.vq-spell-word b.miss{color:var(--burgundy);background:#fde9a8;border-radius:2px}
+.vq-spell-you{font-size:.85rem;color:var(--ink-faint)}
+#vqHint[disabled]{opacity:.55}
 .vq-feedback.right{color:#245c34}
 .vq-feedback.wrong{color:var(--burgundy)}
 .vq-done{text-align:center;padding:1rem .5rem}
@@ -3145,10 +3159,15 @@ function vocabStatus(w){
   return (w.box||0)>=5?'mastered':'learning';
 }
 
-// The word after one answer. Returns a copy; the caller saves it.
-function vocabGrade(w,correct,today,now){
+// The word after one answer. Returns a copy; the caller saves it. Right with
+// help (a hint, or a second try after a near miss) holds the word where it is
+// rather than moving it up: no penalty, but it comes round again sooner.
+function vocabGrade(w,correct,today,now,help=false){
   const out={...w,reviews:(w.reviews||0)+1,lastReviewed:today,updatedAt:now};
-  if(correct){
+  if(correct&&help){
+    out.box=Math.max(1,w.box||0);
+    out.due=addDaysStr(today,vocabInterval(out.box));
+  }else if(correct){
     out.box=Math.min(6,(w.box||0)+1);
     out.due=addDaysStr(today,vocabInterval(out.box));
   }else{
@@ -3200,6 +3219,50 @@ function vocabNorm(s){
 function vocabCheckAnswer(input,word,form){
   const a=vocabNorm(input);
   return !!a&&(a===vocabNorm(word)||(!!form&&a===vocabNorm(form)));
+}
+
+// Edit distance where swapping two neighbouring letters counts as one slip.
+function vocabEditDistance(a,b){
+  a=String(a);b=String(b);
+  const d=Array.from({length:a.length+1},(_,i)=>Array(b.length+1).fill(0).map((_,j)=>i?(j?0:i):j));
+  for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++){
+    d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+    if(i>1&&j>1&&a[i-1]===b[j-2]&&a[i-2]===b[j-1])d[i][j]=Math.min(d[i][j],d[i-2][j-2]+1);
+  }
+  return d[a.length][b.length];
+}
+
+// Wrong, but only a slip or two away from the word (or its form in the
+// sentence): worth a "so close — check the spelling" and one more try.
+function vocabNearMiss(input,word,form){
+  const a=vocabNorm(input);
+  if(!a||vocabCheckAnswer(input,word,form))return false;
+  return [word,form].filter(Boolean).some(t=>{
+    const n=vocabNorm(t);
+    return vocabEditDistance(a,n)<=(n.length>=8?2:1);
+  });
+}
+
+// Hint tiles: the first `show` letters, blanks for the rest (spaces and
+// hyphens are shown as themselves).
+function vocabHintPattern(target,show){
+  let n=0;
+  return [...String(target||'')].map(c=>/\p{L}/u.test(c)?(n++<show?c:''):c);
+}
+
+// The answer's letters, each marked whether the typed attempt had it in order
+// (longest common subsequence) — the ones it didn't are the ones to learn.
+function vocabSpellDiff(typed,answer){
+  const a=[...vocabNorm(typed)],b=[...String(answer||'')],bl=b.map(c=>c.toLowerCase());
+  const L=Array.from({length:a.length+1},()=>Array(b.length+1).fill(0));
+  for(let i=a.length-1;i>=0;i--)for(let j=b.length-1;j>=0;j--)
+    L[i][j]=a[i]===bl[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+  const out=b.map(ch=>({ch,hit:false}));
+  for(let i=0,j=0;i<a.length&&j<b.length;){
+    if(a[i]===bl[j]){out[j].hit=true;i++;j++;}
+    else if(L[i+1][j]>=L[i][j+1])i++;else j++;
+  }
+  return out;
 }
 
 // Words that can serve as wrong answers for w: other words, other definitions.
@@ -4110,6 +4173,7 @@ function vqChoice(card,w){
 
 function vqBlankQ(card,w){
   const blank=vocabBlank(w.sentence,w.word);
+  const target=blank?blank.form:w.word; // what fits the sentence
   card.append(vEl('p','vq-kind','WHICH WORD FITS?'));
   const clue=vEl('p','vq-clue',w.definition);
   if(w.pos)clue.prepend(vEl('i',null,w.pos+' — '));
@@ -4117,25 +4181,77 @@ function vqBlankQ(card,w){
   const input=vEl('input','vq-input');
   input.type='text';input.id='vqAnswer';input.autocomplete='off';input.setAttribute('autocapitalize','none');input.spellcheck=false;
   input.placeholder='Type the word';input.setAttribute('aria-label','Your answer');
+  const hintBox=vEl('div','vq-hints');hintBox.id='vqHints';
+  const note=vEl('p','vq-nearmiss');note.id='vqNearMiss';
   const actions=vEl('div','vq-actions');
+  let hints=0,retried=false;
+
+  // Three steps of help, each a little more: the shape of the word, its sound,
+  // then half its letters. The syllables (co·quet·tish) would spell it out, so
+  // the pronunciation comes without them.
+  const tiles=show=>{
+    const row=vEl('div','vq-tiles');
+    for(const c of vocabHintPattern(target,show))row.append(vEl('span','vq-tile'+(c===''?'':' shown'),c));
+    return row;
+  };
+  const paintHints=()=>{
+    const letters=[...target].filter(c=>/\p{L}/u.test(c)).length;
+    const syl=w.syll?String(w.syll).split(/[·\-]/).filter(Boolean).length:0;
+    const kids=[tiles(hints>=3?Math.ceil(letters/2):1),
+      vEl('p','vq-hintmeta',`${letters} letters${syl?` · ${plural(syl,'syllable')}`:''}`)];
+    if(hints>=2){
+      const say=vEl('div','vq-say');
+      if(w.pron)say.append(vEl('span','vq-pron',pronShown(w.pron)));
+      say.append(speakButton(w));
+      kids.push(say);
+    }
+    hintBox.replaceChildren(...kids);
+  };
+  const hintBtn=vqButton('💡 Hint',null,()=>{
+    if(_vq.answered||hints>=3)return;
+    hints++;paintHints();
+    if(hints===2)speakWord(w.word,w.audio);
+    if(hints>=3){hintBtn.disabled=true;hintBtn.textContent='💡 No more hints';}
+    input.focus();
+  });
+  hintBtn.id='vqHint';
+
   const check=()=>{
     if(_vq.answered)return;
     const typed=input.value.trim();
     if(!typed){input.focus();return;}
-    finish(vocabCheckAnswer(typed,w.word,blank&&blank.form));
+    if(vocabCheckAnswer(typed,w.word,blank&&blank.form)){finish(true,typed);return;}
+    if(!retried&&vocabNearMiss(typed,w.word,blank&&blank.form)){
+      retried=true;
+      note.textContent='So close — check the spelling and try once more.';
+      input.focus();input.setSelectionRange(input.value.length,input.value.length); // fix a letter, don't retype it
+      return;
+    }
+    finish(false,typed);
   };
-  const finish=ok=>{
-    input.disabled=true;actions.remove();
-    gradeVocab(w,ok);
-    card.querySelector('.vq-blank').textContent=blank?blank.form:w.word;
+  const finish=(ok,typed)=>{
+    input.disabled=true;actions.remove();note.remove();
+    const help=hints>0||retried;
+    gradeVocab(w,ok,false,help);
+    card.querySelector('.vq-blank').textContent=target;
+    hintBox.remove();
     card.append(vqSay(w)); // only now: hearing it first would give the answer away
-    const form=blank?blank.form:w.word;
-    const answer=vocabNorm(form)===vocabNorm(w.word)?`“${w.word}”`:`“${form}” (${w.word})`;
-    card.append(vqNext(ok?'Right!':`The word was ${answer}.`,ok));
+    // Where the spelling went wrong (or took help): the word, letters missed highlighted.
+    if(typed&&(!ok||help)&&vocabNorm(typed)!==vocabNorm(target)){
+      const sp=vEl('p','vq-spell');sp.id='vqSpell';
+      sp.append(vEl('span','vq-spell-lbl','Spelling: '));
+      const word=vEl('span','vq-spell-word');
+      for(const {ch,hit} of vocabSpellDiff(typed,target))word.append(hit?document.createTextNode(ch):vEl('b','miss',ch));
+      sp.append(word,vEl('span','vq-spell-you',` · you typed “${typed}”`));
+      card.append(sp);
+    }
+    const answer=vocabNorm(target)===vocabNorm(w.word)?`“${w.word}”`:`“${target}” (${w.word})`;
+    const msg=ok?(retried?'Right on the second try.':hints?'Right — with a little help.':'Right!'):`The word was ${answer}.`;
+    card.append(vqNext(msg,ok));
   };
   input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();check();}});
-  actions.append(vqButton('Show answer',null,()=>{if(!_vq.answered)finish(false);}),vqButton('Check','primary',check));
-  card.append(input,actions);
+  actions.append(vqButton('Show answer',null,()=>{if(!_vq.answered)finish(false,'');}),hintBtn,vqButton('Check','primary',check));
+  card.append(input,note,hintBox,actions);
   setTimeout(()=>input.focus(),60);
 }
 
@@ -4151,12 +4267,12 @@ function vqNext(msg,ok){
 }
 
 // Saved at once, so closing halfway keeps what was answered.
-function gradeVocab(w,correct,advance=false){
+function gradeVocab(w,correct,advance=false,help=false){
   if(!_vq||_vq.answered)return;
   _vq.answered=true;
   if(correct)_vq.right++;
   const i=vocabDB.findIndex(x=>x.id===w.id);
-  if(i>=0){vocabDB[i]=vocabGrade(vocabDB[i],correct,localDateStr(),Date.now());save(SK.vocab,vocabDB);}
+  if(i>=0){vocabDB[i]=vocabGrade(vocabDB[i],correct,localDateStr(),Date.now(),help);save(SK.vocab,vocabDB);}
   if(advance){_vq.i++;showVocabQuestion();}
 }
 

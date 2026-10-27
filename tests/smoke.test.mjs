@@ -2656,3 +2656,66 @@ test('clearing old copies saves what was stuck in memory while storage was full'
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_books')).some(b => b.id === 'mem')));
   await ctx.close();
 });
+
+// ── Help in the sentence test ────────────────────────────────────────────
+
+const coquettish = { word: 'coquettish', definition: 'Flirtatious and playfully teasing.', pos: 'adjective', box: 3, reviews: 3,
+  syll: 'co·quet·tish', pron: 'kō-ˈke-tish', sentence: 'David fluttered his lashes in a boozy, coquettish way.' };
+
+test('hints build up — shape, sound, then half the letters — without giving away the syllables', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => { window.__said = []; speakWord = (w) => window.__said.push(w); });
+  await seedVocab(page, [coquettish]);
+  await page.evaluate(() => startVocabQuiz());
+  assert.equal(await page.locator('#vqHints .vq-tile').count(), 0, 'no hints until asked');
+  await page.click('#vqHint');
+  assert.equal(await page.locator('#vqHints .vq-tile').count(), 10);
+  assert.equal(await page.locator('#vqHints .vq-tile.shown').count(), 1);
+  assert.equal(await page.locator('#vqHints .vq-tile.shown').textContent(), 'c');
+  assert.match(await page.textContent('#vqHints'), /10 letters · 3 syllables/);
+  assert.doesNotMatch(await page.textContent('#vqHints'), /co·quet·tish/, 'the syllables would spell it out');
+  await page.click('#vqHint');
+  assert.match(await page.textContent('#vqHints'), /kō-ˈke-tish/);
+  assert.deepEqual(await page.evaluate(() => window.__said), ['coquettish'], 'the second hint says it aloud');
+  await page.click('#vqHint');
+  assert.equal(await page.locator('#vqHints .vq-tile.shown').count(), 5);
+  assert.ok(await page.locator('#vqHint').isDisabled());
+  await page.fill('#vqAnswer', 'coquettish');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('.vq-feedback'), /Right — with a little help/);
+  const w = (await storedVocab(page))[0];
+  assert.equal(w.box, 3, 'helped: held in place, not moved up');
+  assert.equal(w.lapses || 0, 0, 'and not counted as a miss');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a near-miss spelling gets one more try, and the breakdown shows the slip', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedVocab(page, [coquettish]);
+  await page.evaluate(() => startVocabQuiz());
+  await page.fill('#vqAnswer', 'coquetish');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('#vqNearMiss'), /So close — check the spelling/);
+  assert.ok(!(await page.locator('#vqAnswer').isDisabled()), 'still answerable');
+  await page.fill('#vqAnswer', 'coquettish');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('.vq-feedback'), /Right on the second try/);
+  assert.equal((await storedVocab(page))[0].box, 3);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a wrong word gets no second try, and the spelling shows the letters it missed', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedVocab(page, [coquettish]);
+  await page.evaluate(() => startVocabQuiz());
+  await page.fill('#vqAnswer', 'croquette');
+  await page.press('#vqAnswer', 'Enter');
+  assert.match(await page.textContent('.vq-feedback'), /The word was “coquettish”/);
+  assert.equal(await page.locator('#vqSpell b.miss').allTextContents().then(a => a.join('')), 'ish');
+  assert.match(await page.textContent('#vqSpell'), /you typed “croquette”/);
+  assert.equal((await storedVocab(page))[0].box, 0, 'wrong is still wrong');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
