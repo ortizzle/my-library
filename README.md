@@ -109,6 +109,9 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 All data lives in your browser's **localStorage** — nothing is sent to any server. Gist sync is optional; if configured, your data is stored in a **private GitHub Gist** under your own account.
 
+### Storage on this phone
+Chrome gives each web address about 5 MB, and every app at ortizzle.github.io shares it. **Settings → Storage on this phone** shows how much is used, by owner (this app, copies left by its older versions, the Drive copy, and each other app), and the biggest items. **Clear old Reading Room copies** (two taps) removes data earlier versions left behind under `trr_`…`trr4_` — the library moved to `trr_v1_*` long ago — then saves anything that was waiting in memory. Other apps' data is shown, never deleted from here.
+
 ### How sync resolves conflicts
 
 Sync **merges** rather than overwrites. Each device's changes are combined record by record:

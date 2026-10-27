@@ -354,6 +354,20 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .sm-pts li{padding:.7rem .85rem;border-radius:12px;background:#eef2f8;border-left:4px solid var(--burgundy);line-height:1.55}
 .sm-pts li b{display:block;font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.15rem}
 .sm-end{padding:.75rem .9rem;border-radius:12px;background:#fdf6e3;border-left:4px solid var(--gold);line-height:1.6}
+.st-total{font-family:'Playfair Display',serif;font-weight:700;margin:0 0 .4rem}
+.st-bar{height:10px;border-radius:5px;background:var(--parchment-dark);overflow:hidden}
+.st-fill{height:100%;background:var(--gold)}
+.st-fill.full{background:#b91c1c}
+.st-list{list-style:none;margin:.7rem 0 0;padding:0}
+.st-row{display:flex;justify-content:space-between;gap:.8rem;padding:.45rem 0;border-bottom:1px solid var(--parchment-dark);font-size:.95rem}
+.st-row.old .st-name{color:var(--burgundy);font-weight:600}
+.st-list.small .st-row{font-size:.82rem;color:var(--ink-light)}
+.st-list.small .st-name{font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-name{min-width:0}
+.st-size{flex-shrink:0;font-variant-numeric:tabular-nums}
+.st-lbl{font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.12em;color:var(--ink-faint);margin:1rem 0 0}
+.st-clear{margin-top:.9rem;min-height:48px}
+.st-note{font-style:italic;color:var(--ink-light);margin:.8rem 0 0;line-height:1.5}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -1017,6 +1031,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <p class="hint" style="margin-top:.25rem">On your phone, Export JSON opens the share sheet — choose <b>Drive</b> to pick the folder it's saved in. Each backup is named with the date.</p>
   </div>
   <div class="settings-card" id="driveCard"></div>
+  <div class="settings-card" id="storageCard">
+    <h3>Storage on this phone</h3>
+    <div id="storageBody"></div>
+  </div>
   <div class="settings-card">
     <h3>Import &amp; Reset</h3>
     <div style="display:flex;gap:.52rem;flex-wrap:wrap">
@@ -1530,7 +1548,7 @@ function save(k,v){
     console.error('localStorage write failed for',k,e);
     if(!_storageWarned){
       _storageWarned=true;
-      try{toast('Storage is full — your last change was NOT saved. Export a backup from Settings, then remove some books.','err');}catch{}
+      try{toast('This phone’s storage is full — your last change was NOT saved here. See Settings → Storage on this phone.','err');}catch{}
     }
     return false;
   }
@@ -1789,7 +1807,7 @@ function applyState(s){
     return true;
   }catch(e){
     console.error('Failed to persist merged state:',e);
-    toast('Synced, but storage is full — the merge is in memory only.','err');
+    toast('Synced, but this phone’s storage is full, so it isn’t saved here yet. See Settings → Storage on this phone.','err');
     return false;
   }
 }
@@ -2110,6 +2128,7 @@ function renderView(n){
     document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
     document.getElementById('mmAutoToggle').checked=localStorage.getItem(SK.mmAuto)!=='off';
     renderMindmapAutoStatus();
+    renderStorageCheck();
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
     mountDriveSettings();
   }
@@ -7457,6 +7476,90 @@ function renderDeepDive(q){
   if(q.done&&streak)body.append(vEl('p','dd-foot',`🧠 ${plural(streak,'day')} in a row`));
   sheet.replaceChildren(vEl('div','mm-grip'),head,body);
   sheet.scrollTop=0;
+}
+
+// ══════════════════════════════════════════
+// STORAGE CHECK
+// ══════════════════════════════════════════
+// Chrome gives each web address about 5 MB of localStorage, and every app at
+// ortizzle.github.io shares that one allowance. This shows what's using it,
+// grouped by owner, and offers to clear what's safe to clear: copies left by
+// older versions of this app (trr_, trr2_…trr4_ keys), whose data was moved
+// to trr_v1_* by runMigration() and never removed. Other apps' data is shown,
+// never deleted from here.
+const STORAGE_LIMIT=5*1024*1024; // Chrome's localStorage allowance, in characters (approx.)
+
+function storageOwner(key){
+  if(key.startsWith('trr_v1_'))return {id:'trr',label:'The Reading Room'};
+  if(/^trr[234]?_/.test(key)&&!/^trr_v\d+_/.test(key))return {id:'trr-old',label:'Reading Room — old versions'}; // OLD_PREFIXES; a future trr_v2_ isn't old
+  if(key.startsWith('ortizdrive:'))return {id:'drive',label:'Drive copies (all apps)'};
+  const p=(key.match(/^[A-Za-z0-9]+/)||[key])[0]||key;
+  return {id:'app:'+p,label:`Another app (${p}…)`};
+}
+
+// entries: [[key,value]] → groups by owner, biggest first, and the biggest keys.
+function storageReport(entries){
+  const groups=new Map();let total=0;
+  const items=entries.map(([k,v])=>{const size=k.length+String(v??'').length;total+=size;return {key:k,size,owner:storageOwner(k)};});
+  for(const it of items){
+    const g=groups.get(it.owner.id)||{id:it.owner.id,label:it.owner.label,size:0,keys:0};
+    g.size+=it.size;g.keys++;groups.set(it.owner.id,g);
+  }
+  return {total,groups:[...groups.values()].sort((a,b)=>b.size-a.size),biggest:items.sort((a,b)=>b.size-a.size).slice(0,6)};
+}
+function storageEntries(){
+  const out=[];
+  try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);out.push([k,localStorage.getItem(k)]);}}catch{}
+  return out;
+}
+function fmtSize(n){return n>=1048576?`${(n/1048576).toFixed(2)} MB`:n>=1024?`${Math.round(n/1024)} KB`:`${n} bytes`;}
+
+let _storageArmed=false;
+function renderStorageCheck(){
+  const body=document.getElementById('storageBody');if(!body)return;
+  const r=storageReport(storageEntries());
+  const pct=Math.min(100,Math.round(r.total/STORAGE_LIMIT*100));
+  const kids=[];
+  const bar=vEl('div','st-bar');const fill=vEl('div','st-fill');fill.style.width=pct+'%';if(pct>=90)fill.classList.add('full');bar.append(fill);
+  kids.push(vEl('p','st-total',`${fmtSize(r.total)} of about 5 MB used (${pct}%)`),bar,
+    vEl('p','hint','All your apps at ortizzle.github.io share this space.'));
+  const list=vEl('ul','st-list');
+  for(const g of r.groups){
+    const li=vEl('li','st-row'+(g.id==='trr-old'?' old':''));
+    li.append(vEl('span','st-name',g.label),vEl('span','st-size',fmtSize(g.size)));
+    list.append(li);
+  }
+  kids.push(list);
+  if(r.biggest.length){
+    kids.push(vEl('div','st-lbl','BIGGEST ITEMS'));
+    const big=vEl('ul','st-list small');
+    for(const it of r.biggest){const li=vEl('li','st-row');li.append(vEl('span','st-name',it.key),vEl('span','st-size',fmtSize(it.size)));big.append(li);}
+    kids.push(big);
+  }
+  const old=r.groups.find(g=>g.id==='trr-old');
+  if(old&&books.length){
+    const btn=vEl('button','btn btn-secondary st-clear',_storageArmed?`Tap again to clear ${fmtSize(old.size)}`:`🧹 Clear old Reading Room copies (${fmtSize(old.size)})`);
+    btn.type='button';btn.id='storageClearOld';
+    btn.addEventListener('click',clearOldReadingRoomCopies);
+    kids.push(btn,vEl('p','hint','Left behind by earlier versions of this app. Your library moved to new storage long ago, so these copies aren’t used.'));
+  }else if(pct>=80){
+    kids.push(vEl('p','st-note','Most of this space is used by your other apps. Freeing some there (old photos or entries, or exporting and removing data you no longer need) makes room here.'));
+  }
+  body.replaceChildren(...kids);
+}
+
+function clearOldReadingRoomCopies(){
+  if(!_storageArmed){_storageArmed=true;renderStorageCheck();setTimeout(()=>{if(_storageArmed){_storageArmed=false;renderStorageCheck();}},5000);return;}
+  _storageArmed=false;
+  if(!books.length){renderStorageCheck();return;} // never clear old copies when the current library is empty
+  const before=storageReport(storageEntries()).total;
+  for(const [k] of storageEntries())if(storageOwner(k).id==='trr-old')try{localStorage.removeItem(k);}catch{}
+  const freed=before-storageReport(storageEntries()).total;
+  // Save anything that was waiting in memory because storage was full.
+  const ok=applyState(currentState());
+  if(ok)localStorage.setItem(SK.updated,new Date().toISOString());
+  renderStorageCheck();
+  toast(`Freed ${fmtSize(freed)}${ok?' — everything is saved on this phone again':''}.`,'ok');
 }
 
 // ══════════════════════════════════════════

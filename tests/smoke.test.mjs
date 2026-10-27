@@ -2599,3 +2599,60 @@ test('finishing a book on Today goes straight to its final review', async () => 
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// ── Storage check ────────────────────────────────────────────────────────
+
+test('Settings shows storage by owner, and clears old Reading Room copies in two taps', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await page.evaluate(() => {
+    localStorage.setItem('trr4_books', JSON.stringify([{ title: 'old' }]) + 'x'.repeat(200000));
+    localStorage.setItem('trr_covers', 'y'.repeat(50000));
+    localStorage.setItem('howlers_v3_data', 'z'.repeat(80000));
+    showView('settings');
+  });
+  const card = page.locator('#storageCard');
+  assert.match(await card.textContent(), /of about 5 MB used/);
+  assert.match(await card.textContent(), /Reading Room — old versions/);
+  assert.match(await card.textContent(), /Another app \(howlers…\)/);
+  assert.match(await card.textContent(), /trr4_books/, 'biggest items are named');
+  const btn = page.locator('#storageClearOld');
+  await btn.click();
+  assert.match(await page.textContent('#storageClearOld'), /Tap again/);
+  assert.ok(await page.evaluate(() => localStorage.getItem('trr4_books') !== null), 'one tap clears nothing');
+  await page.click('#storageClearOld');
+  await page.locator('.toast', { hasText: 'Freed' }).first().waitFor();
+  const left = await page.evaluate(() => ({ old4: localStorage.getItem('trr4_books'), old: localStorage.getItem('trr_covers'),
+    other: localStorage.getItem('howlers_v3_data')?.length, books: JSON.parse(localStorage.getItem('trr_v1_books')).length }));
+  assert.equal(left.old4, null);
+  assert.equal(left.old, null);
+  assert.equal(left.other, 80000, 'another app\'s data is never touched');
+  assert.equal(left.books, 1, 'the current library is untouched');
+  assert.equal(await page.locator('#storageClearOld').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('with nothing old to clear, no button — and a full phone points at the other apps', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await page.evaluate(() => { localStorage.setItem('family_photos', 'p'.repeat(4300000)); showView('settings'); });
+  assert.equal(await page.locator('#storageClearOld').count(), 0);
+  assert.match(await page.textContent('#storageCard'), /Most of this space is used by your other apps/);
+  await ctx.close();
+});
+
+test('clearing old copies saves what was stuck in memory while storage was full', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await page.evaluate(() => {
+    localStorage.setItem('trr3_books', '[]');
+    // A sync merged a book in while storage was full: it's in memory only.
+    books.push({ id: 'mem', title: 'Only In Memory', author: 'A', status: 'unread', addedAt: 2, updatedAt: 2 });
+    showView('settings');
+  });
+  await page.click('#storageClearOld'); await page.click('#storageClearOld');
+  await page.locator('.toast', { hasText: 'saved on this phone again' }).first().waitFor();
+  assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_books')).some(b => b.id === 'mem')));
+  await ctx.close();
+});
