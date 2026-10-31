@@ -313,6 +313,65 @@ test('a rate-limited Google Books reports the rate limit, not "not found"', asyn
   await ctx.close();
 });
 
+// Claude is the last resort: only with a key, only after both catalogues miss.
+async function stubClaudeRoute(page, text) {
+  const reqs = [];
+  await page.route('**://api.anthropic.com/**', route => {
+    reqs.push(JSON.parse(route.request().postData()));
+    route.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ content: [{ type: 'text', text }], stop_reason: 'end_turn' }) });
+  });
+  return reqs;
+}
+
+test('an ISBN neither catalogue has is found by Claude web search', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await stubCatalogues(page, {});
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const reqs = await stubClaudeRoute(page, 'Here it is:\n```json\n{"found":true,"title":"Fruit Fly","authors":["Josh Silver"],"year":2025,"pages":384,"genre":"Mystery / Thriller","format":"hardcover"}\n```');
+
+  const r = await isbnLookup(page, '9798892426367');
+
+  assert.equal(r.title, 'Fruit Fly');
+  assert.equal(r.author, 'Josh Silver');
+  assert.equal(r.pages, '384');
+  assert.equal(r.genre, 'Mystery / Thriller');
+  assert.match(r.status, /found by Claude/, 'the user is told to check a web-found record');
+  assert.equal(reqs.length, 1);
+  assert.match(reqs[0].messages[0].content, /9798892426367/);
+  assert.equal(reqs[0].tools[0].name, 'web_search');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Claude not finding the ISBN reads as a miss; no key means no Claude call', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await stubCatalogues(page, {});
+  const reqs = await stubClaudeRoute(page, '{"found":false}');
+
+  let r = await isbnLookup(page, '9999999999999');
+  assert.equal(reqs.length, 0, 'no key, no request');
+  assert.match(r.status, /Not in either catalogue\./);
+
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  r = await isbnLookup(page, '9999999999999');
+  assert.equal(reqs.length, 1);
+  assert.equal(r.title, '');
+  assert.match(r.status, /Claude couldn’t find it/);
+  await ctx.close();
+});
+
+test('Claude is not asked when Google Books has the book', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await stubCatalogues(page, { gb: ALGORITHM_GB });
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  const reqs = await stubClaudeRoute(page, '{"found":false}');
+  const r = await isbnLookup(page, '9798217177530');
+  assert.match(r.title, /^The Algorithm/);
+  assert.equal(reqs.length, 0);
+  await ctx.close();
+});
+
 test('a 403 from Google Books is reported too', async () => {
   const { ctx, page } = await openApp(browser, base);
   await page.route('**://openlibrary.org/**', route =>

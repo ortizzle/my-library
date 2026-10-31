@@ -26,6 +26,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Scan a barcode** — point your camera at any ISBN
 - **Search by title** — pull from OpenLibrary and auto-fill details
 - Lookups fall back to **Google Books** when OpenLibrary doesn't have the book — its coverage of recent releases (and 979-prefix ISBNs) is patchy
+- If neither catalogue has an ISBN and your Anthropic key is set, **Claude searches the web** for it (a few cents a miss) and fills in the details, marked so you can check them
 - **Enter manually** — for anything not in the database
 - Auto-fills title, author, page count, cover image, and ISBN
 - Ownership type defaults: Physical → Hardcover, eBook → Kindle, Audiobook → Audible

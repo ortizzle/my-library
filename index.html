@@ -5039,6 +5039,43 @@ function checkForDuplicate(){
   showDupNotice(findDuplicate(isbn,title,author,editId));
 }
 
+// Last resort when both catalogues miss: Claude searches the web for the ISBN.
+// Small 979-8 presses reach retailers and publisher pages long before either
+// catalogue lists them. Needs the Anthropic key (a few cents a miss); skipped
+// without one. {found:false} is a real answer, not an error.
+function claudeIsbnPrompt(isbn,genres){
+  return `Find the book with ISBN ${isbn}. Use web search: check retailer, publisher or library listings for this exact ISBN.
+
+Only answer found:true if a source ties this exact ISBN to the book. If you can't confirm it, answer {"found":false} — never guess from a similar number.
+
+Reply with JSON only:
+{"found":true,"title":"Title: Subtitle","authors":["Author Name"],"year":2025,"pages":384,"genre":"one of: ${genres.join(' | ')}","format":"hardcover, paperback, ebook or audiobook"}`;
+}
+
+function normalizeClaudeBook(raw,isbn,genres){
+  if(!raw||typeof raw!=='object'||raw.found!==true)return null;
+  const title=mmStr(raw.title,200);
+  if(!title)return null;
+  const num=(v,lo,hi)=>{const n=parseInt(v,10);return n>=lo&&n<=hi?n:null;};
+  return {
+    title,
+    authors:(Array.isArray(raw.authors)?raw.authors:[]).map(a=>mmStr(a,100)).filter(Boolean).slice(0,4),
+    year:num(raw.year,1400,2100),
+    pages:num(raw.pages,1,5000),
+    subjects:[],
+    genre:genres.includes(raw.genre)?raw.genre:'',
+    isbn,cover:'',source:'claude'
+  };
+}
+
+async function claudeByIsbn(isbn){
+  const genres=[...document.querySelectorAll('#bGenre option')].map(o=>o.value).filter(Boolean);
+  try{
+    const r=await askClaude(claudeIsbnPrompt(isbn,genres),2000);
+    return {book:normalizeClaudeBook(parseMindmapReply(r.text),isbn,genres),error:null};
+  }catch(e){return {book:null,error:e.status===401?'key rejected':String(e.message||e)};}
+}
+
 async function lookupISBN(){
   const raw=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
   if(!raw){setIsbnStatus('Please enter an ISBN.','err');return;}
@@ -5053,6 +5090,13 @@ async function lookupISBN(){
     if(gb.error)problems.push(`Google Books ${gb.error}`);
     bk=gb.book;
   }
+  const askedClaude=!bk&&!!localStorage.getItem(SK.api);
+  if(askedClaude){
+    setIsbnStatus('Not in the catalogues — asking Claude to search the web…','');
+    const cl=await claudeByIsbn(raw);
+    if(cl.error)problems.push(`Claude ${cl.error}`);
+    bk=cl.book;
+  }
   if(!bk){
     // No record, but the ISBN alone can still yield cover art — so the manual
     // path isn't left typing everything AND hunting for an image.
@@ -5062,21 +5106,22 @@ async function lookupISBN(){
     // produce the same message, so there was no way to tell them apart.
     const why=problems.length
       ? `Lookup failed — ${problems.join('; ')}.`
-      : 'Not in either catalogue.';
+      : askedClaude?'Not in either catalogue, and Claude couldn’t find it on the web.':'Not in either catalogue.';
     setIsbnStatus(`${why} Fill in manually${cover?' — found a cover, though.':'.'}${quotaHint(problems)}`,'err');
     return;
   }
 
   document.getElementById('bTitle').value=bk.title||'';
   document.getElementById('bAuthor').value=bk.authors.join(', ');
-  const genre=genreFromSubjects(bk.subjects);
+  const genre=bk.genre||genreFromSubjects(bk.subjects);
   if(genre)document.getElementById('bGenre').value=genre;
   if(bk.pages)document.getElementById('progTotalPage').value=bk.pages;
 
   setIsbnStatus(`✓ Found: "${bk.title}" — fetching cover…`,'ok');
   const coverUrl=bk.cover||await fetchCoverByISBN(raw)||await fetchCoverByTitle(bk.title,bk.authors[0]||'');
   setCoverPreview(coverUrl||null);
-  setIsbnStatus(`✓ Found: "${bk.title}"${bk.source==='google'?' · via Google Books':''}`,'ok');
+  const via=bk.source==='google'?' · via Google Books':bk.source==='claude'?' · found by Claude on the web — check the details':'';
+  setIsbnStatus(`✓ Found: "${bk.title}"${via}`,'ok');
   toast('Book details filled in!','ok');
   checkForDuplicate();
 }
