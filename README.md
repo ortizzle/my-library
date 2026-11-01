@@ -69,6 +69,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Tap a bubble to learn more:** a reminder, a deeper look, where it shows up, your own highlights that mention it, what it connects to, and a question to think about. ‹ › walk through the whole map; **Explored N of M** remembers what you've opened
 - **🕰 Chronology:** the story beat by beat, each linked into the map. **↻ Remake** (two taps) writes a fresh one
 - **📜 Summary:** the book in one line, the story start to finish, what it's really getting at (three or four big ideas), the ending explained — or the takeaways, for nonfiction — context worth knowing, and **Reception & critique** — what critics and readers praised and criticized, the debates around it, and awards or adaptations. Maps made before summaries offer **Write the summary** (one small Claude request) instead of a remake. Syncing and importing keep the bubbles you've explored
+- **📖 Companion:** a close, critical reading beside the map, written on request (about a minute, 10–20¢). Its shape follows the book. **Essays and argument books** get the argument step by step, with *where it leaps* marked, plus key passages, form and rhetoric, context, where it's strongest and weakest, the critical conversation, and how it holds up. **Novels** get 8–12 central moments in order, themes traced through them (with where readings differ), character arcs, craft and the ending. **Memoir and narrative nonfiction** get key episodes, the argument underneath, and a word on reliability. Contents chips jump between sections. Remaking a map keeps its Companion
 - **About the book, not your notes:** maps and summaries describe the book itself and how it was received; your own journal notes aren't fed in (your highlights still appear in the bubbles they mention)
 - **Looks things up when it needs to:** for books Claude doesn't know well (especially anything recent), it searches the web for the plot and reviews first, and the summary lists its **Sources**. If web search isn't available on your key, it falls back to writing without it, and a short map is flagged as uncertain
 
@@ -80,8 +81,9 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Who or what?** — a bubble's reminder with the name hidden; pick from three. Then the deeper look, a question to think about, and **Open in the map**
 - **What came first?** — three moments from a book's chronology to tap in order (tap again to undo), then **See the chronology**
 - **Sundays: Think about it** — a reflection question; **Save to journal** adds your answer to that book's journal
+- **Remember this moment?** For books with a Companion, about half the recall days ask you to picture one of its central moments, then reveal it and ask how much you remembered
 - Books you haven't seen lately and bubbles you haven't explored come first; answering marks the bubble explored in its map. The same question all day; **Not today** hides it until tomorrow. A small 🧠 streak counts days in a row, separate from the reading streak
-- Made from the saved maps alone — no Claude call, works offline. Today's question and the streak stay on this device
+- Made from the saved maps and Companions alone — no Claude call, works offline. Today's question and the streak stay on this device
 
 ### Book Details (3-tab edit modal)
 1. **Book Details** — title, author, genre, format, ISBN, cover, series, publisher

@@ -2865,3 +2865,86 @@ test('a summary written for an older map asks for reception and can search', asy
   assert.equal(req.tools?.[0]?.name, 'web_search');
   await ctx.close();
 });
+
+// ── Companion ────────────────────────────────────────────────────────────
+
+const COMPANION = {
+  form: 'fiction',
+  overview: ['A found-family fable about a caseworker and a house of magical children.'],
+  moments: [
+    { title: 'Linus is summoned', where: 'Chapter 1', text: 'Extremely Upper Management send Linus to Marsyas Island.', why: 'It starts him out of his grey life.' },
+    { title: 'Lucy’s records', text: 'Lucy and Linus bond over old records.', why: 'Trust begins.' }],
+  themes: [{ title: 'Chosen family', text: 'Traced through the island dinners.', readings: 'Some read it as too gentle.' }],
+  arcs: [{ name: 'Linus', text: 'From rule-bound to brave.' }],
+  ending: 'Linus chooses the island.',
+  strengths: ['Warmth.'], weaknesses: ['Sugary for some.'],
+  conversation: [{ who: 'Critics of the premise', text: 'Noted echoes of the Sixties Scoop.' }],
+  questions: ['Is gentleness a politics?']
+};
+
+test('the Companion is written on request, laid out by form, and survives a remake', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [textReply(MAP_REPLY), textReply('```json\n' + JSON.stringify(COMPANION) + '\n```'), textReply(MAP_REPLY)]);
+  await makeMap(page);
+  await page.click('#mmCompanionBtn');
+  assert.match(await page.textContent('#mmSheet'), /central moments in order/, 'a fiction map explains what it will get');
+  await page.click('#mmCpCreate');
+  await page.locator('#mmSheet .cp-moments').waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[1];
+  assert.match(req.messages[0].content, /Cerulean Sea/);
+  assert.match(req.messages[0].content, /"moments":/);
+  assert.doesNotMatch(req.messages[0].content, /Lucy danced|Lovely and kind/);
+  assert.equal(req.tools?.[0]?.name, 'web_search');
+  const labels = await page.locator('#mmSheet .cp-sec').allTextContents();
+  assert.deepEqual(labels.slice(0, 3), ['WHAT KIND OF BOOK THIS IS', 'CENTRAL MOMENTS', 'THEMES, TRACED']);
+  assert.ok(labels.includes('CHARACTER ARCS') && labels.includes('THE CRITICAL CONVERSATION'));
+  assert.ok(!labels.some(l => /ARGUMENT/.test(l)), 'no empty argument section for a novel');
+  assert.equal(await page.locator('#mmSheet .cp-moments li').count(), 2);
+  assert.equal(await page.locator('#mmSheet .cp-toc .mm-chip').count(), labels.length, 'contents chips for each section');
+  assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'Linus is summoned');
+
+  // Remaking the map keeps the Companion.
+  await page.evaluate(() => closeMindmapSheet());
+  await page.click('#mmRegen'); await page.click('#mmRegen');
+  await page.waitForFunction(() => (window.__reqs || []).length === 3 && document.getElementById('mmBody').style.display === 'block');
+  assert.equal((await storedMaps(page)).b1.map.companion.moments.length, 2);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('an essay’s Companion leads with its argument, and leaps are marked', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(raw => {
+    const map = normalizeMindmap({ ...raw, kind: 'nonfiction', companion: { form: 'argument', overview: ['Two letters.'], context: 'Written in 1962.',
+      argument: [{ claim: 'Innocence is the crime.', support: 'Willed ignorance.', gap: 'Says little about institutions.' }],
+      moments: [{ title: 'A burning house', text: 'He asks if he wants to be integrated into a burning house.' }] } });
+    mindmapDB = { b1: { map, createdAt: 1, updatedAt: 1, seen: [] } }; save(SK.maps, mindmapDB);
+    openMindmap('b1'); showMindmapCompanion();
+  }, JSON.parse(MAP_REPLY));
+  const labels = await page.locator('#mmSheet .cp-sec').allTextContents();
+  assert.deepEqual(labels, ['WHAT IT ARGUES', 'WHEN, WHY, FOR WHOM', 'THE ARGUMENT, STEP BY STEP', 'KEY PASSAGES']);
+  assert.match(await page.textContent('#mmSheet .cp-arg'), /Where it leaps\s*Says little about institutions/);
+  await ctx.close();
+});
+
+test('a "key moment" deep dive: recall, reveal, rate, and open the Companion', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const q = await seedDive(page, 'moment', { ...JSON.parse(MAP_REPLY), companion: COMPANION });
+  assert.match(await page.textContent('#deepDiveCard'), /Remember this moment\?/);
+  await page.click('#deepDiveCard');
+  const sheet = page.locator('#ddSheet');
+  const m = COMPANION.moments[q.moment];
+  assert.match(await sheet.locator('.dd-q').textContent(), new RegExp(m.title));
+  assert.doesNotMatch(await sheet.textContent(), new RegExp(m.text), 'the answer is hidden until asked');
+  await page.click('#ddShow');
+  assert.match(await sheet.textContent(), new RegExp(m.text));
+  await sheet.locator('.dd-opt', { hasText: 'Partly' }).click();
+  await sheet.locator('.dd-verdict').waitFor();
+  assert.equal(await page.evaluate(() => deepDiveDB.days[localDateStr()].recall), 'some');
+  await sheet.locator('text=Open the Companion').click();
+  await page.locator('#mmSheet .cp-moments').waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

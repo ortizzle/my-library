@@ -7,9 +7,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { loadFunctions, extractConst } from './extract.mjs';
 
-const MM = loadFunctions(['mergeMindmaps', 'mmStr', 'mmColor', 'normalizeSummary', 'normalizeMindmap', 'parseMindmapReply',
+const MM = loadFunctions(['mergeMindmaps', 'mmStr', 'mmColor', 'mmSources', 'normalizeSummary', 'normalizeCompanion', 'normalizeMindmap', 'parseMindmapReply',
                           'mmTextOn', 'mindmapLayout'],
-  `const MM_MOTIFS=${extractConst('MM_MOTIFS')};`);
+  `const MM_MOTIFS=${extractConst('MM_MOTIFS')};const CP_FORMS=${extractConst('CP_FORMS')};`);
 
 const fixture = JSON.parse(readFileSync(new URL('./fixtures/cerulean-map.json', import.meta.url), 'utf8'));
 const node = (title, extra = {}) => ({ title, sub: 'sub', remind: 'r', ...extra });
@@ -179,4 +179,36 @@ test('reception and sources are kept, capped, and only real web links survive', 
     sources: [{ url: 'https://example.com/review', title: 'A review' }, { url: 'javascript:alert(1)', title: 'bad' }, { url: 'ftp://x' }, 'nope'] });
   assert.deepEqual(S.reception, { praised: ['Vivid prose.'], criticized: ['Slow middle.'], debates: ['d', 'd', 'd'], recognition: 'Won a prize.' });
   assert.deepEqual(S.sources, [{ url: 'https://example.com/review', title: 'A review' }]);
+});
+
+// ── companion ────────────────────────────────────────────────────────────
+
+test('a companion keeps its form-specific sections, capped, and drops junk', () => {
+  const c = MM.normalizeCompanion({
+    form: 'argument',
+    overview: ['First.', '', 'Second.', 'Third.', 'Fourth is over the cap.'],
+    argument: [{ claim: 'Innocence is the crime.', support: 'White America refuses to know.', gap: '' }, { support: 'no claim' }, 'junk'],
+    moments: [{ title: 'Letter to James', where: 'Part One', text: 'He writes to his nephew.', why: 'Sets the intimate frame.' }, { title: 'No text' }],
+    themes: [{ title: 'Love', text: 'Love as a hard demand.', readings: 'Some read it as naive.' }],
+    conversation: [{ who: 'Ta-Nehisi Coates', text: 'Wrote Between the World and Me as a reply.' }, { who: '', text: 'anonymous' }],
+    questions: ['Is love enough?'],
+    sources: [{ url: 'https://example.org/a', title: 'A' }, { url: 'javascript:alert(1)' }]
+  });
+  assert.equal(c.form, 'argument');
+  assert.deepEqual(c.overview, ['First.', 'Second.', 'Third.']);
+  assert.equal(c.argument.length, 1);
+  assert.equal(c.moments.length, 1);
+  assert.equal(c.conversation.length, 1);
+  assert.deepEqual(c.sources, [{ url: 'https://example.org/a', title: 'A' }]);
+  assert.deepEqual(c.arcs, []);
+  assert.equal(c.ending, '');
+  assert.equal(MM.normalizeCompanion({ form: 'poem', moments: [{ title: 'x', text: 'y' }] }).form, 'fiction', 'unknown forms fall back');
+  assert.equal(MM.normalizeCompanion({ form: 'fiction', questions: ['only questions'] }), null, 'nothing substantial, no companion');
+  assert.equal(MM.normalizeCompanion(null), null);
+});
+
+test('maps carry their companion through normalizing; without one it is null', () => {
+  assert.equal(MM.normalizeMindmap(fixture).companion, null);
+  const m = MM.normalizeMindmap({ ...fixture, companion: { form: 'fiction', moments: [{ title: 'The island', text: 'Linus arrives.' }] } });
+  assert.equal(m.companion.moments[0].title, 'The island');
 });

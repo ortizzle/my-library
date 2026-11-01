@@ -8,8 +8,8 @@ import { readFileSync } from 'node:fs';
 import { loadFunctions, extractConst } from './extract.mjs';
 
 const D = loadFunctions(['localDateStr', 'ddHash', 'ddShuffle', 'ddShort', 'ddAddDays', 'ddTypeFor', 'ddMask', 'ddCan',
-                         'deepDivePick', 'deepDiveStreak', 'mmStr', 'mmColor', 'normalizeSummary', 'normalizeMindmap'],
-  `const MM_MOTIFS=${extractConst('MM_MOTIFS')};`);
+                         'deepDivePick', 'deepDiveStreak', 'mmStr', 'mmColor', 'mmSources', 'normalizeSummary', 'normalizeCompanion', 'normalizeMindmap'],
+  `const MM_MOTIFS=${extractConst('MM_MOTIFS')};const CP_FORMS=${extractConst('CP_FORMS')};`);
 
 const cerulean = D.normalizeMindmap(JSON.parse(readFileSync(new URL('./fixtures/cerulean-map.json', import.meta.url), 'utf8')));
 const tiny = D.normalizeMindmap({ branches: [{ label: 'People', nodes: [
@@ -97,4 +97,20 @@ test('subtitles are trimmed for the card', () => {
   assert.equal(D.ddShort('Babel : Or the Necessity of Violence'), 'Babel');
   assert.equal(D.ddShort('The Algorithm: The Hypergrowth Formula'), 'The Algorithm');
   assert.equal(D.ddShort('Dark Matter'), 'Dark Matter');
+});
+
+test('books with a companion also get "remember this moment" questions', () => {
+  const withCp = { ...cerulean, companion: D.normalizeCompanion({ form: 'fiction', moments: [
+    { title: 'Linus is summoned', text: 'Extremely Upper Management send him to the island.' },
+    { title: 'Lucy’s record player', text: 'Lucy shares his records with Linus.' }] }) };
+  const m = { c: { map: withCp, seen: [] } };
+  const kinds = new Set();
+  for (let i = 0; i < 28; i++) {
+    const q = D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[0]], m, {});
+    kinds.add(q.type);
+    if (q.type === 'moment') assert.ok(withCp.companion.moments[q.moment], 'points at a real moment');
+  }
+  assert.ok(kinds.has('moment'), 'moments come round');
+  assert.ok(kinds.has('who') && kinds.has('order') && kinds.has('think'), 'and the map’s own questions still do');
+  for (let i = 0; i < 14; i++) assert.notEqual(D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[0]], maps, {}).type, 'moment', 'no companion, no moment');
 });

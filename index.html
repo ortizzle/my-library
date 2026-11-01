@@ -380,6 +380,29 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .sm-src{margin:0;padding-left:1.1rem;line-height:1.6;font-size:.92rem}
 .sm-src a{color:var(--burgundy);word-break:break-word}
 .sm-src-host{color:var(--ink-faint);font-size:.85rem}
+.mm-sheet.cp-tall{max-height:92vh}
+.cp-toc{margin:.7rem 0 .2rem}
+.cp-sec{scroll-margin-top:.5rem;font-size:.78rem;color:#8a6a1e;border-top:1px solid var(--parchment-dark);padding-top:.9rem;margin-top:1.2rem}
+.cp-moments,.cp-arg{margin:0;padding:0;list-style:none;counter-reset:cp;display:grid;gap:.7rem}
+.cp-moments li,.cp-arg li{counter-increment:cp;position:relative;padding:.7rem .85rem .7rem 2.6rem;border-radius:12px;background:#f4f1ea}
+.cp-moments li::before,.cp-arg li::before{content:counter(cp);position:absolute;left:.7rem;top:.7rem;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--ink);color:var(--cream);font:700 .8rem/1.5rem 'Playfair Display',serif;text-align:center}
+.cp-mh{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .5rem;margin-bottom:.2rem}
+.cp-mh b,.cp-claim{font-family:'Playfair Display',serif;font-size:1rem;line-height:1.3}
+.cp-claim{display:block;margin-bottom:.25rem}
+.cp-where{font-size:.8rem;color:var(--ink-faint);font-style:italic}
+.cp-why,.cp-gap{margin:.45rem 0 0;font-size:.93rem;line-height:1.55;color:var(--ink-light)}
+.cp-lab{display:block;font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.08em;color:#8a6a1e}
+.cp-lab.warn{color:var(--burgundy)}
+.cp-stack{display:grid;gap:.6rem}
+.cp-card{padding:.7rem .85rem;border-radius:12px;background:#eef2f8;border-left:4px solid var(--burgundy)}
+.cp-card.arc{background:#f4f1ea;border-left-color:var(--teal)}
+.cp-card.voice{background:#fdf6e3;border-left-color:var(--gold)}
+.cp-h{display:block;font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.2rem}
+.cp-list{margin:0;padding:.6rem .8rem .6rem 1.9rem;border-radius:12px;background:#f4f1ea;line-height:1.55;border-left:4px solid #2f7a4d}
+.cp-list.down{border-left-color:var(--burgundy)}
+.cp-list li{margin-bottom:.35rem}
+.cp-qs{margin:0;padding-left:1.3rem;line-height:1.55;font-style:italic}
+.cp-qs li{margin-bottom:.4rem}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -1428,7 +1451,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map is short — treat its details with care.</p>
       <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
       <div class="mm-map" id="mmMap"></div>
-      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button></div>
+      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button><button type="button" class="mm-tlbtn" id="mmCompanionBtn">📖 Companion</button></div>
       <div class="mm-take" id="mmTake"></div>
     </div>
   </div>
@@ -6781,7 +6804,7 @@ function normalizeMindmap(raw){
   return {kind:raw.kind==='nonfiction'?'nonfiction':'fiction',thesis:mmStr(raw.thesis,300),
     emblem:emblem||'📖',motif:MM_MOTIFS.includes(raw.motif)?raw.motif:'plain',
     palette:palette.length>=3?palette:['#2f8fb3','#e8735a','#e9a03b','#1f7a6e','#5b7fb8'],
-    branches,timeline,summary:normalizeSummary(raw.summary),unsure:raw.unsure===true};
+    branches,timeline,summary:normalizeSummary(raw.summary),companion:normalizeCompanion(raw.companion),unsure:raw.unsure===true};
 }
 
 // The Summary sheet's content: a one-line shorthand, the story, what the book
@@ -6799,8 +6822,41 @@ function normalizeSummary(raw){
   const rc=raw.reception&&typeof raw.reception==='object'?raw.reception:{};
   const pts=(v,n)=>list(v).map(t=>mmStr(t,400)).filter(Boolean).slice(0,n);
   s.reception={praised:pts(rc.praised,4),criticized:pts(rc.criticized,4),debates:pts(rc.debates,3),recognition:mmStr(rc.recognition,600)};
-  s.sources=list(raw.sources).map(x=>x&&typeof x==='object'&&/^https?:\/\//i.test(String(x.url||''))?{url:String(x.url).slice(0,500),title:mmStr(x.title,120)}:null).filter(Boolean).slice(0,6);
+  s.sources=mmSources(raw.sources);
   return s.line||s.story.length||s.ideas.length?s:null;
+}
+function mmSources(v){
+  return (Array.isArray(v)?v:[]).map(x=>x&&typeof x==='object'&&/^https?:\/\//i.test(String(x.url||''))?{url:String(x.url).slice(0,500),title:mmStr(x.title,120)}:null).filter(Boolean).slice(0,6);
+}
+
+// The Companion: the long read beside the map, for depth the bubbles can't
+// hold. Its sections follow the book's form — an essay gets its argument
+// taken apart, a novel its central moments and themes, a memoir both plus a
+// word on reliability. Every field is optional; the sheet shows what's there.
+const CP_FORMS=['argument','fiction','narrative'];
+function normalizeCompanion(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const list=v=>Array.isArray(v)?v:[];
+  const strs=(v,n,max)=>list(v).map(t=>mmStr(t,max)).filter(Boolean).slice(0,n);
+  const objs=(v,n,f)=>list(v).map(x=>x&&typeof x==='object'?f(x):null).filter(Boolean).slice(0,n);
+  const c={
+    form:CP_FORMS.includes(raw.form)?raw.form:'fiction',
+    overview:strs(raw.overview,3,1500),
+    context:mmStr(raw.context,1500),
+    argument:objs(raw.argument,8,x=>{const claim=mmStr(x.claim,300);return claim?{claim,support:mmStr(x.support,900),gap:mmStr(x.gap,600)}:null;}),
+    moments:objs(raw.moments,12,x=>{const title=mmStr(x.title,90),text=mmStr(x.text,900);return title&&text?{title,where:mmStr(x.where,60),text,why:mmStr(x.why,600)}:null;}),
+    themes:objs(raw.themes,6,x=>{const title=mmStr(x.title,80),text=mmStr(x.text,1500);return title&&text?{title,text,readings:mmStr(x.readings,900)}:null;}),
+    arcs:objs(raw.arcs,6,x=>{const name=mmStr(x.name,60),text=mmStr(x.text,900);return name&&text?{name,text}:null;}),
+    craft:mmStr(raw.craft,1500),
+    ending:mmStr(raw.ending,1500),
+    strengths:strs(raw.strengths,5,600),
+    weaknesses:strs(raw.weaknesses,5,600),
+    conversation:objs(raw.conversation,6,x=>{const who=mmStr(x.who,100),text=mmStr(x.text,900);return who&&text?{who,text}:null;}),
+    holdsUp:mmStr(raw.holdsUp,1500),
+    questions:strs(raw.questions,6,300),
+    sources:mmSources(raw.sources)
+  };
+  return c.overview.length||c.moments.length||c.argument.length||c.themes.length?c:null;
 }
 
 // Claude's reply → JSON object (tolerating a code fence or a sentence around it).
@@ -6951,6 +7007,7 @@ function initMindmaps(){
   $('mmClose').addEventListener('click',closeMindmap);
   $('mmTimelineBtn').addEventListener('click',()=>showMindmapTimeline());
   $('mmSummaryBtn').addEventListener('click',()=>showMindmapSummary());
+  $('mmCompanionBtn').addEventListener('click',()=>showMindmapCompanion());
   $('mmRegen').addEventListener('click',()=>{if(_mm)confirmRegenerate();});
   $('mmCreate').addEventListener('click',()=>{if(_mm)generateMindmap(_mm.bookId);});
   $('mmSheetScrim').addEventListener('click',closeMindmapSheet);
@@ -7181,16 +7238,150 @@ function showMindmapSummary(){
     sec('RECEPTION & CRITIQUE',box);
   }
   if(S.worth)sec('WORTH KNOWING',vEl('p','mm-s-p',S.worth));
-  if(S.sources?.length){
-    const ul=vEl('ul','sm-src');
-    for(const x of S.sources){
-      const a=document.createElement('a');a.href=x.url;a.target='_blank';a.rel='noopener noreferrer';
-      let host='';try{host=new URL(x.url).hostname.replace(/^www\./,'');}catch{}
-      a.textContent=x.title||host;const li=vEl('li');li.append(a);if(x.title&&host)li.append(vEl('span','sm-src-host',' · '+host));ul.append(li);
-    }
-    sec('SOURCES',ul);
-  }
+  if(S.sources?.length)sec('SOURCES',mmSourceList(S.sources));
   openMindmapSheet(kids);
+}
+
+function mmSourceList(sources){
+  const ul=vEl('ul','sm-src');
+  for(const x of sources){
+    const a=document.createElement('a');a.href=x.url;a.target='_blank';a.rel='noopener noreferrer';
+    let host='';try{host=new URL(x.url).hostname.replace(/^www\./,'');}catch{}
+    a.textContent=x.title||host;const li=vEl('li');li.append(a);if(x.title&&host)li.append(vEl('span','sm-src-host',' · '+host));ul.append(li);
+  }
+  return ul;
+}
+
+// ── The Companion sheet ──
+// Section order and labels per form. Each entry: [field, label, renderer].
+function companionSections(form){
+  const A=form==='argument',F=form==='fiction';
+  return [
+    ['overview',A?'WHAT IT ARGUES':F?'WHAT KIND OF BOOK THIS IS':'WHAT IT IS'],
+    ...(F?[['moments','CENTRAL MOMENTS']]:[]),
+    ...(A?[['context','WHEN, WHY, FOR WHOM'],['argument','THE ARGUMENT, STEP BY STEP'],['moments','KEY PASSAGES']]
+      :form==='narrative'?[['moments','KEY EPISODES'],['argument','THE ARGUMENT UNDERNEATH']]:[]),
+    ['themes',A?'THEMES IT RETURNS TO':'THEMES, TRACED'],
+    ...(F?[['arcs','CHARACTER ARCS']]:[]),
+    ['craft',A?'FORM & RHETORIC':F?'CRAFT':'HOW IT’S TOLD — AND HOW RELIABLE'],
+    ...(F?[['ending','THE ENDING, AND HOW IT’S READ']]:[]),
+    ...(A?[]:[['context','CONTEXT']]),
+    ['strengths','WHERE IT’S STRONGEST'],
+    ['weaknesses','WHERE IT’S WEAKEST'],
+    ['conversation','THE CRITICAL CONVERSATION'],
+    ['holdsUp',A?'HOW IT HOLDS UP':'HOW IT READS NOW'],
+    ['questions',A?'QUESTIONS TO ARGUE WITH':'QUESTIONS TO SIT WITH']
+  ];
+}
+function companionBlock(field,c){
+  const v=c[field];
+  const card=(cls,head,...rest)=>{const d=vEl('div','cp-card '+cls);if(head)d.append(head);d.append(...rest.filter(Boolean));return d;};
+  const p=(t,cls)=>t?vEl('p',cls||'mm-s-p',t):null;
+  const lab=(t,cls)=>vEl('span','cp-lab'+(cls?' '+cls:''),t);
+  switch(field){
+    case 'overview':{const d=vEl('div');d.append(...v.map(t=>vEl('p','mm-s-p sm-para',t)));return d;}
+    case 'moments':{const ol=vEl('ol','cp-moments');for(const m of v){const li=vEl('li');const h=vEl('div','cp-mh');h.append(vEl('b',null,m.title));if(m.where)h.append(vEl('span','cp-where',m.where));li.append(h,p(m.text));if(m.why){const w=vEl('p','cp-why');w.append(lab('Why it matters'),document.createTextNode(m.why));li.append(w);}ol.append(li);}return ol;}
+    case 'argument':{const ol=vEl('ol','cp-arg');for(const a of v){const li=vEl('li');li.append(vEl('b','cp-claim',a.claim),p(a.support));if(a.gap){const g=vEl('p','cp-gap');g.append(lab('Where it leaps','warn'),document.createTextNode(a.gap));li.append(g);}ol.append(li);}return ol;}
+    case 'themes':{const d=vEl('div','cp-stack');for(const t of v){const rd=t.readings?vEl('p','cp-why'):null;if(rd)rd.append(lab('How readers differ'),document.createTextNode(t.readings));d.append(card('theme',vEl('b','cp-h',t.title),p(t.text),rd));}return d;}
+    case 'arcs':{const d=vEl('div','cp-stack');for(const a of v)d.append(card('arc',vEl('b','cp-h',a.name),p(a.text)));return d;}
+    case 'strengths':case 'weaknesses':{const ul=vEl('ul','cp-list '+(field==='strengths'?'up':'down'));for(const t of v)ul.append(vEl('li',null,t));return ul;}
+    case 'conversation':{const d=vEl('div','cp-stack');for(const x of v)d.append(card('voice',vEl('b','cp-h',x.who),p(x.text)));return d;}
+    case 'questions':{const ol=vEl('ol','cp-qs');for(const q of v)ol.append(vEl('li',null,q));return ol;}
+    case 'ending':return vEl('div','sm-end',v);
+    default:return p(v);
+  }
+}
+function showMindmapCompanion(){
+  const rec=mmRecord(_mm&&_mm.bookId);if(!rec)return;
+  const c=rec.map.companion,b=mmBook(_mm.bookId);
+  const title=String(b?.title||'').split(/\s*:\s/)[0];
+  const kids=[vEl('div','mm-s-kind','COMPANION'),vEl('h2','mm-s-title',`Reading ${title} closely`)];
+  if(!c){
+    const has=!!localStorage.getItem(SK.api);
+    kids.push(vEl('p','mm-s-p',has
+      ?(rec.map.kind==='nonfiction'
+        ?'A close reading of the book: its argument step by step, where it’s strong and where it leaps, its context, and the critical conversation around it. Claude writes it in one longer request — about a minute, 10–20¢.'
+        :'A close reading of the book: its central moments in order, its themes traced through them, the characters’ arcs, the craft, how the ending is read, and the critical conversation around it. Claude writes it in one longer request — about a minute, 10–20¢.')
+      :'Add your Anthropic API key in Settings and Claude can write a Companion: a close, critical reading of the book.'));
+    if(has){
+      const go=vEl('button','mm-create','Write the Companion');go.type='button';go.id='mmCpCreate';
+      const st=vEl('p','mm-status');st.id='mmCpStatus';
+      go.addEventListener('click',()=>generateCompanion(_mm.bookId));
+      kids.push(go,st);
+    }
+    openMindmapSheet(kids);return;
+  }
+  const secs=companionSections(c.form).filter(([f])=>Array.isArray(c[f])?c[f].length:c[f]);
+  // Contents: a long read needs a way to jump.
+  const toc=vEl('div','mm-s-chips cp-toc');
+  const blocks=[];
+  secs.forEach(([f,label],i)=>{
+    const h=vEl('div','mm-s-lbl cp-sec',label);h.id='cp-'+f;
+    blocks.push(h,companionBlock(f,c));
+    const chip=vEl('button','mm-chip',label.charAt(0)+label.slice(1).toLowerCase());chip.type='button';
+    chip.addEventListener('click',()=>h.scrollIntoView({behavior:'smooth',block:'start'}));
+    toc.append(chip);
+  });
+  kids.push(toc,...blocks);
+  if(c.sources.length)kids.push(vEl('div','mm-s-lbl','SOURCES'),mmSourceList(c.sources));
+  openMindmapSheet(kids);
+  document.getElementById('mmSheet').classList.add('cp-tall');
+}
+
+const COMPANION_SHAPE=`{"form":"argument | fiction | narrative",
+ "overview":["2–3 paragraphs: what the book is and does — for an essay, its thesis and stakes; for a novel, its premise, mode and what it's after"],
+ "context":"a paragraph: when and why it was written, for whom, and what was happening",
+ "argument":[{"claim":"one step of the argument","support":"the reasons and evidence offered for it","gap":"where it leaps, overstates or leaves something out (empty if it doesn't)"}],
+ "moments":[{"title":"short name for the scene or passage","where":"part / chapter / section if known","text":"what happens or what's said, concretely","why":"why it matters and what it carries"}],
+ "themes":[{"title":"theme","text":"the theme traced through specific moments, with insight","readings":"where readers or critics interpret it differently"}],
+ "arcs":[{"name":"character","text":"where they start, what changes them, where they end"}],
+ "craft":"a paragraph on form and technique — structure, narration, voice, rhetoric — and what they do",
+ "ending":"a paragraph: what happens and the main ways it's read",
+ "strengths":["an argued strength, one or two sentences"],
+ "weaknesses":["an argued weakness or limitation, one or two sentences"],
+ "conversation":[{"who":"a named critic, writer, review or school of reading","text":"what they said or argued, and how it shifted the book's reputation"}],
+ "holdsUp":"a paragraph: how it reads today and what has changed",
+ "questions":["an open question worth arguing about"]}`;
+
+function companionPrompt(b,map){
+  return `Write a Companion to this book for a serious reader who has finished it: a close, critical reading, like a good seminar guide or a long review essay. Go deeper than a summary. Spoilers are fine. Describe the book itself and the critical conversation about it, not any one reader's opinion.
+
+Book: "${b.title}"${b.author?` by ${b.author}`:''}.${map.thesis?`\nIn one sentence: ${map.thesis}`:''}
+
+First decide its form:
+- "argument" — essays, polemics and idea-driven nonfiction. Take the argument apart: each step with its support and where it leaps; the key passages; the form and rhetoric (why this shape, this voice); the context it answered; strengths and weaknesses argued, not listed; who answered it and how its reputation has moved; how it holds up. Leave "arcs" and "ending" empty.
+- "fiction" — novels and stories. 8–12 central moments in story order, concrete enough to jog memory; 3–5 themes, each traced through specific moments, with where readings differ; the main characters' arcs; the craft; the ending and how it's read; strengths, weaknesses and the critical conversation. Leave "argument" empty.
+- "narrative" — memoir, history and narrative nonfiction. 6–10 key episodes; the argument underneath; how it's told and how reliable or well-sourced it is; context; strengths, weaknesses and the critical conversation.
+
+Unless you know the critical conversation around this book well, use web search for serious reviews, essays and scholarship before writing. Name critics and outlets only when you're confident they said it; otherwise attribute in general terms. Quote the book only when you're certain the words are exact, and keep quotes short; otherwise paraphrase. Never invent scenes, quotes or critics — if you don't know the book well even after searching, write less.
+
+Reply with JSON only, no code fence, in exactly this shape:
+${COMPANION_SHAPE}`;
+}
+
+async function generateCompanion(bookId){
+  const b=mmBook(bookId),rec=mmRecord(bookId);if(!b||!rec)return;
+  if(!localStorage.getItem(SK.api))return;
+  const btn=document.getElementById('mmCpCreate'),st=document.getElementById('mmCpStatus');
+  if(btn)btn.disabled=true;
+  const started=Date.now();
+  const tick=()=>{const s=document.getElementById('mmCpStatus');if(s)s.textContent=`Writing the Companion… ${Math.round((Date.now()-started)/1000)}s — usually about a minute, longer if Claude reads reviews.`;};
+  tick();const timer=setInterval(tick,1000);
+  try{
+    const {text,stop,sources}=await askClaude(companionPrompt(b,rec.map),16000);
+    const c=normalizeCompanion(parseMindmapReply(text));
+    if(!c)throw new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Companion');
+    if(sources.length)c.sources=sources;
+    const cur=mmRecord(bookId);if(!cur)return;
+    cur.map={...cur.map,companion:c};cur.updatedAt=Date.now();save(SK.maps,mindmapDB);
+    if(_mm&&_mm.bookId===bookId)showMindmapCompanion();
+    toast('Companion ready 📖','ok');
+  }catch(e){
+    console.warn('Companion failed',e);
+    const st2=document.getElementById('mmCpStatus'),b2=document.getElementById('mmCpCreate');
+    clearInterval(timer);
+    if(st2)st2.textContent=`Couldn’t write it (${e.message}). Try again.`;if(b2)b2.disabled=false;
+  }finally{clearInterval(timer);}
 }
 
 function summaryPrompt(b,map){
@@ -7227,6 +7418,7 @@ async function generateSummary(bookId){
 
 function openMindmapSheet(kids){
   const s=document.getElementById('mmSheet');
+  s.classList.remove('cp-tall');
   s.replaceChildren(vEl('div','mm-grip'),...kids);
   s.scrollTop=0;
   s.style.display='block';
@@ -7331,6 +7523,8 @@ async function requestMindmap(b){
 
 function storeMindmap(bookId,map){
   const now=Date.now();
+  // A remake redraws the map; the Companion (a separate, costlier request) stays.
+  if(!map.companion&&mindmapDB[bookId]?.map?.companion)map={...map,companion:mindmapDB[bookId].map.companion};
   mindmapDB[bookId]={map,createdAt:(mindmapDB[bookId]&&mindmapDB[bookId].createdAt)||now,updatedAt:now,seen:[]};
   save(SK.maps,mindmapDB);
 }
@@ -7484,6 +7678,7 @@ function ddCan(type,map){
   if(type==='who')return nodes.filter(n=>n.remind).length>=3;
   if(type==='order')return (map.timeline||[]).length>=3;
   if(type==='think')return nodes.some(n=>n.q);
+  if(type==='moment')return !!(map.companion&&map.companion.moments&&map.companion.moments.length);
   return false;
 }
 
@@ -7494,7 +7689,11 @@ function deepDivePick(date,books,maps,seenOn){
   if(!pool.length)return null;
   const order=pool.slice().sort((a,b)=>String(seenOn[a.id]||'').localeCompare(String(seenOn[b.id]||''))||ddHash(date+a.id)-ddHash(date+b.id));
   const first=ddTypeFor(date);
-  for(const type of [first,...['who','order','think'].filter(t=>t!==first)]){
+  // Books with a Companion also get "Remember this moment?" — on about half the
+  // "who" days, so the map's own questions still come round.
+  const types=[first,...['who','order','think'].filter(t=>t!==first),'moment'];
+  if(first==='who'&&ddHash(date+'m')%2)types.unshift('moment');
+  for(const type of types){
     const b=order.find(x=>ddCan(type,maps[x.id].map));
     if(!b)continue;
     const rec=maps[b.id],map=rec.map,seen=new Set(rec.seen||[]),seed=date+b.id;
@@ -7507,6 +7706,10 @@ function deepDivePick(date,books,maps,seenOn){
         .filter((n,i,a)=>n.title!==target.title&&a.findIndex(x=>x.title===n.title)===i);
       const wrong=ddShuffle(others,seed+'w').slice(0,2).map(n=>n.id);
       return {date,type,bookId:b.id,nodeId:target.id,options:ddShuffle([target.id,...wrong],seed+'o')};
+    }
+    if(type==='moment'){
+      const ms=map.companion.moments;
+      return {date,type,bookId:b.id,moment:ddHash(seed+'mo')%ms.length};
     }
     if(type==='order'){
       const idx=ddShuffle(map.timeline.map((_,i)=>i),seed+'t').slice(0,3).sort((x,y)=>x-y);
@@ -7541,7 +7744,9 @@ function ddSave(){
 function deepDiveToday(){
   const s=ddState(),today=localDateStr();
   let q=s.days[today];
-  const ok=q&&books.some(b=>b.id===q.bookId)&&mindmapDB[q.bookId]&&(q.type==='order'
+  const ok=q&&books.some(b=>b.id===q.bookId)&&mindmapDB[q.bookId]&&(q.type==='moment'
+    ?!!mindmapDB[q.bookId].map.companion?.moments?.[q.moment]
+    :q.type==='order'
     ?q.beats.every(i=>mindmapDB[q.bookId].map.timeline[i])
     :mmNodeIn(mindmapDB[q.bookId].map,q.nodeId)&&(!q.options||q.options.every(id=>mmNodeIn(mindmapDB[q.bookId].map,id))));
   if(!ok){
@@ -7565,9 +7770,9 @@ function deepDiveCard(){
   head.append(vEl('span',null,q.done?'DAILY DEEP DIVE ✓':'DAILY DEEP DIVE'));
   if(streak)head.append(vEl('span',null,`🧠 ${plural(streak,'day')}`));
   const title=q.done?'Done — back tomorrow'
-    :q.type==='who'?'Who or what is this?':q.type==='order'?'What came first?':'Something to think about';
+    :q.type==='who'?'Who or what is this?':q.type==='order'?'What came first?':q.type==='moment'?'Remember this moment?':'Something to think about';
   const chips=vEl('span','vn-chips');
-  chips.append(vEl('span','vn-chip',ddShort(book.title)),vEl('span','vn-chip',q.type==='who'?'Who or what?':q.type==='order'?'Chronology':'Think about it'));
+  chips.append(vEl('span','vn-chip',ddShort(book.title)),vEl('span','vn-chip',q.type==='who'?'Who or what?':q.type==='order'?'Chronology':q.type==='moment'?'Key moment':'Think about it'));
   text.append(head,vEl('b','vn-title',title),chips);
   card.append(badge,text,vEl('span','vn-go',q.done?'See ›':'Play ›'));
   card.addEventListener('click',()=>openDeepDive());
@@ -7609,7 +7814,7 @@ function renderDeepDive(q){
   const head=vEl('div','dd-head');
   head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
   const titles=vEl('div','dd-titles');
-  titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='order'?'WHAT CAME FIRST?':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
+  titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='order'?'WHAT CAME FIRST?':q.type==='moment'?'KEY MOMENT':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
   const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeDeepDive);
   head.append(vEl('div','dd-emb',map.emblem),titles,x);
   const body=vEl('div','dd-body');
@@ -7618,7 +7823,42 @@ function renderDeepDive(q){
   const reveal=(label,text,cls)=>{const d=vEl('div','dd-reveal'+(cls?' '+cls:''));d.append(vEl('b',null,label),document.createTextNode(text));return d;};
   const skip=()=>{const b=vEl('button','dd-btn ghost','Not today');b.type='button';b.addEventListener('click',()=>{q.skipped=true;const s=ddState();s.days[q.date]=q;ddSave();closeDeepDive();});return b;};
 
-  if(q.type==='who'){
+  if(q.type==='moment'){
+    // Recall, not multiple choice: name the moment, let them remember it,
+    // then show it and let them say how well they did.
+    const m=map.companion.moments[q.moment];
+    const kind=map.companion.form==='argument'?'passage':map.companion.form==='narrative'?'episode':'moment';
+    body.append(vEl('p','dd-q',`“${m.title}”`));
+    if(m.where)body.append(vEl('p','dd-clue',m.where));
+    const after=vEl('div');
+    const paint=()=>{
+      after.replaceChildren();
+      if(q.done||q.shown){
+        after.append(reveal(kind==='passage'?'WHAT IT SAYS':'WHAT HAPPENS',m.text));
+        if(m.why)after.append(reveal('WHY IT MATTERS',m.why,'gold'));
+        if(q.done){
+          after.append(vEl('p','dd-verdict',q.recall==='yes'?'Nicely remembered.':q.recall==='some'?'Half the battle — now it’s fresh.':'Now you’ve got it back.'));
+          const cp=vEl('button','dd-btn','📖 Open the Companion');cp.type='button';
+          cp.addEventListener('click',()=>{closeDeepDive();openMindmap(q.bookId);showMindmapCompanion();});
+          after.append(row(cp));
+        }else{
+          const opts=vEl('div','dd-opts');
+          for(const [k,label] of [['yes','I remembered it'],['some','Partly'],['no','Not really']]){
+            const b=vEl('button','dd-opt',label);b.type='button';
+            b.addEventListener('click',()=>{ddFinish(q,{recall:k,right:k==='yes'});paint();});
+            opts.append(b);
+          }
+          after.append(vEl('p','dd-foot','How much did you remember?'),opts);
+        }
+      }else{
+        const show=vEl('button','dd-btn','Show me');show.type='button';show.id='ddShow';
+        show.addEventListener('click',()=>{q.shown=true;paint();});
+        after.append(vEl('p','dd-foot',`Picture the ${kind} — what happens, and why it matters — then check.`),row(show),row(skip()));
+      }
+    };
+    paint();
+    body.append(after);
+  }else if(q.type==='who'){
     const target=mmNodeIn(map,q.nodeId);
     body.append(vEl('p','dd-q',`“${ddMask(target.remind,target.title)}”`));
     const opts=vEl('div','dd-opts');
