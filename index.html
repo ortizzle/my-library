@@ -380,29 +380,58 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .sm-src{margin:0;padding-left:1.1rem;line-height:1.6;font-size:.92rem}
 .sm-src a{color:var(--burgundy);word-break:break-word}
 .sm-src-host{color:var(--ink-faint);font-size:.85rem}
-.mm-sheet.cp-tall{max-height:92vh}
-.cp-toc{margin:.7rem 0 .2rem}
-.cp-sec{scroll-margin-top:.5rem;font-size:.78rem;color:#8a6a1e;border-top:1px solid var(--parchment-dark);padding-top:.9rem;margin-top:1.2rem}
-.cp-moments,.cp-arg{margin:0;padding:0;list-style:none;counter-reset:cp;display:grid;gap:.7rem}
-.cp-moments li,.cp-arg li{counter-increment:cp;position:relative;padding:.7rem .85rem .7rem 2.6rem;border-radius:12px;background:#f4f1ea}
-.cp-moments li::before,.cp-arg li::before{content:counter(cp);position:absolute;left:.7rem;top:.7rem;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--ink);color:var(--cream);font:700 .8rem/1.5rem 'Playfair Display',serif;text-align:center}
-.cp-mh{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2rem .5rem;margin-bottom:.2rem}
-.cp-mh b,.cp-claim{font-family:'Playfair Display',serif;font-size:1rem;line-height:1.3}
-.cp-claim{display:block;margin-bottom:.25rem}
-.cp-where{font-size:.8rem;color:var(--ink-faint);font-style:italic}
-.cp-why,.cp-gap{margin:.45rem 0 0;font-size:.93rem;line-height:1.55;color:var(--ink-light)}
-.cp-lab{display:block;font-family:'IM Fell English SC',serif;font-size:.72rem;letter-spacing:.08em;color:#8a6a1e}
-.cp-lab.warn{color:var(--burgundy)}
-.cp-stack{display:grid;gap:.6rem}
-.cp-card{padding:.7rem .85rem;border-radius:12px;background:#eef2f8;border-left:4px solid var(--burgundy)}
-.cp-card.arc{background:#f4f1ea;border-left-color:var(--teal)}
-.cp-card.voice{background:#fdf6e3;border-left-color:var(--gold)}
-.cp-h{display:block;font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:.2rem}
-.cp-list{margin:0;padding:.6rem .8rem .6rem 1.9rem;border-radius:12px;background:#f4f1ea;line-height:1.55;border-left:4px solid #2f7a4d}
-.cp-list.down{border-left-color:var(--burgundy)}
-.cp-list li{margin-bottom:.35rem}
-.cp-qs{margin:0;padding-left:1.3rem;line-height:1.55;font-style:italic}
-.cp-qs li{margin-bottom:.4rem}
+.mm-sheet.cp-tall{max-height:94vh;padding-top:0}
+.mm-sheet.cp-tall .mm-grip{margin-top:.5rem}
+.cp-head{padding:.4rem 0 1rem;border-bottom:1px solid var(--gold);margin-bottom:.2rem}
+.cp-kicker{font-family:'IM Fell English SC',serif;font-size:.76rem;letter-spacing:.16em;color:#8a6a1e}
+.cp-title{font-family:'Playfair Display',serif;font-size:1.75rem;line-height:1.12;margin:.3rem 0 .15rem;color:var(--ink)}
+.cp-by{font-style:italic;color:var(--ink-light);font-size:1rem}
+.cp-dek{margin:.7rem 0 0;font-size:.92rem;line-height:1.5;color:var(--ink-light)}
+.cp-toc{position:sticky;top:0;z-index:1;display:flex;flex-wrap:nowrap;gap:.4rem;overflow-x:auto;scrollbar-width:none;margin:0 -1.1rem;padding:.55rem 1.1rem;background:#fffaf2;border-bottom:1px solid var(--parchment-dark)}
+.cp-toc::-webkit-scrollbar{display:none}
+.cp-toc button{flex:none;min-height:48px;padding:0 .9rem;border-radius:24px;border:1px solid var(--parchment-dark);background:transparent;color:var(--ink-light);font:600 .86rem/1 'Lora',Georgia,serif;cursor:pointer;white-space:nowrap}
+.cp-toc button.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.cp-sec{scroll-margin-top:4.4rem;display:flex;align-items:baseline;gap:.6rem;margin:2rem 0 .8rem}
+.cp-num{font-family:'Playfair Display',serif;font-size:.85rem;font-weight:700;color:var(--gold);letter-spacing:.04em;min-width:1.4rem}
+.cp-sec-t{font-family:'Playfair Display',serif;font-size:1.28rem;line-height:1.2;margin:0;color:var(--ink);font-weight:700}
+.cp-body p,.cp-p{margin:0 0 .85rem;font-size:1rem;line-height:1.7;color:var(--ink)}
+.cp-body p:last-child{margin-bottom:0}
+.cp-lede::first-letter{float:left;font-family:'Playfair Display',serif;font-size:3.1rem;line-height:.85;padding:.3rem .45rem 0 0;color:var(--burgundy);font-weight:700}
+.cp-small{display:block;font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.1em;color:#8a6a1e;margin-bottom:.15rem}
+.cp-small.warn{color:var(--burgundy)}
+.cp-tl{list-style:none;margin:0;padding:0 0 0 1.9rem;position:relative}
+.cp-tl::before{content:'';position:absolute;left:.62rem;top:.4rem;bottom:.4rem;width:2px;background:var(--parchment-dark)}
+.cp-tl li{position:relative;padding-bottom:1.35rem}
+.cp-tl li:last-child{padding-bottom:0}
+.cp-dot{position:absolute;left:-1.9rem;top:.05rem;width:1.3rem;height:1.3rem;border-radius:50%;background:#fffaf2;border:2px solid var(--ink);color:var(--ink);font:700 .68rem/1.15rem 'Playfair Display',serif;text-align:center}
+.cp-mt{font-family:'Playfair Display',serif;font-weight:700;font-size:1.06rem;line-height:1.3;color:var(--ink)}
+.cp-where{display:block;font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.08em;color:var(--ink-faint);margin:.1rem 0 .3rem}
+.cp-tl p{margin:.25rem 0 0;font-size:.98rem;line-height:1.65}
+.cp-note{margin:.55rem 0 0;padding-left:.75rem;border-left:2px solid var(--gold);font-size:.93rem;line-height:1.6;color:var(--ink-light);font-style:italic}
+.cp-note.warn{border-left-color:var(--burgundy)}
+.cp-steps{list-style:none;margin:0;padding:0;counter-reset:step}
+.cp-steps li{counter-increment:step;padding:1rem 0;border-top:1px solid var(--parchment-dark)}
+.cp-steps li:first-child{border-top:0;padding-top:0}
+.cp-steps li::before{content:'Step ' counter(step);display:block;font-family:'IM Fell English SC',serif;font-size:.74rem;letter-spacing:.12em;color:var(--gold)}
+.cp-claim{display:block;font-family:'Playfair Display',serif;font-size:1.12rem;line-height:1.35;margin:.15rem 0 .4rem;color:var(--ink)}
+.cp-steps p{margin:0;font-size:.98rem;line-height:1.65}
+.cp-entries>div{padding:.9rem 0;border-top:1px solid var(--parchment-dark)}
+.cp-entries>div:first-child{border-top:0;padding-top:0}
+.cp-et{display:block;font-family:'Playfair Display',serif;font-weight:700;font-size:1.04rem;margin-bottom:.25rem;color:var(--ink)}
+.cp-entries p{margin:0;font-size:.98rem;line-height:1.65}
+.cp-voice .cp-et{font-family:'IM Fell English SC',serif;font-weight:400;font-size:.9rem;letter-spacing:.06em;color:#8a6a1e}
+.cp-pm{list-style:none;margin:0;padding:0}
+.cp-pm li{position:relative;padding:0 0 .7rem 2rem;font-size:.98rem;line-height:1.6}
+.cp-pm li::before{position:absolute;left:0;top:.1rem;width:1.3rem;height:1.3rem;border-radius:50%;font:700 .9rem/1.3rem Georgia,serif;text-align:center;color:#fff}
+.cp-pm.up li::before{content:'+';background:#2f7a4d}
+.cp-pm.down li::before{content:'\2212';background:var(--burgundy)}
+.cp-qs{list-style:none;margin:0;padding:0;counter-reset:q}
+.cp-qs li{counter-increment:q;position:relative;padding:0 0 .9rem 2.2rem;font-family:'Playfair Display',serif;font-style:italic;font-size:1.04rem;line-height:1.5;color:var(--ink)}
+.cp-qs li::before{content:counter(q);position:absolute;left:0;top:-.15rem;font-size:1.5rem;font-weight:700;font-style:normal;color:var(--gold)}
+.cp-foot{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--gold);text-align:center}
+.cp-foot p{font-size:.85rem;color:var(--ink-faint);margin:.5rem 0 0;line-height:1.5}
+.cp-redo{min-height:48px;padding:0 1.2rem;border-radius:24px;border:1px solid var(--ink-faint);background:transparent;color:var(--ink);font:600 .92rem 'Lora',Georgia,serif;cursor:pointer}
+.cp-redo.armed{background:var(--burgundy);border-color:var(--burgundy);color:#fff}
 .mm-take{margin:1rem 1rem 2.5rem;padding:.9rem 1rem;background:var(--cream);border:1.5px solid var(--gold);border-radius:14px}
 .mm-take-h{font-family:'Playfair Display',serif;font-weight:700;color:#8a6a1e;font-size:1rem}
 .mm-take-q{font-style:italic;margin:.4rem 0 0;line-height:1.5;color:var(--ink)}
@@ -7253,56 +7282,71 @@ function mmSourceList(sources){
 }
 
 // ── The Companion sheet ──
-// Section order and labels per form. Each entry: [field, label, renderer].
+// Laid out like a long-form reading guide: a title block, a sticky contents
+// bar that follows the reader, numbered sections, and typography doing the
+// work boxes did before. Section order and titles follow the book's form.
 function companionSections(form){
   const A=form==='argument',F=form==='fiction';
   return [
-    ['overview',A?'WHAT IT ARGUES':F?'WHAT KIND OF BOOK THIS IS':'WHAT IT IS'],
-    ...(F?[['moments','CENTRAL MOMENTS']]:[]),
-    ...(A?[['context','WHEN, WHY, FOR WHOM'],['argument','THE ARGUMENT, STEP BY STEP'],['moments','KEY PASSAGES']]
-      :form==='narrative'?[['moments','KEY EPISODES'],['argument','THE ARGUMENT UNDERNEATH']]:[]),
-    ['themes',A?'THEMES IT RETURNS TO':'THEMES, TRACED'],
-    ...(F?[['arcs','CHARACTER ARCS']]:[]),
-    ['craft',A?'FORM & RHETORIC':F?'CRAFT':'HOW IT’S TOLD — AND HOW RELIABLE'],
-    ...(F?[['ending','THE ENDING, AND HOW IT’S READ']]:[]),
-    ...(A?[]:[['context','CONTEXT']]),
-    ['strengths','WHERE IT’S STRONGEST'],
-    ['weaknesses','WHERE IT’S WEAKEST'],
-    ['conversation','THE CRITICAL CONVERSATION'],
-    ['holdsUp',A?'HOW IT HOLDS UP':'HOW IT READS NOW'],
-    ['questions',A?'QUESTIONS TO ARGUE WITH':'QUESTIONS TO SIT WITH']
+    ['overview',A?'What it argues':F?'What kind of book this is':'What it is'],
+    ...(F?[['moments','Central moments']]:[]),
+    ...(A?[['context','When, why, for whom'],['argument','The argument, step by step'],['moments','Key passages']]
+      :form==='narrative'?[['moments','Key episodes'],['argument','The argument underneath']]:[]),
+    ['themes',A?'Themes it returns to':'Themes, traced'],
+    ...(F?[['arcs','Character arcs']]:[]),
+    ['craft',A?'Form & rhetoric':F?'Craft':'How it’s told — and how reliable'],
+    ...(F?[['ending','The ending, and how it’s read']]:[]),
+    ...(A?[]:[['context','Context']]),
+    ['strengths','Where it’s strongest'],
+    ['weaknesses','Where it’s weakest'],
+    ['conversation','The critical conversation'],
+    ['holdsUp',A?'How it holds up':'How it reads now'],
+    ['questions',A?'Questions to argue with':'Questions to sit with']
   ];
 }
+// Short names for the contents bar.
+const CP_TOC={overview:'Overview',moments:'Moments',context:'Context',argument:'Argument',themes:'Themes',arcs:'Characters',
+  craft:'Craft',ending:'Ending',strengths:'Strengths',weaknesses:'Weaknesses',conversation:'Critics',holdsUp:'Today',questions:'Questions'};
 function companionBlock(field,c){
   const v=c[field];
-  const card=(cls,head,...rest)=>{const d=vEl('div','cp-card '+cls);if(head)d.append(head);d.append(...rest.filter(Boolean));return d;};
-  const p=(t,cls)=>t?vEl('p',cls||'mm-s-p',t):null;
-  const lab=(t,cls)=>vEl('span','cp-lab'+(cls?' '+cls:''),t);
+  const p=(t,cls)=>t?vEl('p',cls||null,t):null;
+  const note=(label,text,warn)=>{if(!text)return null;const d=vEl('p','cp-note'+(warn?' warn':''));d.append(vEl('span','cp-small'+(warn?' warn':''),label),document.createTextNode(text));return d;};
+  const kids=(el,...xs)=>{el.append(...xs.filter(Boolean));return el;};
   switch(field){
-    case 'overview':{const d=vEl('div');d.append(...v.map(t=>vEl('p','mm-s-p sm-para',t)));return d;}
-    case 'moments':{const ol=vEl('ol','cp-moments');for(const m of v){const li=vEl('li');const h=vEl('div','cp-mh');h.append(vEl('b',null,m.title));if(m.where)h.append(vEl('span','cp-where',m.where));li.append(h,p(m.text));if(m.why){const w=vEl('p','cp-why');w.append(lab('Why it matters'),document.createTextNode(m.why));li.append(w);}ol.append(li);}return ol;}
-    case 'argument':{const ol=vEl('ol','cp-arg');for(const a of v){const li=vEl('li');li.append(vEl('b','cp-claim',a.claim),p(a.support));if(a.gap){const g=vEl('p','cp-gap');g.append(lab('Where it leaps','warn'),document.createTextNode(a.gap));li.append(g);}ol.append(li);}return ol;}
-    case 'themes':{const d=vEl('div','cp-stack');for(const t of v){const rd=t.readings?vEl('p','cp-why'):null;if(rd)rd.append(lab('How readers differ'),document.createTextNode(t.readings));d.append(card('theme',vEl('b','cp-h',t.title),p(t.text),rd));}return d;}
-    case 'arcs':{const d=vEl('div','cp-stack');for(const a of v)d.append(card('arc',vEl('b','cp-h',a.name),p(a.text)));return d;}
-    case 'strengths':case 'weaknesses':{const ul=vEl('ul','cp-list '+(field==='strengths'?'up':'down'));for(const t of v)ul.append(vEl('li',null,t));return ul;}
-    case 'conversation':{const d=vEl('div','cp-stack');for(const x of v)d.append(card('voice',vEl('b','cp-h',x.who),p(x.text)));return d;}
+    case 'overview':{const d=vEl('div','cp-body');v.forEach((t,i)=>d.append(vEl('p',i===0?'cp-lede':null,t)));return d;}
+    case 'moments':{
+      const kind=c.form==='argument';
+      const ol=vEl('ol','cp-tl cp-moments');
+      v.forEach((m,i)=>{const li=vEl('li');li.append(vEl('span','cp-dot',String(i+1)),vEl('span','cp-mt',m.title));if(m.where)li.append(vEl('span','cp-where',m.where));kids(li,p(m.text),note(kind?'What it does':'Why it matters',m.why));ol.append(li);});
+      return ol;}
+    case 'argument':{const ol=vEl('ol','cp-steps cp-arg');for(const a of v)ol.append(kids(vEl('li'),vEl('b','cp-claim',a.claim),p(a.support),note('Where it leaps',a.gap,true)));return ol;}
+    case 'themes':{const d=vEl('div','cp-entries');for(const t of v)d.append(kids(vEl('div'),vEl('b','cp-et',t.title),p(t.text),note('How readers differ',t.readings)));return d;}
+    case 'arcs':{const d=vEl('div','cp-entries');for(const a of v)d.append(kids(vEl('div'),vEl('b','cp-et',a.name),p(a.text)));return d;}
+    case 'conversation':{const d=vEl('div','cp-entries cp-voice');for(const x of v)d.append(kids(vEl('div'),vEl('b','cp-et',x.who),p(x.text)));return d;}
+    case 'strengths':case 'weaknesses':{const ul=vEl('ul','cp-pm '+(field==='strengths'?'up':'down'));for(const t of v)ul.append(vEl('li',null,t));return ul;}
     case 'questions':{const ol=vEl('ol','cp-qs');for(const q of v)ol.append(vEl('li',null,q));return ol;}
-    case 'ending':return vEl('div','sm-end',v);
-    default:return p(v);
+    default:return kids(vEl('div','cp-body'),p(v));
   }
 }
+const CP_FORM_LABEL={argument:'An essay in argument',fiction:'A novel',narrative:'Narrative nonfiction'};
+const CP_DEK={argument:'The argument taken apart, the passages that carry it, its context, and how critics have answered it.',
+  fiction:'The moments the story turns on, the themes running through them, how it’s made, and how it’s been read.',
+  narrative:'The episodes that matter, the argument beneath them, how reliable the telling is, and how it’s been received.'};
 function showMindmapCompanion(){
   const rec=mmRecord(_mm&&_mm.bookId);if(!rec)return;
   const c=rec.map.companion,b=mmBook(_mm.bookId);
   const title=String(b?.title||'').split(/\s*:\s/)[0];
-  const kids=[vEl('div','mm-s-kind','COMPANION'),vEl('h2','mm-s-title',`Reading ${title} closely`)];
+  const has=!!localStorage.getItem(SK.api);
+  const head=vEl('div','cp-head');
+  head.append(vEl('div','cp-kicker',c?`COMPANION · ${CP_FORM_LABEL[c.form].toUpperCase()}`:'COMPANION'),vEl('h2','cp-title mm-s-title',title));
+  if(b?.author)head.append(vEl('div','cp-by',b.author));
   if(!c){
-    const has=!!localStorage.getItem(SK.api);
-    kids.push(vEl('p','mm-s-p',has
+    head.append(vEl('p','cp-dek',has
       ?(rec.map.kind==='nonfiction'
         ?'A close reading of the book: its argument step by step, where it’s strong and where it leaps, its context, and the critical conversation around it. Claude writes it in one longer request — about a minute, 10–20¢.'
         :'A close reading of the book: its central moments in order, its themes traced through them, the characters’ arcs, the craft, how the ending is read, and the critical conversation around it. Claude writes it in one longer request — about a minute, 10–20¢.')
       :'Add your Anthropic API key in Settings and Claude can write a Companion: a close, critical reading of the book.'));
+    const kids=[head];
     if(has){
       const go=vEl('button','mm-create','Write the Companion');go.type='button';go.id='mmCpCreate';
       const st=vEl('p','mm-status');st.id='mmCpStatus';
@@ -7311,21 +7355,45 @@ function showMindmapCompanion(){
     }
     openMindmapSheet(kids);return;
   }
+  head.append(vEl('p','cp-dek',CP_DEK[c.form]));
   const secs=companionSections(c.form).filter(([f])=>Array.isArray(c[f])?c[f].length:c[f]);
-  // Contents: a long read needs a way to jump.
-  const toc=vEl('div','mm-s-chips cp-toc');
-  const blocks=[];
+  const toc=vEl('nav','cp-toc');toc.setAttribute('aria-label','Sections');
+  const blocks=[],heads=[];
   secs.forEach(([f,label],i)=>{
-    const h=vEl('div','mm-s-lbl cp-sec',label);h.id='cp-'+f;
-    blocks.push(h,companionBlock(f,c));
-    const chip=vEl('button','mm-chip',label.charAt(0)+label.slice(1).toLowerCase());chip.type='button';
+    const h=vEl('div','cp-sec');h.id='cp-'+f;
+    h.append(vEl('span','cp-num',String(i+1).padStart(2,'0')),vEl('h3','cp-sec-t',label));
+    blocks.push(h,companionBlock(f,c));heads.push(h);
+    const chip=vEl('button','mm-chip',CP_TOC[f]);chip.type='button';chip.dataset.sec=f;
     chip.addEventListener('click',()=>h.scrollIntoView({behavior:'smooth',block:'start'}));
     toc.append(chip);
   });
-  kids.push(toc,...blocks);
-  if(c.sources.length)kids.push(vEl('div','mm-s-lbl','SOURCES'),mmSourceList(c.sources));
+  const kids=[head,toc,...blocks];
+  if(c.sources.length){const h=vEl('div','cp-sec');h.append(vEl('span','cp-num','·'),vEl('h3','cp-sec-t','Sources'));kids.push(h,mmSourceList(c.sources));}
+  // Rewrite: two taps, like Remake — it replaces this Companion.
+  const foot=vEl('div','cp-foot');
+  if(has){
+    const redo=vEl('button','cp-redo','↻ Rewrite this Companion');redo.type='button';redo.id='mmCpRedo';
+    let armed=false,t=0;
+    redo.addEventListener('click',()=>{
+      if(!armed){armed=true;redo.classList.add('armed');redo.textContent='Tap again to rewrite';t=setTimeout(()=>{armed=false;redo.classList.remove('armed');redo.textContent='↻ Rewrite this Companion';},4000);return;}
+      clearTimeout(t);redo.disabled=true;redo.classList.remove('armed');
+      const st=vEl('p','mm-status');st.id='mmCpStatus';foot.append(st);
+      generateCompanion(_mm.bookId);
+    });
+    foot.append(redo,vEl('p',null,'Claude writes a fresh one, looking up reviews and criticism as it goes. About a minute, 10–20¢.'));
+  }
+  kids.push(foot);
   openMindmapSheet(kids);
-  document.getElementById('mmSheet').classList.add('cp-tall');
+  const sheet=document.getElementById('mmSheet');
+  sheet.classList.add('cp-tall');
+  // Light up the section being read.
+  const mark=()=>{
+    const top=sheet.getBoundingClientRect().top+90;let cur=heads[0];
+    for(const h of heads)if(h.getBoundingClientRect().top<=top)cur=h;
+    for(const ch of toc.children){const on=ch.dataset.sec===cur.id.slice(3);if(on!==ch.classList.contains('on')){ch.classList.toggle('on',on);if(on)ch.scrollIntoView({block:'nearest',inline:'center'});}}
+  };
+  sheet.onscroll=()=>{if(sheet.classList.contains('cp-tall'))mark();};
+  mark();
 }
 
 const COMPANION_SHAPE=`{"form":"argument | fiction | narrative",
@@ -7381,6 +7449,7 @@ async function generateCompanion(bookId){
     const st2=document.getElementById('mmCpStatus'),b2=document.getElementById('mmCpCreate');
     clearInterval(timer);
     if(st2)st2.textContent=`Couldn’t write it (${e.message}). Try again.`;if(b2)b2.disabled=false;
+    const r2=document.getElementById('mmCpRedo');if(r2){r2.disabled=false;r2.textContent='↻ Rewrite this Companion';}
   }finally{clearInterval(timer);}
 }
 
@@ -7418,7 +7487,7 @@ async function generateSummary(bookId){
 
 function openMindmapSheet(kids){
   const s=document.getElementById('mmSheet');
-  s.classList.remove('cp-tall');
+  s.classList.remove('cp-tall');s.onscroll=null;
   s.replaceChildren(vEl('div','mm-grip'),...kids);
   s.scrollTop=0;
   s.style.display='block';

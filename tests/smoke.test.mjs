@@ -2896,10 +2896,12 @@ test('the Companion is written on request, laid out by form, and survives a rema
   assert.match(req.messages[0].content, /"moments":/);
   assert.doesNotMatch(req.messages[0].content, /Lucy danced|Lovely and kind/);
   assert.equal(req.tools?.[0]?.name, 'web_search');
-  const labels = await page.locator('#mmSheet .cp-sec').allTextContents();
-  assert.deepEqual(labels.slice(0, 3), ['WHAT KIND OF BOOK THIS IS', 'CENTRAL MOMENTS', 'THEMES, TRACED']);
-  assert.ok(labels.includes('CHARACTER ARCS') && labels.includes('THE CRITICAL CONVERSATION'));
-  assert.ok(!labels.some(l => /ARGUMENT/.test(l)), 'no empty argument section for a novel');
+  const labels = await page.locator('#mmSheet .cp-sec-t').allTextContents();
+  assert.deepEqual(labels.slice(0, 3), ['What kind of book this is', 'Central moments', 'Themes, traced']);
+  assert.ok(labels.includes('Character arcs') && labels.includes('The critical conversation'));
+  assert.ok(!labels.some(l => /argument/i.test(l)), 'no empty argument section for a novel');
+  assert.match(await page.textContent('#mmSheet .cp-kicker'), /A NOVEL/);
+  assert.equal(await page.textContent('#mmSheet .cp-num >> nth=0'), '01');
   assert.equal(await page.locator('#mmSheet .cp-moments li').count(), 2);
   assert.equal(await page.locator('#mmSheet .cp-toc .mm-chip').count(), labels.length, 'contents chips for each section');
   assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'Linus is summoned');
@@ -2923,9 +2925,10 @@ test('an essay’s Companion leads with its argument, and leaps are marked', asy
     mindmapDB = { b1: { map, createdAt: 1, updatedAt: 1, seen: [] } }; save(SK.maps, mindmapDB);
     openMindmap('b1'); showMindmapCompanion();
   }, JSON.parse(MAP_REPLY));
-  const labels = await page.locator('#mmSheet .cp-sec').allTextContents();
-  assert.deepEqual(labels, ['WHAT IT ARGUES', 'WHEN, WHY, FOR WHOM', 'THE ARGUMENT, STEP BY STEP', 'KEY PASSAGES']);
+  const labels = await page.locator('#mmSheet .cp-sec-t').allTextContents();
+  assert.deepEqual(labels, ['What it argues', 'When, why, for whom', 'The argument, step by step', 'Key passages']);
   assert.match(await page.textContent('#mmSheet .cp-arg'), /Where it leaps\s*Says little about institutions/);
+  assert.deepEqual(await page.locator('#mmSheet .cp-toc button').allTextContents(), ['Overview', 'Context', 'Argument', 'Moments']);
   await ctx.close();
 });
 
@@ -2946,5 +2949,25 @@ test('a "key moment" deep dive: recall, reveal, rate, and open the Companion', a
   await sheet.locator('text=Open the Companion').click();
   await page.locator('#mmSheet .cp-moments').waitFor();
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a Companion can be rewritten with two taps, and a failed rewrite keeps the old one', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [textReply(MAP_REPLY), textReply(JSON.stringify(COMPANION)), { status: 529, body: { error: { message: 'Overloaded' } } },
+    textReply(JSON.stringify({ ...COMPANION, moments: [{ title: 'A new moment', text: 'Rewritten.' }] }))]);
+  await makeMap(page);
+  await page.click('#mmCompanionBtn'); await page.click('#mmCpCreate');
+  await page.locator('#mmSheet .cp-moments').waitFor();
+  await page.click('#mmCpRedo');
+  assert.match(await page.textContent('#mmCpRedo'), /Tap again/, 'one tap only arms it');
+  assert.equal((await page.evaluate(() => window.__reqs)).length, 2);
+  await page.click('#mmCpRedo');
+  await page.locator('#mmCpStatus', { hasText: 'Couldn’t write it' }).waitFor();
+  assert.equal((await storedMaps(page)).b1.map.companion.moments.length, 2, 'the old one is kept');
+  await page.click('#mmCpRedo'); await page.click('#mmCpRedo');
+  await page.locator('#mmSheet .cp-mt', { hasText: 'A new moment' }).waitFor();
+  assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'A new moment');
   await ctx.close();
 });
