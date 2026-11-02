@@ -671,8 +671,10 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .hl-crop{display:block;max-width:100%;max-height:30vh;margin:0 auto .5rem;border-radius:4px;box-shadow:0 2px 10px rgba(0,0,0,.45)}
 #hlModal .btn-secondary{color:var(--parchment);background:transparent;border-color:#4a5d80} /* the default is styled for parchment, near-invisible here */
 #hlConfirm .fg label{color:#b9c3d8}
-.hl-books{margin:0 0 .8rem}
-.hl-books-label{font-size:.85rem;color:#b9c3d8;margin:0 0 .4rem}
+.hl-books{margin:0 0 .9rem;border-radius:12px}
+.hl-books.hl-need{box-shadow:0 0 0 2px #e0b04a;padding:.4rem .5rem}
+.hl-books-label{display:block;font-size:.80rem;font-weight:500;color:#b9c3d8;margin:0 0 .35rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em}
+.hl-books-note{font-size:.85rem;color:#b9c3d8;margin:0 0 .4rem}
 .hl-books-row{display:flex;flex-wrap:wrap;gap:.45rem}
 .hl-bookchip{min-height:44px;padding:0 .9rem;border-radius:22px;border:1px solid #4a5d80;background:transparent;color:#dfe5f0;font-family:'Playfair Display',serif;font-size:.95rem;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hl-bookchip.on{border-color:#d6ae4c;background:rgba(47,82,145,.45);color:#fff;box-shadow:inset 0 0 0 1px #d6ae4c}
@@ -1547,7 +1549,6 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
 
     <div id="hlConfirm" style="display:none">
-      <div id="hlBooks" class="hl-books" style="display:none"></div>
       <img id="hlCrop" class="hl-crop" alt="The marked passage">
       <p class="hl-hint" id="hlStatus"></p>
       <div class="fg"><label for="hlText">Passage</label><textarea id="hlText" rows="6"></textarea></div>
@@ -1555,6 +1556,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
         <div class="fg" style="flex:0 0 6.5rem"><label for="hlPage">Page</label><input type="text" id="hlPage" inputmode="numeric" placeholder="—"></div>
         <div class="fg" style="flex:1" id="hlNoteWrap"><label for="hlNote">Note (optional)</label><input type="text" id="hlNote" placeholder="Why it stood out"></div>
       </div>
+      <div id="hlBooks" class="hl-books" style="display:none"></div>
       <div class="hl-choose" id="hlChoose" role="group" aria-label="What to do with this passage">
         <button type="button" class="hl-choice on" id="hlChoiceHl" aria-pressed="true"><b>✦ Highlight</b><small>Keep the passage in your journal</small></button>
         <button type="button" class="hl-choice" id="hlChoiceWords" aria-pressed="false"><b>Aa Words</b><small>Pick words to learn from it</small></button>
@@ -2927,6 +2929,7 @@ function highlightStep(step){
 // rest in a menu. Built with createElement — titles are user data.
 function renderHlBooks(){
   const box=document.getElementById('hlBooks');
+  if(!_hl||_hl.bookId)box.classList.remove('hl-need');
   if(!_hl||!_hl.pickBook){box.style.display='none';box.replaceChildren();return;}
   const owned=books.filter(b=>b.status!=='wishlist');
   const reading=owned.filter(b=>b.status==='reading');
@@ -2937,7 +2940,7 @@ function renderHlBooks(){
     document.getElementById('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
     renderHlBooks();
   };
-  const label=vEl('p','hl-books-label',owned.length?'Which book?':'No books yet — words can still be saved; a highlight needs a book.');
+  const label=owned.length?vEl('span','hl-books-label','Book'):vEl('p','hl-books-note','No books yet — words can still be saved; a highlight needs a book.');
   const row=vEl('div','hl-books-row');
   for(const b of reading){
     const c=vEl('button','hl-bookchip'+(b.id===_hl.bookId?' on':''),b.title||'Untitled');
@@ -3166,7 +3169,7 @@ function storeHighlight(){
   const page=document.getElementById('hlPage').value.trim();
   const note=document.getElementById('hlNote').value.trim();
   const id=_hl.bookId,now=new Date();
-  if(!id){toast('Choose which book this is from first.','err');document.getElementById('hlBooks').scrollIntoView({block:'center'});return false;}
+  if(!id){toast('Choose which book this is from first.','err');const hb=document.getElementById('hlBooks');hb.scrollIntoView({block:'center'});hb.classList.add('hl-need');return false;}
   const entry={date:localDateStr(now),time:now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),type:'highlight',text};
   if(page)entry.page=page;
   if(note)entry.note=note;

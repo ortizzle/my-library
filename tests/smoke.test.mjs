@@ -1089,11 +1089,17 @@ test('reading two books: choose which before the highlight saves', async () => {
   assert.deepEqual(await page.$$eval('#hlBooks .hl-bookchip', els => els.map(e => e.textContent)), ['Piranesi', 'Dune']);
   assert.deepEqual(await page.$$eval('#hlBooks select option', els => els.map(e => e.textContent)),
                    ['Another book…', 'Middlemarch'], 'the rest in a menu — never the wishlist');
+  const order = await page.evaluate(() => ['hlText', 'hlPage', 'hlBooks', 'hlChoose'].map(id => document.getElementById(id))
+    .every((el, i, a) => i === 0 || (a[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)));
+  assert.ok(order, 'the book sits with the passage and page, above the choices');
+  assert.equal(await page.textContent('#hlBooks .hl-books-label'), 'Book');
   await page.fill('#hlText', 'Fear is the mind-killer.');
   await page.click('#hlSave');
   assert.equal(await page.isVisible('#hlModal'), true, 'not saved without a book');
+  assert.ok(await page.evaluate(() => document.getElementById('hlBooks').classList.contains('hl-need')), 'and the book picker is marked');
   assert.deepEqual(await page.evaluate(() => Object.keys(journalDB)), []);
   await page.click('#hlBooks .hl-bookchip:text-is("Dune")');
+  assert.ok(!(await page.evaluate(() => document.getElementById('hlBooks').classList.contains('hl-need'))));
   await page.click('#hlSave');
   assert.equal((await page.evaluate(() => journalDB.r2))[0].text, 'Fear is the mind-killer.');
   await ctx.close();
