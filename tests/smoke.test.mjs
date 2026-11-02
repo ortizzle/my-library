@@ -1314,19 +1314,36 @@ test('a word is defined by Claude in the sense the book uses it, and saved', asy
   await ctx.close();
 });
 
-test('without a key, Save looks the word up in the dictionary first', async () => {
+// Two books, neither being read, so the editor can't guess which one.
+const seedTwoBooks = page => page.evaluate(() => {
+  books = [{ id: 'k1', title: 'Kindred', author: 'Octavia Butler', status: 'read', addedAt: 1, updatedAt: 1 },
+           { id: 'k2', title: 'Piranesi', author: 'Susanna Clarke', status: 'read', addedAt: 1, updatedAt: 1 }];
+  save(SK.books, books);
+});
+
+test('a word can’t be saved until its book is chosen', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   const hits = await stubDictionary(page, { ephemeral: { pos: 'adjective', definition: 'Lasting a very short time.' } });
+  await seedTwoBooks(page);
   await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  assert.equal(await page.inputValue('#vocabBook'), '');
+  assert.match(await page.textContent('#vocabBook option:first-child'), /Choose the book/);
+  const row = await page.evaluate(() => document.getElementById('vocabBook').closest('.fg').parentElement.contains(document.getElementById('vocabPage')));
+  assert.ok(row, 'Book sits beside Page');
   await page.fill('#vocabWord', 'Ephemeral');
   await page.click('#vocabSaveBtn');
+  assert.match(await page.textContent('#vocabStatus'), /Choose which book/);
+  assert.ok(await page.evaluate(() => document.getElementById('vocabBook').classList.contains('voc-need')));
+  assert.equal((await storedVocab(page)).length, 0, 'nothing saved');
+  assert.deepEqual(hits, [], 'and nothing looked up yet');
+  await page.selectOption('#vocabBook', 'k2');
+  assert.ok(!(await page.evaluate(() => document.getElementById('vocabBook').classList.contains('voc-need'))));
+  await page.click('#vocabSaveBtn');
   await page.waitForFunction(() => vocabDB.length === 1);
-  assert.deepEqual(hits, ['ephemeral']);
+  assert.deepEqual(hits, ['ephemeral'], 'Save looks the word up first when there is no definition');
   const [w] = await storedVocab(page);
   assert.equal(w.definition, 'Lasting a very short time.');
-  assert.equal(w.pos, 'adjective');
-  assert.equal(w.bookId, '', 'a word does not need a book');
-  assert.match(await page.textContent('#vocabList'), /Other words/);
+  assert.equal(w.bookId, 'k2');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -1334,7 +1351,8 @@ test('without a key, Save looks the word up in the dictionary first', async () =
 test('a word no one can define stays open to type a definition', async () => {
   const { ctx, page } = await openApp(browser, base);
   await stubDictionary(page, {});
-  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await seedTwoBooks(page);
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, 'k1'); });
   await page.fill('#vocabWord', 'flibbertigibbetish');
   await page.click('#vocabSaveBtn');
   await page.waitForFunction(() => /Couldn't find/.test(document.getElementById('vocabStatus').textContent));
@@ -1691,10 +1709,9 @@ test('a word from a photo: read the page, tap the word, keep the dictionary form
   await page.click('#wordPickText .wp-word:text-is("obfuscating")');
   assert.equal(await page.isVisible('#hlModal'), false, 'the photo is done');
   assert.equal(await page.isVisible('#wordPick'), false);
-  assert.equal(await page.inputValue('#vocabWord'), 'obfuscating');
   assert.equal(await page.inputValue('#vocabSentence'), passage);
 
-  await page.click('#vocabDefineBtn');
+  // No Define tap: a picked word is looked up as soon as the editor opens.
   await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');
   assert.equal(await page.inputValue('#vocabWord'), 'obfuscate', 'saved under its dictionary form');
   assert.match(await page.textContent('#vocabStatus'), /dictionary form of “obfuscating”/);
@@ -1776,7 +1793,8 @@ test('Define fills in the pronunciation, and the recording is kept with the word
   const calls = await stubClaude(page, '{"headword":"lugubrious","syll":"lu·gu·bri·ous","pron":"lu̇-ˈgü-brē-əs","pos":"adjective","definition":"Gloomy."}');
   await stubDictionary(page, { lugubrious: { phonetic: '/ləˈɡuːbriəs/', audio: 'https://api.dictionaryapi.dev/media/pronunciations/en/lugubrious-us.mp3' } });
   await captureSpeech(page);
-  await page.evaluate(() => { showView('vocab'); openVocabWord(null, null); });
+  await seedTwoBooks(page);
+  await page.evaluate(() => { showView('vocab'); openVocabWord(null, 'k1'); });
   await page.fill('#vocabWord', 'lugubrious');
   await page.click('#vocabDefineBtn');
   await page.waitForFunction(() => document.getElementById('vocabDef').value !== '');

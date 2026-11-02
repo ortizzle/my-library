@@ -473,6 +473,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .voc-btn{min-height:48px}
 .voc-x{min-width:48px;min-height:48px}
 .voc-opt{font-style:italic;font-size:.77rem;color:var(--ink-faint);font-family:'Lora',serif;letter-spacing:0}
+.voc-need{border-color:var(--burgundy)!important;box-shadow:0 0 0 3px rgba(122,30,40,.18)}
 .voc-status{font-size:.85rem;color:var(--ink-light);font-style:italic;min-height:1.1em;margin:-.2rem 0 .6rem}
 .voc-status.err{color:var(--burgundy);font-style:normal}
 .voc-progress{font-size:.81rem;color:var(--ink-faint);margin:.2rem 0 0}
@@ -1430,15 +1431,15 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <button class="modal-close voc-x" id="vocabModalClose" aria-label="Close">✕</button>
   </div>
   <div class="modal-body">
-    <div class="fg"><label for="vocabBook">Book</label><select id="vocabBook"></select></div>
     <button type="button" class="btn btn-secondary voc-photo" id="vocabPhotoBtn">📷 Pick it from a photo of the page</button>
     <div class="fg"><label for="vocabWord">Word</label><div class="voc-word-row"><input type="text" id="vocabWord" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="e.g. lugubrious"><button type="button" class="voc-speak" id="vocabSpeak" aria-label="Say the word" title="Say it">🔊</button></div></div>
     <div id="vocabDup" class="voc-dup" style="display:none"></div>
     <div class="fg"><label for="vocabSentence">The sentence you found it in <span class="voc-opt">(optional — sharpens the definition and the quiz)</span></label><textarea id="vocabSentence" rows="3"></textarea></div>
     <div style="display:flex;gap:.6rem;align-items:flex-end">
-      <div class="fg" style="flex:0 0 6.5rem"><label for="vocabPage">Page</label><input type="text" id="vocabPage" inputmode="numeric" placeholder="—"></div>
-      <button type="button" class="btn btn-gold voc-btn" id="vocabDefineBtn" style="flex:1;margin-bottom:.7rem;justify-content:center">✦ Define</button>
+      <div class="fg" style="flex:1;min-width:0"><label for="vocabBook">Book</label><select id="vocabBook"></select></div>
+      <div class="fg" style="flex:0 0 5.5rem"><label for="vocabPage">Page</label><input type="text" id="vocabPage" inputmode="numeric" placeholder="—"></div>
     </div>
+    <button type="button" class="btn btn-gold voc-btn" id="vocabDefineBtn" style="width:100%;margin-bottom:.7rem;justify-content:center">✦ Define</button>
     <p class="voc-status" id="vocabStatus" aria-live="polite"></p>
     <div style="display:flex;gap:.6rem">
       <div class="fg" style="flex:1;min-width:0"><label for="vocabPos">Part of speech</label><input type="text" id="vocabPos" placeholder="adjective"></div>
@@ -3574,6 +3575,7 @@ function initVocab(){
   $('vocabModal').addEventListener('click',e=>{if(e.target.id==='vocabModal')cancelVocabWord();});
   $('vocabView').addEventListener('click',e=>{if(e.target.id==='vocabView')closeVocabDetail();});
   $('vocabDefineBtn').addEventListener('click',()=>defineVocabWord(false));
+  $('vocabBook').addEventListener('change',e=>{if(e.target.value){e.target.classList.remove('voc-need');if(document.getElementById('vocabStatus').classList.contains('err'))setVocabStatus('');}});
   $('vocabSaveBtn').addEventListener('click',saveVocabWord);
   $('vocabDeleteBtn').addEventListener('click',deleteVocabWord);
   $('vocabWord').addEventListener('input',showVocabDup);
@@ -3707,7 +3709,7 @@ function fillVocabBookSelect(selected){
   const rest=owned.filter(b=>b.status!=='reading').sort((a,b)=>String(a.title).localeCompare(String(b.title)));
   const opt=(v,t)=>{const o=document.createElement('option');o.value=v;o.textContent=t;return o;};
   const group=(label,list)=>{const g=document.createElement('optgroup');g.label=label;g.append(...list.map(b=>opt(b.id,b.title||'Untitled')));return g;};
-  const kids=[opt('','No particular book')];
+  const kids=[opt('','Choose the book…')];
   if(reading.length)kids.push(group('Currently reading',reading));
   if(rest.length)kids.push(group(reading.length?'Other books':'Your books',rest));
   // A word whose book was since deleted keeps its link; don't silently drop it.
@@ -3744,9 +3746,12 @@ function openVocabWord(id,bookId,pre=null,back=false){
   $('vocabDeleteBtn').style.display=w?'inline-flex':'none';
   $('vocabDeleteBtn').textContent='🗑 Delete';
   $('vocabProgress').textContent=w?vocabProgressText(w):'';
-  if(!w&&pre&&pre.word)setVocabStatus('Check the word — trim it to its plain form if you like — then tap Define.');
   showVocabDup();
   $('vocabModal').style.display='flex';
+  $('vocabBook').classList.remove('voc-need');
+  // A word picked from a page is looked up straight away; the dictionary form
+  // replaces the book's spelling, and Define is there to look it up again.
+  if(!w&&pre&&pre.word&&!vocabFindDup(pre.word))defineVocabWord(false);
   // Focus now, not on a timer: a delayed focus can pull typing out of whichever
   // field the user has already moved on to.
   if(!w&&!(pre&&pre.word))$('vocabWord').focus();
@@ -3838,6 +3843,13 @@ function saveVocabWord(){
   const $=x=>document.getElementById(x);
   const word=$('vocabWord').value.trim().replace(/\s+/g,' ');
   if(!word){setVocabStatus('Type the word first.',true);$('vocabWord').focus();return;}
+  // Every word belongs to a book: it's where the page number and the sentence come from.
+  if(!$('vocabBook').value){
+    setVocabStatus('Choose which book this word is from.',true);
+    const sel=$('vocabBook');sel.classList.add('voc-need');sel.focus();
+    try{sel.showPicker&&sel.showPicker();}catch{}
+    return;
+  }
   const definition=$('vocabDef').value.trim();
   if(!definition){defineVocabWord(true);return;} // look it up, then save
   const dup=vocabFindDup(word,_vw.id);
