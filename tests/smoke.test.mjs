@@ -1076,6 +1076,30 @@ test('Capture page goes to marking the passage, for the one book being read', as
   await ctx.close();
 });
 
+test('picking words from a capture asks for the book first, too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }, { id: 'r2', title: 'Dune', status: 'reading' }]);
+  await fakeCamera(page);
+  await page.click('#fab');
+  await cameraLive(page);
+  await page.click('#lensShutter');
+  await page.waitForFunction(() => document.getElementById('hlMark').style.display === 'block');
+  await page.click('#hlRead');
+  await page.fill('#hlText', 'The beauty of the House is immeasurable.');
+  await page.click('#hlChoiceHl');      // highlight off
+  await page.click('#hlChoiceWords');   // words on
+  assert.match(await page.textContent('#hlSave'), /Pick words/);
+  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#wordPick'), false, 'no word picker without a book');
+  assert.ok(await page.evaluate(() => document.getElementById('hlBooks').classList.contains('hl-need')));
+  await page.click('#hlBooks .hl-bookchip:text-is("Piranesi")');
+  await page.click('#hlSave');
+  assert.equal(await page.isVisible('#wordPick'), true);
+  await page.click('#wordPickText .wp-word:text-is("immeasurable")');
+  assert.equal(await page.inputValue('#vocabBook'), 'r1', 'the word arrives with its book');
+  await ctx.close();
+});
+
 test('reading two books: choose which before the highlight saves', async () => {
   const { ctx, page } = await openApp(browser, base);
   await seedShelf(page, [{ id: 'r1', title: 'Piranesi', status: 'reading' }, { id: 'r2', title: 'Dune', status: 'reading' },

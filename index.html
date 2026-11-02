@@ -2940,7 +2940,7 @@ function renderHlBooks(){
     document.getElementById('hlBook').textContent=b?b.title+(b.author?' · '+b.author:''):'';
     renderHlBooks();
   };
-  const label=owned.length?vEl('span','hl-books-label','Book'):vEl('p','hl-books-note','No books yet — words can still be saved; a highlight needs a book.');
+  const label=owned.length?vEl('span','hl-books-label','Book'):vEl('p','hl-books-note','No books yet — add the book first; highlights and words both belong to one.');
   const row=vEl('div','hl-books-row');
   for(const b of reading){
     const c=vEl('button','hl-bookchip'+(b.id===_hl.bookId?' on':''),b.title||'Untitled');
@@ -3143,12 +3143,22 @@ function refreshPageChoice(){
   $('hlSave').disabled=!hl&&!w;
 }
 
+// A capture that picks its book: true (and says so) when none is chosen yet.
+function hlNeedsBook(){
+  if(!_hl||!_hl.pickBook||_hl.bookId)return false;
+  const hb=document.getElementById('hlBooks');
+  hb.classList.add('hl-need');hb.scrollIntoView({block:'center'});
+  toast('Choose which book this is from first.','err');
+  return true;
+}
+
 function savePageCapture(){
   if(!_hl)return;
   const $=id=>document.getElementById(id);
   const hl=$('hlChoiceHl').classList.contains('on'),w=$('hlChoiceWords').classList.contains('on');
   const text=$('hlText').value.trim();
   if(!text){toast('The passage is empty.','err');$('hlText').focus();return;}
+  if(hlNeedsBook())return; // highlights and words both belong to a book
   if(hl){
     if(!storeHighlight())return;
     toast('Highlight saved ✦','ok');
@@ -3188,6 +3198,7 @@ function pickWordsFromHighlight(){
   if(!_hl)return;
   const text=document.getElementById('hlText').value.trim();
   if(!text){toast('There’s no passage to pick from yet.','err');document.getElementById('hlText').focus();return;}
+  if(hlNeedsBook())return;
   const session=_hl;
   openWordPicker(text,{bookId:session.bookId,page:document.getElementById('hlPage').value.trim(),
     multi:session.mode!=='word',
