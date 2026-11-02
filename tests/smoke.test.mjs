@@ -2971,3 +2971,21 @@ test('a Companion can be rewritten with two taps, and a failed rewrite keeps the
   assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'A new moment');
   await ctx.close();
 });
+
+test('the deep dive card shows the book cover, falling back to the emblem', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await page.route('https://covers.example/**', r => r.request().url().endsWith('ok.png')
+    ? r.fulfill({ status: 200, contentType: 'image/png', body: png }) : r.fulfill({ status: 404, body: '' }));
+  await seedDive(page, 'who');
+  assert.equal(await page.locator('#deepDiveCard .dd-badge img').count(), 0, 'no cover saved: the emblem');
+  await page.evaluate(() => { coversDB.b1 = 'https://covers.example/ok.png'; renderLogSession(); });
+  await page.locator('#deepDiveCard .dd-badge.cover img').waitFor();
+  await page.click('#deepDiveCard');
+  await page.locator('#ddSheet .dd-emb.cover img').waitFor();
+  await page.evaluate(() => { closeDeepDive(); coversDB.b1 = 'https://covers.example/broken.png'; renderLogSession(); });
+  await page.waitForFunction(() => !document.querySelector('#deepDiveCard .dd-badge img'));
+  assert.equal(await page.textContent('#deepDiveCard .dd-badge'), await page.evaluate(() => mindmapDB.b1.map.emblem), 'a broken image falls back');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

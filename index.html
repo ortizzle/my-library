@@ -311,6 +311,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .dd-card{width:100%;margin:.6rem 0 0;text-align:left;cursor:pointer;font:inherit}
 .dd-card.dd-done{opacity:.85}
 .dd-badge{background:#fffaf2!important;font-size:1.75rem}
+.dd-badge.cover{background:none!important;border-radius:6px;width:58px;height:84px;box-shadow:0 3px 10px rgba(0,0,0,.45);overflow:hidden}
+.dd-badge.cover img,.dd-emb.cover img{width:100%;height:100%;object-fit:cover;display:block}
+.dd-emb.cover{border-radius:4px;width:36px;height:52px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .dd-scrim{position:fixed;inset:0;background:rgba(15,26,46,.55);z-index:8400}
 .dd-sheet{position:fixed;left:0;right:0;bottom:0;max-height:88vh;overflow-y:auto;z-index:8401;background:#fffaf2;border-radius:18px 18px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.35);animation:su .2s ease;padding-bottom:env(safe-area-inset-bottom)}
 .dd-sheet .mm-grip{margin:.5rem auto .5rem}
@@ -7833,7 +7836,7 @@ function deepDiveCard(){
   const rec=mindmapDB[q.bookId],book=books.find(b=>b.id===q.bookId);
   const streak=deepDiveStreak(ddState().days,localDateStr());
   const card=vEl('button','vn vn-due dd-card'+(q.done?' dd-done':''));card.type='button';card.id='deepDiveCard';
-  const badge=vEl('span','vn-badge dd-badge',rec.map.emblem);
+  const badge=ddCoverBadge(vEl('span','vn-badge dd-badge',rec.map.emblem),q.bookId,rec.map.emblem);
   const text=vEl('span','vn-text');
   const head=vEl('span','vn-kicker');
   head.append(vEl('span',null,q.done?'DAILY DEEP DIVE ✓':'DAILY DEEP DIVE'));
@@ -7846,6 +7849,16 @@ function deepDiveCard(){
   card.append(badge,text,vEl('span','vn-go',q.done?'See ›':'Play ›'));
   card.addEventListener('click',()=>openDeepDive());
   return card;
+}
+
+// The book's cover in place of the map's emblem, when there is one; the
+// emblem comes back if the image doesn't load.
+function ddCoverBadge(el,bookId,emblem){
+  const url=coversDB[bookId];if(!url)return el;
+  const img=document.createElement('img');img.src=url;img.alt='';
+  img.addEventListener('error',()=>{el.classList.remove('cover');el.replaceChildren(emblem);});
+  el.classList.add('cover');el.replaceChildren(img);
+  return el;
 }
 
 // The question sheet.
@@ -7885,7 +7898,7 @@ function renderDeepDive(q){
   const titles=vEl('div','dd-titles');
   titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='order'?'WHAT CAME FIRST?':q.type==='moment'?'KEY MOMENT':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
   const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeDeepDive);
-  head.append(vEl('div','dd-emb',map.emblem),titles,x);
+  head.append(ddCoverBadge(vEl('div','dd-emb',map.emblem),q.bookId,map.emblem),titles,x);
   const body=vEl('div','dd-body');
   const openMap=(label,then)=>{const b=vEl('button','dd-btn',label);b.type='button';b.addEventListener('click',()=>{closeDeepDive();openMindmap(q.bookId);then();});return b;};
   const row=(...btns)=>{const r=vEl('div','dd-row');r.append(...btns);return r;};
