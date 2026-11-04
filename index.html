@@ -6055,6 +6055,9 @@ function toggleLogCard(id){
     panel.style.display='block';
     const chev=document.getElementById('logchev-'+id);
     if(chev)chev.textContent='▴';
+    // The page is the first thing updated, so start there (it selects itself on focus).
+    const pg=document.getElementById('ls-page-'+id);
+    if(pg)pg.focus({preventScroll:true});
     revealLogPanel(id);
   }
 }

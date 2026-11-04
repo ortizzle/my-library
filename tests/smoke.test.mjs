@@ -3053,6 +3053,7 @@ test('opening the last book on Today scrolls its contents into view, clear of th
     return { cardTop: card.top, cardBottom: card.bottom, fabTop: fab.top, vh: innerHeight };
   });
   assert.ok(pos.cardTop >= 0, 'the card title stays on screen');
+  assert.equal(await page.evaluate(() => document.activeElement && document.activeElement.id), 'ls-page-r3', 'Current page is ready to type into');
   assert.ok(pos.cardBottom <= pos.fabTop || pos.cardTop <= 12, `the opened card ends above the camera button (${JSON.stringify(pos)})`);
   assert.deepEqual(errors, []);
   await ctx.close();
@@ -3077,5 +3078,22 @@ test('Today lists the book furthest along first; books with nothing logged go la
   });
   assert.deepEqual(order, ['a', 'p', 'q', 'n']);
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('opening a Today card selects the current page, ready to overwrite', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'b', title: 'Fruit Fly', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    progressDB = { b: [{ date: '2026-11-01', type: 'pages', cur: 264, total: 384 }] };
+    save(SK.books, books); save(SK.prog, progressDB); showView('log'); renderLogSession();
+    toggleLogCard('b');
+  });
+  const sel = await page.evaluate(() => { const el = document.activeElement; return { id: el.id, value: el.value, selected: String(window.getSelection()) || (el.selectionEnd - el.selectionStart) }; });
+  assert.equal(sel.id, 'ls-page-b');
+  assert.equal(sel.value, '264');
+  await page.keyboard.type('301');
+  assert.equal(await page.inputValue('#ls-page-b'), '301', 'typing replaces the old page');
+  await page.evaluate(() => toggleLogCard('b')); // closing doesn't throw or refocus
   await ctx.close();
 });
