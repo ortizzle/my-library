@@ -2152,6 +2152,8 @@ test('a finished book gets a mind map from Claude, drawn and saved', async () =>
   const prompt = calls[0].messages[0].content;
   assert.match(prompt, /Cerulean Sea/);
   assert.doesNotMatch(prompt, /Lucy danced|Lovely and kind/, 'the map describes the book, not the reader’s notes');
+  assert.match(prompt, /plot or chapter summaries/, 'searches look for what is in the book, not just reviews');
+  assert.match(prompt, /how it was received goes only in summary\.reception/, 'reviews stay out of the bubbles');
   assert.equal(calls[0].tools?.[0]?.type, 'web_search_20260209', 'web search is on offer');
   assert.match(prompt, /use web search/);
   assert.equal(await page.locator('#mmMap .mm-node').count(), 18);

@@ -6830,7 +6830,7 @@ const MM_SUMMARY_SHAPE=`{"line":"the book's shorthand in one or two sentences �
    "debates":["0–2 questions readers genuinely disagree about"],
    "recognition":"awards, adaptations, influence or comparisons — only what you're sure of, or empty"},
  "worth":"1–3 sentences of context that deepens it: the title, the author's intent, allusions — or empty"}`;
-const MM_SEARCH_RULE=`If you aren't confident you know this book well — especially anything published after 2023 — use web search to check its plot and how it was received (reviews in major outlets) before writing. If you know it well, don't search. Attribute reception in general terms ("many critics", "some readers"); never present your own opinion as the consensus.`;
+const MM_SEARCH_RULE=`If you aren't confident you know this book well — especially anything published after 2023 — use web search before writing: first for what is actually in it (the publisher's description, detailed plot or chapter summaries, encyclopedia entries), then for reviews in major outlets. If you know it well, don't search. Reviews are only for the reception section: everything else must be about the book's own content — its people, events, places and ideas — never about what critics or readers said of it. Attribute reception in general terms ("many critics", "some readers"); never present your own opinion as the consensus.`;
 
 // Newest edit wins per book; a deleted book takes its map with it.
 function mergeMindmaps(local,remote,deleted){
@@ -7578,7 +7578,7 @@ function mindmapPrompt(b){
 
 Book: "${b.title}"${b.author?` by ${b.author}`:''}${b.genre?` (${b.genre})`:''}.
 
-Describe the book itself — its story, people, ideas and how it was received — not any one reader's opinion of it. (The reader keeps their own notes separately.)
+Describe the book itself — its story, people, places and ideas — not any one reader's opinion of it. (The reader keeps their own notes separately.) Every branch, bubble and timeline beat is about what's in the book; how it was received goes only in summary.reception.
 ${MM_SEARCH_RULE}
 
 Reply with JSON only, no code fence, in exactly this shape:
@@ -7600,7 +7600,7 @@ Reply with JSON only, no code fence, in exactly this shape:
  "timeline":[{"title":"at most 28 characters","summary":"1–2 sentences","links":["ids of nodes involved"]}],
  "summary":${MM_SUMMARY_SHAPE}}
 
-Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Only state what you are confident is in the book; if you still don't know it well after searching, keep the map short rather than inventing details, and add "unsure":true.`;
+Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Only state what you are confident is in the book; if you still don't know it well after searching, keep the map short rather than inventing details or filling it with what reviewers said, and add "unsure":true.`;
 }
 
 // One request to Claude for maps and summaries, with web search on offer: the
