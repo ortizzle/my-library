@@ -3057,3 +3057,25 @@ test('opening the last book on Today scrolls its contents into view, clear of th
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('Today lists the book furthest along first; books with nothing logged go last', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const order = await page.evaluate(() => {
+    books = [{ id: 'n', title: 'Not started', status: 'reading', addedAt: 1, updatedAt: 1 },
+             { id: 'a', title: 'Audio 85%', status: 'reading', addedAt: 2, updatedAt: 2 },
+             { id: 'p', title: 'Pages 40%', status: 'reading', addedAt: 3, updatedAt: 3 },
+             { id: 'r', title: 'Finished', status: 'read', addedAt: 4, updatedAt: 4 },
+             { id: 'q', title: 'Pages 4%', status: 'reading', addedAt: 5, updatedAt: 5 }];
+    progressDB = {
+      a: [{ date: '2026-11-01', type: 'audio', cur: 85, total: 100 }],
+      p: [{ date: '2026-11-01', type: 'pages', cur: 40, total: 100 }],
+      q: [{ date: '2026-11-01', type: 'pages', cur: 12, total: 300 }]
+    };
+    save(SK.books, books); save(SK.prog, progressDB);
+    showView('log'); renderLogSession();
+    return [...document.querySelectorAll('[id^="logcard-"]')].map(e => e.id.slice(8));
+  });
+  assert.deepEqual(order, ['a', 'p', 'q', 'n']);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

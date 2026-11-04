@@ -5951,8 +5951,18 @@ function updateHdrStreak(){
 // ══════════════════════════════════════════
 let _logRatings={};
 
+// How far along a book is, 0–1, from the same progress the card shows;
+// -1 when nothing's been logged, so those books sort last.
+function logProgressFrac(id){
+  const best=bestProgress(id);
+  return best&&best.total?Math.min(1,best.cur/best.total):-1;
+}
+
 function renderLogSession(){
-  const reading=books.filter(b=>b.status==='reading');
+  // Furthest along first; ties (and books with nothing logged) keep their order.
+  const reading=books.filter(b=>b.status==='reading')
+    .map((b,i)=>({b,i,f:logProgressFrac(b.id)}))
+    .sort((x,y)=>y.f-x.f||x.i-y.i).map(x=>x.b);
   const el=document.getElementById('logContent');
   if(!reading.length){
     el.innerHTML=`<div class="empty"><span class="icon">📚</span><h3>Nothing in progress</h3><p>Mark a book as Currently Reading to log sessions here.</p></div>`;
