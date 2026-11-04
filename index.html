@@ -997,7 +997,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 <div class="view active" id="view-log">
   <div class="sec-head"><h2 class="sec-title">📖 Today's Reading</h2></div>
   <div id="driveBar" style="max-width:560px"></div>
-  <div id="logContent" style="max-width:560px"></div>
+  <div id="logContent" style="max-width:560px;padding-bottom:5.5rem"></div>
 </div>
 
 <!-- JOURNAL -->
@@ -6045,7 +6045,30 @@ function toggleLogCard(id){
     panel.style.display='block';
     const chev=document.getElementById('logchev-'+id);
     if(chev)chev.textContent='▴';
+    revealLogPanel(id);
   }
+}
+
+// An opened card's contents can land below the fold (the last book on Today
+// especially) and under the camera button. Scroll just enough to show them,
+// never so far that the card's own title goes off the top.
+function revealLogPanel(id){
+  const card=document.getElementById('logcard-'+id);
+  if(!card)return;
+  const nudge=smooth=>{
+    const panel=document.getElementById('logexpand-'+id);
+    if(!panel||panel.style.display==='none')return; // closed again meanwhile
+    const r=card.getBoundingClientRect(),fab=document.getElementById('fab');
+    // The camera button is position:fixed, so offsetParent can't tell if it's shown.
+    const fr=fab&&getComputedStyle(fab).display!=='none'?fab.getBoundingClientRect():null;
+    const floor=fr&&fr.height?fr.top-12:window.innerHeight-16;
+    const need=Math.min(r.bottom-floor,r.top-12);
+    if(need>1)window.scrollBy({top:need,behavior:smooth&&!matchMedia('(prefers-reduced-motion: reduce)').matches?'smooth':'auto'});
+  };
+  // Again once the panel has finished filling in (fonts, covers, buttons), so
+  // the first scroll doesn't fall short.
+  requestAnimationFrame(()=>nudge(true));
+  setTimeout(()=>nudge(true),450);
 }
 
 function setLogRating(id,val){

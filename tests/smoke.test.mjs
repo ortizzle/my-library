@@ -3037,3 +3037,23 @@ test('the deep dive card shows the book cover, falling back to the emblem', asyn
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('opening the last book on Today scrolls its contents into view, clear of the camera button', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.evaluate(() => {
+    books = ['A', 'B', 'C', 'D'].map((t, i) => ({ id: 'r' + i, title: 'Book ' + t, author: 'X', status: 'reading', addedAt: i, updatedAt: i }));
+    save(SK.books, books); showView('log'); renderLogSession(); window.scrollTo(0, 0);
+  });
+  await page.evaluate(() => document.getElementById('logcard-r3').querySelector('[id^="logchev-"]').click());
+  await page.waitForFunction(() => document.getElementById('logexpand-r3').style.display === 'block');
+  await page.waitForTimeout(1500); // smooth scroll, and the second nudge
+  const pos = await page.evaluate(() => {
+    const card = document.getElementById('logcard-r3').getBoundingClientRect(), fab = document.getElementById('fab').getBoundingClientRect();
+    return { cardTop: card.top, cardBottom: card.bottom, fabTop: fab.top, vh: innerHeight };
+  });
+  assert.ok(pos.cardTop >= 0, 'the card title stays on screen');
+  assert.ok(pos.cardBottom <= pos.fabTop || pos.cardTop <= 12, `the opened card ends above the camera button (${JSON.stringify(pos)})`);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
