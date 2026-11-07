@@ -134,6 +134,16 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .prog-label span{font-size:.76rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em}
 .prog-label strong{font-size:.76rem;color:var(--amber)}
 .prog-bar{height:4px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
+.log-pace{font-size:.8rem;color:var(--ink-light);font-style:italic;margin-top:.15rem;line-height:1.35}
+.log-apos{display:block;width:100%;min-height:48px;margin:0 0 .6rem;border:1px dashed var(--parchment-dark);border-radius:10px;background:none;color:var(--burgundy);font-family:'Lora',serif;font-size:.92rem;cursor:pointer}
+.ap-row{display:flex;gap:.6rem}.ap-row .fg{flex:1;min-width:0}
+.ap-row input{width:100%;min-height:48px;font-size:1.05rem}
+.ap-hint{font-size:.88rem;color:var(--ink-light);margin:-.3rem 0 .7rem;line-height:1.45}
+.ap-out{font-family:'Playfair Display',serif;font-size:1rem;color:var(--ink);min-height:1.3em;margin:.1rem 0 .6rem}
+.ap-status{font-size:.85rem;color:var(--ink-light);font-style:italic;min-height:1.1em;margin:.4rem 0}
+.ap-status.err{color:var(--burgundy);font-style:normal}
+.ap-shot,.ap-use{width:100%;min-height:48px;justify-content:center}
+.ap-use{margin-top:.2rem}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--gold-lt));border-radius:3px;transition:width .4s}
 
 .loan-line{font-size:.78rem;color:var(--burgundy);background:#fde8e8;border-radius:5px;padding:.2rem .44rem;display:flex;align-items:center;gap:.24rem}
@@ -4822,8 +4832,11 @@ function logProgressAndJournalInline(id, prefix='rp', suppressToast=false){
   if(apct){
     if(!progressDB[id])progressDB[id]=[];
     const lastAudio=progressDB[id].slice().reverse().find(e=>e.type==='audio');
-    if(audioPctOf(lastAudio)!==apct){
-      progressDB[id].push({date:sessionDate,type:'audio',cur:apct,total:100,note:''});
+    // From the player's time: keep the minutes too, so the card can say how long is left.
+    const mins=+apctEl.dataset.mins||0,len=+apctEl.dataset.len||0;
+    const timed=mins&&len&&Math.round(mins/len*1000)/10===apct;
+    if(timed?!(lastAudio&&lastAudio.total===len&&Math.abs(lastAudio.cur-mins)<0.01):audioPctOf(lastAudio)!==apct){
+      progressDB[id].push(timed?{date:sessionDate,type:'audio',cur:mins,total:len,note:''}:{date:sessionDate,type:'audio',cur:apct,total:100,note:''});
       save(SK.prog,progressDB);
       saved=true;
     }
@@ -6003,6 +6016,7 @@ function buildLogCard(b){
         <div style="font-family:'Playfair Display',serif;font-size:1rem;font-weight:600;color:var(--ink);line-height:1.25;margin-bottom:.18rem">${esc(b.title)}</div>
         <div style="font-size:.84rem;color:var(--ink-light);font-style:italic;margin-bottom:.35rem">${esc(b.author)}</div>
         ${bestPct!==null?`<div class="prog-bar" style="height:5px;margin-bottom:.18rem"><div class="prog-fill" style="width:${bestPct}%"></div></div><div style="font-size:.74rem;color:var(--amber);font-family:'IM Fell English SC',serif;letter-spacing:.05em">${bestPct}% complete</div>`:''}
+        ${(()=>{const t=paceText(readingPace(progressDB[b.id],localDateStr(),b.audioLen),localDateStr());return t?`<div class="log-pace" id="logpace-${b.id}">${esc(t)}</div>`:'';})()}
       </div>
       <span id="logchev-${b.id}" style="font-size:.85rem;color:var(--ink-faint);flex-shrink:0;margin-left:.25rem">▾</span>
     </div>
@@ -6024,9 +6038,10 @@ function buildLogCard(b){
         ${showPct?`
         <div style="flex:1;min-width:96px">
           <label style="font-size:.77rem;color:var(--ink-faint);display:block;margin-bottom:.15rem;font-family:'IM Fell English SC',serif;letter-spacing:.05em">🎧 AUDIO %</label>
-          <input type="number" id="ls-apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" onfocus="this.select()" oninput="syncLinkedProgress('${b.id}','ls','pct')" style="${iStyle}">
+          <input type="number" id="ls-apct-${b.id}" value="${audioPct??''}" placeholder="e.g. 45" min="0" max="100" step="0.1" onfocus="this.select()" oninput="this.dataset.mins='';syncLinkedProgress('${b.id}','ls','pct')" style="${iStyle}">
         </div>`:''}
       </div>
+      ${showPct?`<button type="button" class="log-apos" data-book="${b.id}">⏱ Enter the time from your player</button>`:''}
       <div id="ls-pagewarn-${b.id}" style="display:none;align-items:center;gap:.35rem;color:var(--burgundy);font-size:.80rem;margin-bottom:.4rem">⚠ Page number exceeds total — double-check before saving</div>
       <textarea id="ls-journal-${b.id}" placeholder="What are you thinking about this book…" rows="4" style="${iStyle};resize:none;margin-bottom:.7rem;line-height:1.6;min-height:80px"></textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.55rem">
@@ -6733,7 +6748,7 @@ function toastUndo(msg,undoFn,duration=5000){
 // a position in minutes (cur/total mins). Both shapes display correctly.
 function minsToHM(mins){
   if(!mins&&mins!==0)return'';
-  const h=Math.floor(mins/60),m=mins%60;
+  const t=Math.round(mins),h=Math.floor(t/60),m=t%60;
   return h>0?`${h}h ${m}m`:`${m}m`;
 }
 // Percent complete of an audio entry, whichever shape it is (null if unknowable)
@@ -6743,6 +6758,70 @@ function audioPctOf(e){
   return e.total?Math.round(e.cur/e.total*100):null;
 }
 function audioLabel(cur,total){return total===100?`${Math.round(cur)}%`:`${minsToHM(cur)}/${minsToHM(total)}`;}
+
+// "8:09:43", "8:09", "489" (minutes) or "8h 9m" → minutes; a leading "-"
+// (a player's time remaining) is kept as a negative. null if unreadable.
+function parseHMS(v){
+  let t=String(v||'').trim().replace(/[−–]/g,'-');
+  if(!t)return null;
+  const neg=t.startsWith('-');if(neg)t=t.slice(1).trim();
+  let m=null;
+  const hm=t.match(/^(?:(\d+)\s*h)?\s*(?:(\d+)\s*m(?:in)?)?\s*(?:(\d+)\s*s)?$/i);
+  if(/^\d+(?::\d{1,2}){1,2}$/.test(t)){
+    const p=t.split(':').map(Number);
+    if(p.slice(1).some(x=>x>59))return null;
+    m=p.length===3?p[0]*60+p[1]+p[2]/60:p[0]*60+p[1];
+  }else if(/^\d+(\.\d+)?$/.test(t))m=+t;
+  else if(hm&&(hm[1]||hm[2]||hm[3]))m=(+hm[1]||0)*60+(+hm[2]||0)+(+hm[3]||0)/60;
+  if(m===null||!isFinite(m))return null;
+  return neg?-m:m;
+}
+// A player's position and its right-hand time (the length, or "-" time
+// remaining) → {mins, len, pct}. null if they don't make sense together.
+function audioPosition(pos,right){
+  const a=parseHMS(pos),b=parseHMS(right);
+  if(a===null||b===null||a<0)return null;
+  const len=b<0?a-b:b;
+  if(!(len>0)||a>len+0.5)return null;
+  const mins=Math.min(a,len);
+  return {mins:Math.round(mins*100)/100,len:Math.round(len*100)/100,pct:Math.round(mins/len*1000)/10};
+}
+
+// Pace for a book from its progress entries: how much is left, and, when the
+// last few weeks show movement, the day it would finish at that rate.
+// entries: progressDB[id]; audioLen: the book's length in minutes, if known.
+function readingPace(entries,today,audioLen){
+  const frac=e=>e.type==='audio'?(e.total?e.cur/e.total:null):(e.type==='pages'&&e.total?e.cur/e.total:null);
+  const pts=(entries||[]).filter(e=>(e.type==='pages'||e.type==='audio')&&frac(e)!==null&&e.date)
+    .map(e=>({date:e.date,f:Math.min(1,Math.max(0,frac(e))),e})).sort((x,y)=>x.date.localeCompare(y.date)||x.f-y.f);
+  if(!pts.length)return null;
+  const last=pts[pts.length-1];
+  let left='';
+  const lastAudioMins=[...pts].reverse().find(p=>p.e.type==='audio'&&p.e.total!==100&&p.date===last.date);
+  const lastPages=[...pts].reverse().find(p=>p.e.type==='pages');
+  if(lastAudioMins)left=`${minsToHM(Math.round(lastAudioMins.e.total-lastAudioMins.e.cur))} left`;
+  else if(last.e.type==='audio'&&audioLen>0)left=`${minsToHM(Math.round((1-last.f)*audioLen))} left`;
+  else if(lastPages&&lastPages.e.total)left=`${Math.max(0,lastPages.e.total-lastPages.e.cur)} pages left`;
+  if(last.f>=1)return {left:'',finish:null,done:true};
+  // The rate: from the earliest entry in the three weeks before the latest.
+  const from=ddAddDays(last.date,-21);
+  const base=pts.find(p=>p.date>=from&&p.date<last.date);
+  let finish=null;
+  if(base){
+    const days=Math.max(1,Math.round((new Date(last.date+'T12:00:00')-new Date(base.date+'T12:00:00'))/864e5));
+    const perDay=(last.f-base.f)/days;
+    if(perDay>0){
+      const need=Math.ceil((1-last.f)/perDay);
+      if(need<=120){finish=ddAddDays(last.date,need);if(finish<today)finish=today;} // further out than ~4 months isn't a useful date
+    }
+  }
+  return {left,finish,done:false};
+}
+function paceText(p,today){
+  if(!p||p.done)return '';
+  const when=p.finish?(p.finish===today?'on pace to finish today':`on pace for ${fmtShortDate(p.finish)}`):'';
+  return [p.left?'≈ '+p.left:'',when].filter(Boolean).join(' · ');
+}
 // Which progress fields fit this book: audio-only books get just the % field,
 // print/ebook books just pages, both-format (or untagged) books get both
 function progressFieldsFor(b){
@@ -6753,6 +6832,99 @@ function progressFieldsFor(b){
 }
 // Both-format books: page and audio-% describe the same position, so typing
 // in one live-converts the other (needs a total page count to do the math)
+// ── Audiobook position: the player's time → Audio % ──
+// Typed ("8:09:43" of "11:53:14", or "-3:43:31" left) or read by Claude from a
+// screenshot of the player. The length is remembered on the book.
+const AUDIO_SHOT_PROMPT=`This is a screenshot of an audiobook player. Find the playback position and the time shown on the other end of the progress bar.
+Reply with JSON only: {"title":"the book title shown, or empty","position":"H:MM:SS","right":"H:MM:SS, with a leading - if the player shows time remaining","found":true}
+If you can't read the times, reply {"found":false}.`;
+
+async function readPlayerShot(file){
+  const bmp=await loadPhotoBitmap(file);
+  const fit=fitWithin(bmp.width,bmp.height,1568);
+  const cv=document.createElement('canvas');cv.width=fit.w;cv.height=fit.h;
+  cv.getContext('2d').drawImage(bmp,0,0,fit.w,fit.h);bmp.close&&bmp.close();
+  const dataUrl=cv.toDataURL('image/jpeg',0.85);
+  const key=localStorage.getItem(SK.api)||'';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:300,messages:[{role:'user',content:[
+      {type:'image',source:{type:'base64',media_type:'image/jpeg',data:dataUrl.split(',')[1]}},
+      {type:'text',text:AUDIO_SHOT_PROMPT}]}]})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+  const data=await res.json();
+  const r=parseMindmapReply((data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join(''));
+  if(!r||r.found===false||!r.position)throw new Error('couldn’t find the times in that screenshot');
+  return r;
+}
+
+function openAudioPosition(id){
+  const b=books.find(x=>x.id===id);if(!b)return;
+  const old=document.getElementById('apSheet');if(old)old.remove();
+  const wrap=vEl('div','sheet-backdrop');wrap.id='apSheet';wrap.style.zIndex='8600';
+  const sheet=vEl('div','sheet');sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label','Audiobook position');
+  const close=()=>wrap.remove();
+  wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
+  const field=(label,id,ph,val)=>{const d=vEl('div','fg');const l=vEl('label',null,label);l.htmlFor=id;const i=document.createElement('input');i.type='text';i.id=id;i.inputMode='numeric';i.placeholder=ph;i.autocomplete='off';i.value=val||'';d.append(l,i);return d;};
+  const lenTxt=b.audioLen?minsToHMS(b.audioLen):'';
+  const pos=field('Position','apPos','8:09:43',''),len=field('Length (or time left, with a −)','apLen','11:53:14',lenTxt);
+  const row=vEl('div','ap-row');row.append(pos,len);
+  const out=vEl('p','ap-out');out.id='apOut';out.setAttribute('aria-live','polite');
+  const st=vEl('p','ap-status');st.id='apStatus';
+  const pagesTotal=+(document.getElementById('ls-total-'+id)?.value)||0;
+  const calc=()=>{
+    const r=audioPosition(document.getElementById('apPos').value,document.getElementById('apLen').value);
+    use.disabled=!r;
+    if(!r){out.textContent=document.getElementById('apPos').value?'Check the times — e.g. 8:09:43 and 11:53:14.':'';return null;}
+    const bits=[`${r.pct}% through`];
+    if(pagesTotal)bits.push(`≈ page ${Math.round(r.pct/100*pagesTotal)} of ${pagesTotal}`);
+    bits.push(`${minsToHM(Math.round(r.len-r.mins))} left`);
+    out.textContent=bits.join(' · ');
+    return r;
+  };
+  const use=vEl('button','btn btn-primary ap-use','Use this');use.type='button';use.id='apUse';use.disabled=true;
+  use.addEventListener('click',()=>{
+    const r=calc();if(!r)return;
+    // The exact percentage, with the minutes behind it; the page follows.
+    const el=document.getElementById('ls-apct-'+id);
+    if(el){el.value=String(r.pct);el.dataset.mins=r.mins;el.dataset.len=r.len;syncLinkedProgress(id,'ls','pct');}
+    if(Math.abs((b.audioLen||0)-r.len)>0.01){b.audioLen=r.len;b.updatedAt=Date.now();save(SK.books,books);}
+    close();
+    toast(`${r.pct}% — tap Save Session to log it`,'ok');
+  });
+  const kids=[vEl('div','sheet-grip'),vEl('h3','sheet-title',`Where are you in ${b.title}?`),
+    vEl('p','ap-hint','Type the times from your player, or let Claude read a screenshot of it.'),row,out];
+  if(localStorage.getItem(SK.api)){
+    const shot=vEl('button','btn btn-secondary ap-shot','📷 Read a player screenshot');shot.type='button';shot.id='apShot';
+    const file=document.createElement('input');file.type='file';file.accept='image/*';file.style.display='none';file.id='apFile';
+    shot.addEventListener('click',()=>file.click());
+    file.addEventListener('change',async()=>{
+      const f=file.files&&file.files[0];file.value='';if(!f)return;
+      shot.disabled=true;st.textContent='Reading the screenshot…';st.classList.remove('err');
+      try{
+        const r=await readPlayerShot(f);
+        document.getElementById('apPos').value=r.position;document.getElementById('apLen').value=r.right||document.getElementById('apLen').value;
+        const t=String(r.title||'').trim();
+        const same=!t||normTitle(t).includes(normTitle(b.title).split(':')[0].trim())||normTitle(b.title).includes(normTitle(t));
+        st.textContent=same?'Read from the screenshot — check the times.':`That looks like “${t}”, not ${b.title} — check before using it.`;
+        st.classList.toggle('err',!same);
+        calc();
+      }catch(e){st.textContent=`Couldn’t read it (${e.message}). Type the times instead.`;st.classList.add('err');}
+      finally{shot.disabled=false;}
+    });
+    kids.push(shot,file);
+  }
+  const cancel=vEl('button','sheet-cancel','Cancel');cancel.type='button';cancel.addEventListener('click',close);
+  kids.push(st,use,cancel);
+  sheet.append(...kids);wrap.append(sheet);document.body.append(wrap);
+  for(const i of ['apPos','apLen'])document.getElementById(i).addEventListener('input',calc);
+  document.getElementById('apPos').focus();
+}
+function minsToHMS(m){const s=Math.round(m*60),h=Math.floor(s/3600),mm=Math.floor(s%3600/60),ss=s%60;return `${h}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;}
+function normTitle(t){return String(t||'').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+// Capture phase: the card's panel stops clicks from bubbling (so they don't fold it).
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.log-apos');if(b)openAudioPosition(b.dataset.book);},true);
+
 function syncLinkedProgress(id,prefix,src){
   const p=prefix+'-';
   const pageEl=document.getElementById(p+'page-'+id);

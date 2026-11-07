@@ -3099,3 +3099,69 @@ test('opening a Today card selects the current page, ready to overwrite', async 
   await page.evaluate(() => toggleLogCard('b')); // closing doesn't throw or refocus
   await ctx.close();
 });
+
+// ── Pace and audiobook position on Today ─────────────────────────────────
+
+test('Today shows time left and a finish date from recent progress', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const t = await page.evaluate(() => {
+    const today = localDateStr();
+    books = [{ id: 'f', title: 'Fruit Fly', status: 'reading', formats: ['audio'], addedAt: 1, updatedAt: 1 }];
+    progressDB = { f: [{ date: ddAddDays(today, -6), type: 'audio', cur: 61, total: 713 }, { date: today, type: 'audio', cur: 604, total: 713 }] };
+    save(SK.books, books); save(SK.prog, progressDB); showView('log'); renderLogSession();
+    return document.getElementById('logpace-f').textContent;
+  });
+  assert.match(t, /^≈ 1h 49m left · on pace for /);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the player time sets Audio % and the session logs minutes', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'f', title: 'Fruit Fly', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    progressDB = { f: [{ date: '2026-11-01', type: 'pages', cur: 33, total: 384 }] };
+    save(SK.books, books); save(SK.prog, progressDB); showView('log'); renderLogSession(); toggleLogCard('f');
+  });
+  await page.click('#logexpand-f .log-apos');
+  assert.equal(await page.isVisible('#apSheet'), true);
+  assert.equal(await page.isDisabled('#apUse'), true);
+  await page.fill('#apPos', '8:09:43');
+  await page.fill('#apLen', '11:53:14');
+  assert.match(await page.textContent('#apOut'), /68\.7% through · ≈ page 264 of 384 · 3h 44m left/);
+  await page.click('#apUse');
+  assert.equal(await page.isVisible('#apSheet'), false);
+  assert.equal(await page.inputValue('#ls-apct-f'), '68.7');
+  assert.equal(await page.inputValue('#ls-page-f'), '264', 'the page follows');
+  assert.ok(Math.abs(await page.evaluate(() => books[0].audioLen) - 713.23) < 0.01, 'the length is remembered');
+  await page.evaluate(() => logSessionSave('f'));
+  const audio = await page.evaluate(() => progressDB.f.filter(e => e.type === 'audio'));
+  assert.equal(audio.length, 1);
+  assert.ok(Math.abs(audio[0].cur - 489.72) < 0.01 && Math.abs(audio[0].total - 713.23) < 0.01, 'stored as minutes');
+  // Next time, the length is already filled in.
+  await page.evaluate(() => { renderLogSession(); toggleLogCard('f'); });
+  await page.click('#logexpand-f .log-apos');
+  assert.equal(await page.inputValue('#apLen'), '11:53:14');
+  assert.equal(await page.locator('#apShot').count(), 0, 'no key, no screenshot button');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('Claude reads the times from a player screenshot', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const calls = await stubClaude(page, '{"title":"Fruit Fly","position":"10:04:28","right":"11:53:14","found":true}');
+  await page.evaluate(() => {
+    localStorage.setItem(SK.api, 'sk-ant-test');
+    books = [{ id: 'f', title: 'Fruit Fly', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    save(SK.books, books); showView('log'); renderLogSession(); toggleLogCard('f');
+  });
+  await page.click('#logexpand-f .log-apos');
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  await page.setInputFiles('#apFile', { name: 'player.png', mimeType: 'image/png', buffer: png });
+  await page.waitForFunction(() => document.getElementById('apPos').value === '10:04:28');
+  assert.equal(calls[0].messages[0].content[0].type, 'image');
+  assert.match(await page.textContent('#apOut'), /84\.8% through/);
+  assert.match(await page.textContent('#apStatus'), /check the times/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
