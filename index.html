@@ -134,6 +134,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .prog-label span{font-size:.76rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em}
 .prog-label strong{font-size:.76rem;color:var(--amber)}
 .prog-bar{height:4px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
+.ph-src{font-size:.74rem;color:var(--gold);font-family:'Playfair Display',serif}
 .log-pace{font-size:.8rem;color:var(--ink-light);font-style:italic;margin-top:.15rem;line-height:1.35}
 .log-apos{display:block;width:100%;min-height:48px;margin:0 0 .6rem;border:1px dashed var(--parchment-dark);border-radius:10px;background:none;color:var(--burgundy);font-family:'Lora',serif;font-size:.92rem;cursor:pointer}
 .ap-row{display:flex;gap:.6rem}.ap-row .fg{flex:1;min-width:0}
@@ -3242,7 +3243,7 @@ function savePageCapture(){
   if(hlNeedsBook())return; // highlights and words both belong to a book
   if(hl){
     if(!storeHighlight())return;
-    toast('Highlight saved ✦','ok');
+    toast(hlSavedMsg(),'ok');
   }
   if(!w){closeHighlight();return;}
   // Words: pick as many as you like; Done finishes the page.
@@ -3254,6 +3255,26 @@ function savePageCapture(){
 function saveHighlight(){savePageCapture();}
 
 // The passage on the confirm screen → a journal entry. false if it's empty.
+// A highlight or word saved with its page shows how far the reader has got:
+// when it's past the furthest page logged for a book being read, progress
+// moves up to it that day (never back, and never past the book's last page).
+// Returns the new page, or 0.
+function advancePageFrom(bookId,page,src,date){
+  const b=books.find(x=>x.id===bookId);
+  const m=String(page||'').match(/\d+/),p=m?+m[0]:0;
+  if(!b||b.status!=='reading'||!(p>0))return 0;
+  const prog=progressDB[bookId]||(progressDB[bookId]=[]);
+  const pages=prog.filter(e=>e.type==='pages');
+  if(p<=pages.reduce((mx,e)=>Math.max(mx,+e.cur||0),0))return 0;
+  const total=Math.max(0,...pages.filter(e=>e.total).map(e=>e.total));
+  if(total&&p>total)return 0; // probably a typo; don't finish the book for it
+  prog.push({date,type:'pages',cur:p,total,note:'',src});
+  save(SK.prog,progressDB);
+  return p;
+}
+let _hlMoved=0; // the page the last saved highlight moved progress to
+const hlSavedMsg=()=>`Highlight saved ✦${_hlMoved?` · progress now p. ${_hlMoved}`:''}`;
+
 function storeHighlight(){
   const text=document.getElementById('hlText').value.trim();
   if(!text){toast('The passage is empty.','err');return false;}
@@ -3267,8 +3288,10 @@ function storeHighlight(){
   if(!journalDB[id])journalDB[id]=[];
   journalDB[id].push(entry);
   save(SK.journal,journalDB);
+  _hlMoved=advancePageFrom(id,page,'highlight',entry.date);
   logDay(entry.date);updateHdrStreak();
   if(editId===id)renderJournalEntries(id);
+  if(_hlMoved){renderLogSession();if(editId===id)renderProgHistoryEdit(id);}
   renderLibrary(); // the cards bake in recent entries; the Library tab doesn't redraw them
   return true;
 }
@@ -3286,7 +3309,7 @@ function pickWordsFromHighlight(){
     onPick:pre=>{
       if(_hl!==session)return;
       if(session.mode==='word'){
-        if(document.getElementById('hlAlso').checked&&session.bookId&&storeHighlight())toast('Highlight saved ✦','ok');
+        if(document.getElementById('hlAlso').checked&&session.bookId&&storeHighlight())toast(hlSavedMsg(),'ok');
         closeHighlight(true);
         openVocabWord(null,session.bookId||(session.stash&&session.stash.bookId)||'',pre);
       }else openVocabWord(null,session.bookId,pre);
@@ -3968,7 +3991,9 @@ function saveVocabWord(){
   closeVocabWord();
   vocabChanged();
   if(back)openVocabDetail(back);
-  toast(isNew?`“${w.word}” added to your vocabulary`:'Word saved','ok');
+  const moved=isNew?advancePageFrom(w.bookId,w.page,'word',localDateStr()):0;
+  if(moved){renderLogSession();renderLibrary();}
+  toast(isNew?`“${w.word}” added to your vocabulary${moved?` · progress now p. ${moved}`:''}`:'Word saved','ok');
 }
 
 function deleteVocabWord(){
@@ -5451,6 +5476,7 @@ function renderProgHistoryEdit(bookId, showAll=false){
       <input type="number" value="${e.total||''}" onchange="editProgEntry('${bookId}',${idx},'total',+this.value)"
         style="width:56px;padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.83rem;background:var(--parchment);outline:none" placeholder="total">
       <span style="color:var(--ink-faint);font-size:.77rem">${typeLabel}</span>
+      ${e.src?`<span class="ph-src" title="Logged from a ${e.src==='word'?'vocabulary word':'highlight'}">${e.src==='word'?'Aa':'✦'}</span>`:''}
       <button onclick="delProgEntryEdit('${bookId}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--parchment-dark);font-size:.81rem;margin-left:auto" onmouseover="this.style.color='var(--burgundy)'" onmouseout="this.style.color='var(--parchment-dark)'">✕</button>
     </div>`;
   }).join('');

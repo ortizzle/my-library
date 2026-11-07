@@ -3368,3 +3368,56 @@ test('connections across books: grouped by Claude, cached until the books change
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// ── Highlights and words move progress ───────────────────────────────────
+
+test('a highlight past the last logged page moves progress up to it — never back, never past the end', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const run = async (status, pg) => page.evaluate(([status, pg]) => {
+    books = [{ id: 'f', title: 'Fruit Fly', status, addedAt: 1, updatedAt: 1 }];
+    progressDB = { f: [{ date: '2026-11-01', type: 'pages', cur: 120, total: 384, note: '' }] };
+    journalDB = {};
+    save(SK.books, books); save(SK.prog, progressDB);
+    openHighlight('f', 'page');
+    document.getElementById('hlText').value = 'A passage.';
+    document.getElementById('hlPage').value = pg;
+    highlightStep('confirm');
+    savePageCapture();
+    return { prog: progressDB.f, toast: [...document.querySelectorAll('.toast')].map(t => t.textContent).pop() };
+  }, [status, pg]);
+
+  let r = await run('reading', '142');
+  assert.equal(r.prog.length, 2);
+  const { at, ...added } = r.prog[1];
+  assert.deepEqual({ ...added, date: 'x' }, { date: 'x', type: 'pages', cur: 142, total: 384, note: '', src: 'highlight' });
+  assert.equal(r.prog[1].date, await page.evaluate(() => localDateStr()));
+  assert.match(r.toast, /Highlight saved ✦ · progress now p\. 142/);
+  assert.equal((await run('reading', '98')).prog.length, 1, 'an earlier page leaves progress alone');
+  assert.equal((await run('read', '200')).prog.length, 1, 'a finished book is left alone');
+  assert.equal((await run('reading', '999')).prog.length, 1, 'past the last page is taken as a typo');
+  assert.equal((await run('reading', 'p. 150')).prog[1].cur, 150, '"p. 150" reads as 150');
+  // The progress history marks where it came from.
+  await page.evaluate(() => { openEditModal('f'); renderProgHistoryEdit('f', true); });
+  assert.equal(await page.textContent('#progHistoryEdit .ph-src'), '✦');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a new word saved with its page moves progress too', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'f', title: 'Fruit Fly', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    progressDB = { f: [{ date: '2026-11-01', type: 'pages', cur: 120, total: 384, note: '' }] };
+    save(SK.books, books); save(SK.prog, progressDB);
+    openVocabWord(null, 'f');
+    document.getElementById('vocabWord').value = 'profligate';
+    document.getElementById('vocabPage').value = '131';
+    document.getElementById('vocabDef').value = 'Recklessly wasteful.';
+    saveVocabWord();
+  });
+  const last = await page.evaluate(() => progressDB.f.at(-1));
+  assert.equal(last.cur, 131);
+  assert.equal(last.src, 'word');
+  assert.match(await page.textContent('.toast:last-child'), /progress now p\. 131/);
+  await ctx.close();
+});
