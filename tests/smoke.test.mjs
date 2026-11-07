@@ -42,7 +42,10 @@ async function startServer() {
   return { server, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-/** Fresh page with dialogs auto-accepted and page errors surfaced as failures. */
+/** Fresh page with dialogs auto-accepted and page errors surfaced as failures.
+ *  The app asks with its own sheet (appAsk), not native dialogs; that is
+ *  accepted the same way, and what it asked is kept in window.__asked. A test
+ *  that wants to answer the sheet itself sets window.__manualAsk = true. */
 async function openApp(browser, base) {
   // Service workers are blocked. Once the app's worker controls the page it
   // fetches cover images itself, and page.route never sees those requests — so
@@ -55,6 +58,16 @@ async function openApp(browser, base) {
   // tests seed exactly that and count Claude calls, so it starts off here; the
   // tests for it turn it on.
   await ctx.addInitScript(() => { if (localStorage.getItem('trr_v1_mm_auto') === null) localStorage.setItem('trr_v1_mm_auto', 'off'); });
+  await ctx.addInitScript(() => {
+    window.__asked = [];
+    new MutationObserver(() => {
+      const ok = document.getElementById('appAskOk');
+      if (!ok || window.__manualAsk || ok.dataset.seen) return;
+      ok.dataset.seen = '1';
+      window.__asked.push(document.getElementById('appAsk').textContent);
+      ok.click();
+    }).observe(document, { childList: true, subtree: true });
+  });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
@@ -646,7 +659,7 @@ test('a deleted progress entry is not pushed back from the gist', async () => {
   await page.evaluate(async () => {
     openEditModal('b1');
     renderProgHistoryEdit('b1', true);
-    delProgEntryEdit('b1', 0);
+    await delProgEntryEdit('b1', 0);
     await gistPush();
   });
 
@@ -2306,7 +2319,7 @@ test('maps sync (newer wins), go into backups, and go away with their book', asy
   assert.deepEqual(r.take, ['lucy']);
   assert.ok(r.inGist, 'the gist payload carries maps');
   await page.evaluate(() => closeMindmap());
-  await page.evaluate(() => { window.confirm = () => true; deleteBook('b1'); });
+  await page.evaluate(() => deleteBook('b1'));
   await page.waitForFunction(() => !mindmapDB.b1);
   assert.deepEqual(await storedMaps(page), {});
   await ctx.close();
@@ -2405,15 +2418,12 @@ test('opening a book while its map is being made says so instead of starting ano
 test('a file of mind maps imports into the matching books and says how many', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await seedFinished(page);
-  const dialogs = [];
-  page.removeAllListeners('dialog');
-  page.on('dialog', d => { dialogs.push(d.message()); d.accept(); });
   const map = JSON.parse(MAP_REPLY);
   const file = JSON.stringify({ version: 2, books: [], maps: { b1: { map, createdAt: 5, updatedAt: 5, seen: [] } } });
   await page.evaluate(() => showView('settings'));
   await page.setInputFiles('#importFile', { name: 'maps.json', mimeType: 'application/json', buffer: Buffer.from(file) });
   await page.locator('.toast', { hasText: '1 new mind map(s)' }).first().waitFor();
-  assert.match(dialogs[0], /0 new book\(s\), 1 new mind map\(s\)/);
+  assert.match((await page.evaluate(() => window.__asked))[0], /0 new book\(s\), 1 new mind map\(s\)/);
   await page.evaluate(() => openMindmap('b1'));
   assert.equal(await page.locator('#mmMap .mm-node').count(), 18);
   assert.deepEqual(errors, []);
@@ -3163,5 +3173,109 @@ test('Claude reads the times from a player screenshot', async () => {
   assert.match(await page.textContent('#apOut'), /84\.8% through/);
   assert.match(await page.textContent('#apStatus'), /check the times/);
   assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+// ── In-app sheets instead of native dialogs ──────────────────────────────
+
+test('the app never uses native alert, confirm or prompt', async () => {
+  const src = await readFile(join(ROOT, 'index.html'), 'utf8');
+  const code = src.replace(/\/\/[^\n]*/g, '');
+  assert.doesNotMatch(code, /[^.\w](alert|confirm|prompt)\(/);
+});
+
+test('removing a book asks in a sheet; Cancel keeps it, Remove removes it', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await addBook(page, 'Dune', 'Frank Herbert');
+  await page.evaluate(() => { window.__manualAsk = true; });
+  const id = await page.evaluate(() => books[0].id);
+  page.evaluate(i => deleteBook(i), id);
+  await page.locator('#appAsk').waitFor();
+  assert.match(await page.textContent('#appAskTitle'), /Remove this book/);
+  assert.match(await page.textContent('#appAsk'), /Dune/);
+  await page.click('#appAskCancel');
+  assert.equal(await page.locator('#appAsk').count(), 0);
+  assert.equal((await storedBooks(page)).length, 1, 'Cancel keeps it');
+  page.evaluate(i => deleteBook(i), id);
+  await page.click('#appAskOk');
+  await page.waitForFunction(() => books.length === 0);
+  assert.deepEqual(await storedBooks(page), []);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the reading goal is set in a sheet with a number field', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => { window.__manualAsk = true; });
+  page.evaluate(() => setReadingGoal(2026));
+  await page.locator('#appAskInput').waitFor();
+  await page.fill('#appAskInput', '30');
+  await page.press('#appAskInput', 'Enter');
+  await page.waitForFunction(() => goals[2026] === 30);
+  page.evaluate(() => setReadingGoal(2026));
+  await page.locator('#appAskInput').waitFor();
+  assert.equal(await page.inputValue('#appAskInput'), '30');
+  await page.keyboard.press('Escape');
+  assert.equal(await page.evaluate(() => goals[2026]), 30, 'Escape changes nothing');
+  await ctx.close();
+});
+
+// ── What to read next ────────────────────────────────────────────────────
+
+test('What to read next: Claude ranks the shelf and wishlist by the reader’s ratings', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const reply = JSON.stringify({ picks: [
+    { id: 'c2', why: 'You gave Kindred 5/5; this has the same moral force.', caution: '' },
+    { id: 'nope', why: 'Not a candidate', caution: '' },
+    { id: 'c1', why: 'Like Piranesi, strange and quiet.', caution: 'Slow start.' }] });
+  await page.evaluate(() => localStorage.setItem(SK.api, 'sk-ant-test'));
+  await stubClaudeScript(page, [textReply(reply)]);
+  await page.evaluate(() => {
+    books = [
+      { id: 'r1', title: 'Kindred', author: 'Octavia Butler', status: 'read', rating: 5, addedAt: 1, updatedAt: 1 },
+      { id: 'r2', title: 'Piranesi', author: 'Susanna Clarke', status: 'read', rating: 4, addedAt: 2, updatedAt: 2 },
+      { id: 'r3', title: 'Dark Matter', author: 'Blake Crouch', status: 'read', rating: 2, addedAt: 3, updatedAt: 3 },
+      { id: 'd1', title: 'Gave Up', author: 'X', status: 'dnf', addedAt: 4, updatedAt: 4 },
+      { id: 'c1', title: 'Jonathan Strange', author: 'Susanna Clarke', status: 'unread', addedAt: 5, updatedAt: 5 },
+      { id: 'c2', title: 'Beloved', author: 'Toni Morrison', status: 'wishlist', addedAt: 6, updatedAt: 6 }];
+    save(SK.books, books); showView('lists');
+  });
+  await page.click('#nextReadBtn');
+  await page.locator('#nextSheet .next-item').first().waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  const prompt = req.messages[0].content;
+  assert.match(prompt, /Kindred — Octavia Butler — 5\/5/);
+  assert.match(prompt, /gave up on:\n- Gave Up/);
+  assert.match(prompt, /\[c2\] Beloved — Toni Morrison — wishlist/);
+  assert.doesNotMatch(prompt, /\[r1\]/, 'finished books are not candidates');
+  assert.equal(req.tools, undefined, 'no web search for this');
+  const titles = await page.locator('#nextSheet .next-text b').allTextContents();
+  assert.deepEqual(titles, ['Beloved', 'Jonathan Strange'], 'only real candidates, in Claude’s order');
+  assert.match(await page.textContent('#nextSheet'), /Slow start\./);
+  await page.click('#nextSheet .next-open >> nth=0');
+  assert.equal(await page.isVisible('#nextSheet'), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('What to read next explains itself without a key or enough history', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => showView('lists'));
+  await page.click('#nextReadBtn');
+  assert.match(await page.textContent('#nextSheet'), /Anthropic API key/);
+  await ctx.close();
+});
+
+test('with the switch on, a map made on its own is followed by its Companion', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => { localStorage.setItem('trr_v1_mm_auto', 'on'); localStorage.setItem(SK.cpAuto, 'on'); });
+  await stubClaudeScript(page, [textReply(MAP_REPLY), textReply(JSON.stringify(COMPANION))]);
+  await seedFinished(page);
+  await page.evaluate(() => { _mmAutoStop = ''; scheduleMindmaps(10); });
+  await page.waitForFunction(() => mindmapDB.b1 && mindmapDB.b1.map.companion, null, { timeout: 15000 });
+  assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'Linus is summoned');
+  const reqs = await page.evaluate(() => window.__reqs);
+  assert.equal(reqs.length, 2);
+  assert.match(reqs[1].messages[0].content, /Companion/);
   await ctx.close();
 });

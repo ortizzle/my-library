@@ -646,6 +646,22 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 /* Add sheet — the floating + offers "add a book" or "add a highlight" */
 .sheet-backdrop{position:fixed;inset:0;z-index:7000;background:rgba(15,26,46,.55);display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:520px;max-height:85vh;overflow-y:auto;background:var(--cream);border-radius:18px 18px 0 0;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3);animation:su .2s ease}
+.next-btn{min-height:48px}
+.next-msg{color:var(--ink-light);line-height:1.5;margin:.2rem 0 .8rem}
+.next-list{list-style:none;margin:0 0 .6rem;padding:0;counter-reset:nx}
+.next-item{padding:.7rem 0;border-top:1px solid var(--parchment-dark)}
+.next-item:first-child{border-top:0}
+.next-open{display:flex;align-items:center;gap:.75rem;width:100%;min-height:56px;padding:0;border:0;background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.next-cover{width:40px;height:58px;border-radius:3px;object-fit:cover;box-shadow:0 1px 4px rgba(0,0,0,.25);flex-shrink:0}
+.next-text b{display:block;font-family:'Playfair Display',serif;font-size:1.02rem;line-height:1.25}
+.next-text small{display:block;color:var(--ink-light);font-style:italic;font-size:.86rem}
+.next-why{margin:.45rem 0 0;line-height:1.55;font-size:.95rem}
+.next-caution{margin:.35rem 0 0;padding-left:.6rem;border-left:2px solid var(--burgundy);font-size:.88rem;color:var(--ink-light);font-style:italic}
+.next-again{width:100%;min-height:48px;justify-content:center}
+.app-ask-msg{margin:0 0 .7rem;line-height:1.5;color:var(--ink-light);font-size:.95rem}
+.app-ask-input{width:100%;min-height:48px;padding:0 .8rem;border:1px solid var(--parchment-dark);border-radius:10px;background:var(--parchment);font:1.05rem 'Lora',Georgia,serif;margin-bottom:.8rem;box-sizing:border-box}
+.app-ask-ok{width:100%;min-height:48px;justify-content:center}
+.app-ask-ok.danger{background:var(--burgundy);color:#fff;border:none}
 .sheet-grip{width:40px;height:4px;border-radius:2px;background:var(--parchment-dark);margin:.35rem auto .8rem}
 .sheet-title{font-family:'Playfair Display',serif;font-size:1.1rem;margin:0 0 .7rem;color:var(--ink)}
 .sheet-opt{display:flex;align-items:center;gap:.9rem;width:100%;min-height:64px;padding:.7rem .9rem;margin-bottom:.55rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--parchment);text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
@@ -981,7 +997,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 
 <!-- LISTS -->
 <div class="view" id="view-lists">
-  <div class="sec-head"><h2 class="sec-title">My Lists</h2></div>
+  <div class="sec-head"><h2 class="sec-title">My Lists</h2><button type="button" class="btn btn-secondary next-btn" id="nextReadBtn">✦ What should I read next?</button></div>
   <div class="lists-grid" id="listsGrid"></div>
 </div>
 
@@ -1114,6 +1130,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <p class="hint" style="margin-top:.3rem">To check your credit balance, visit <a href="https://console.anthropic.com/settings/billing" target="_blank" style="color:var(--sage)">console.anthropic.com → Billing</a>.</p>
     <label class="mm-auto"><input type="checkbox" id="mmAutoToggle"> 🧠 Make a mind map for every finished book</label>
     <p class="hint" id="mmAutoStatus"></p>
+    <label class="mm-auto"><input type="checkbox" id="cpAutoToggle"> 📖 Also write its Companion (about 10–20¢ a book)</label>
   </div>
   <div class="settings-card">
     <h3>Export My Library</h3>
@@ -1608,6 +1625,7 @@ const SK={
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
+  cpAuto: 'trr_v1_cp_auto',  // 'on' also writes the Companion for each map made automatically (off by default)
   deepDive:'trr_v1_deepdive',// {days:{date:question}, seenOn:{bookId:date}} — the daily mind-map question (this device only)
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
@@ -2063,8 +2081,41 @@ async function gistConnect(){
   btn.disabled=false;btn.textContent='Connect';
 }
 
-function gistDisconnect(){
-  if(!confirm('Disconnect Gist sync? Your local data stays intact.'))return;
+// In-app replacement for confirm()/prompt(): a bottom sheet answered by a tap.
+// Resolves true/false, or with `input`, the text (null if cancelled). Native
+// dialogs can't be styled and behave badly on phones.
+function appAsk({title,message='',ok='OK',cancel='Cancel',danger=false,input=null}){
+  return new Promise(resolve=>{
+    const prev=document.getElementById('appAsk');if(prev&&prev._done)prev._done(null);
+    const wrap=vEl('div','sheet-backdrop');wrap.id='appAsk';wrap.style.zIndex='9500';
+    const sheet=vEl('div','sheet app-ask');sheet.setAttribute('role','alertdialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','appAskTitle');
+    const h=vEl('h3','sheet-title',title);h.id='appAskTitle';
+    const kids=[vEl('div','sheet-grip'),h,...String(message).split('\n\n').filter(Boolean).map(t=>vEl('p','app-ask-msg',t))];
+    let field=null;
+    if(input){
+      field=document.createElement('input');field.type='text';field.id='appAskInput';field.className='app-ask-input';
+      field.value=input.value??'';field.placeholder=input.placeholder||'';if(input.inputmode)field.inputMode=input.inputmode;
+      field.setAttribute('aria-labelledby','appAskTitle');
+      kids.push(field);
+    }
+    const okB=vEl('button','btn app-ask-ok'+(danger?' danger':' btn-primary'),ok);okB.type='button';okB.id='appAskOk';
+    const noB=vEl('button','sheet-cancel',cancel);noB.type='button';noB.id='appAskCancel';
+    kids.push(okB,noB);
+    const key=e=>{if(e.key==='Escape'){e.preventDefault();done(input?null:false);}else if(e.key==='Enter'&&field&&document.activeElement===field){e.preventDefault();done(field.value);}};
+    const done=v=>{if(!wrap.isConnected)return;wrap.remove();document.removeEventListener('keydown',key,true);resolve(v);};
+    wrap._done=done;
+    okB.addEventListener('click',()=>done(input?field.value:true));
+    noB.addEventListener('click',()=>done(input?null:false));
+    wrap.addEventListener('click',e=>{if(e.target===wrap)done(input?null:false);});
+    document.addEventListener('keydown',key,true);
+    sheet.append(...kids);wrap.append(sheet);document.body.append(wrap);
+    (field||okB).focus();
+    if(field)field.select();
+  });
+}
+
+async function gistDisconnect(){
+  if(!await appAsk({title:'Disconnect Gist sync?',message:'Your local data stays on this device.',ok:'Disconnect'}))return;
   [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   updateGistStatus();
   setGistDot('off');
@@ -2221,6 +2272,7 @@ function renderView(n){
   if(n==='settings'){
     document.getElementById('apiKeyInput').value=localStorage.getItem(SK.api)||'';
     document.getElementById('mmAutoToggle').checked=localStorage.getItem(SK.mmAuto)!=='off';
+    document.getElementById('cpAutoToggle').checked=localStorage.getItem(SK.cpAuto)==='on';
     renderMindmapAutoStatus();
     renderStorageCheck();
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
@@ -4475,9 +4527,9 @@ function markLoanReturned(bookId,loanIdx){
   saveBooks(b);renderLoanEntries(bookId);renderLibrary();renderLoaned();toast('Marked returned.','ok');
 }
 
-function deleteLoan(bookId,loanIdx){
+async function deleteLoan(bookId,loanIdx){
   const b=books.find(x=>x.id===bookId);if(!b||!b.loans)return;
-  if(!confirm('Remove this loan record?'))return;
+  if(!await appAsk({title:'Remove this loan record?',ok:'Remove',danger:true}))return;
   b.loans.splice(loanIdx,1);saveBooks(b);renderLoanEntries(bookId);
 }
 
@@ -4513,7 +4565,8 @@ async function saveBook(){
   const isbnVal=document.getElementById('isbnInput').value.trim().replace(/[-\s]/g,'');
   if(!editId){
     const dup=findDuplicate(isbnVal,title,author,null);
-    if(dup&&!confirm(`${dupDescription(dup)}.\n\nAdd another copy anyway?`))return;
+    // Only waits when there is a duplicate, so an ordinary save stays immediate.
+    if(dup&&!await appAsk({title:'Already in your library',message:`${dupDescription(dup)}.`,ok:'Add another copy',cancel:'Don’t add'}))return;
   }
   const status=document.getElementById('bStatus').value;
   const yearOnly=document.getElementById('chkYearOnly').checked?+document.getElementById('bYearOnly').value||null:null;
@@ -4621,8 +4674,9 @@ function openBookJournal(id){
   }
 }
 
-function deleteBook(id){
-  if(!confirm('Remove this book from your library?'))return;
+async function deleteBook(id){
+  const bk=books.find(b=>b.id===id);
+  if(!await appAsk({title:'Remove this book?',message:bk?`“${bk.title}” and its reading history, journal and notes will be removed from your library.`:'',ok:'Remove',danger:true}))return;
   // Record a tombstone before removing. Without one the other device still has
   // the book and pushes it straight back on the next sync.
   deletedDB[id]=Date.now();save(SK.deleted,deletedDB);
@@ -5404,8 +5458,8 @@ function editProgEntry(bookId,idx,field,val){
   renderLibrary();renderLogSession();
 }
 
-function delProgEntryEdit(bookId,idx){
-  if(!confirm('Remove this progress entry?'))return;
+async function delProgEntryEdit(bookId,idx){
+  if(!await appAsk({title:'Remove this progress entry?',ok:'Remove',danger:true}))return;
   const gone=takeShownEntry('p',bookId,idx);
   if(gone){tombstoneEntries('p',bookId,[gone]);save(SK.prog,progressDB);}
   renderProgHistoryEdit(bookId);
@@ -5416,6 +5470,81 @@ function delProgEntryEdit(bookId,idx){
 // LISTS VIEW
 // ══════════════════════════════════════════
 function isFav(b){return b.rating===5||(b.lists||[]).includes('fav');}
+
+// ── What to read next ──
+// Claude ranks the unread shelf and wishlist against how the reader rated what
+// they finished (and what they gave up on). No web search: it's about fit.
+function nextReadPool(list){
+  const cand=list.filter(b=>b.itemType!=='article'&&(b.status==='unread'||b.status==='wishlist'))
+    .sort((a,b)=>(b.addedAt||0)-(a.addedAt||0)).slice(0,60);
+  const read=list.filter(b=>b.itemType!=='article'&&b.status==='read')
+    .sort((a,b)=>(b.rating||0)-(a.rating||0)||String(b.date||'').localeCompare(String(a.date||''))).slice(0,60);
+  const dnf=list.filter(b=>b.status==='dnf').slice(0,15);
+  const reading=list.filter(b=>b.status==='reading');
+  return {cand,read,dnf,reading};
+}
+function nextReadPrompt(P){
+  const line=b=>`${b.title}${b.author?' — '+b.author:''}${b.genre?' ('+b.genre+')':''}`;
+  return `Recommend what this reader should read next, from their own unread shelf and wishlist only.
+
+Books they finished, with their rating out of 5 where given:
+${P.read.map(b=>'- '+line(b)+(b.rating?` — ${b.rating}/5`:'')).join('\n')}
+${P.dnf.length?`\nBooks they gave up on:\n${P.dnf.map(b=>'- '+line(b)).join('\n')}\n`:''}${P.reading.length?`\nReading now: ${P.reading.map(line).join('; ')}\n`:''}
+Candidates (choose only from these, by id):
+${P.cand.map(b=>`- [${b.id}] ${line(b)}${b.status==='wishlist'?' — wishlist':' — on the shelf'}`).join('\n')}
+
+Pick the 5 best next reads for this reader now. Weigh what they rated highly and low, and offer some variety from what they're reading now. For each, say why in one or two sentences tied to specific books they loved, and add a short honest caution if one applies.
+Reply with JSON only: {"picks":[{"id":"the candidate id","why":"…","caution":"or empty"}]}`;
+}
+function normalizeNextPicks(raw,candIds){
+  const seen=new Set();
+  return (raw&&Array.isArray(raw.picks)?raw.picks:[]).map(p=>p&&typeof p==='object'?{id:String(p.id||''),why:mmStr(p.why,500),caution:mmStr(p.caution,300)}:null)
+    .filter(p=>p&&candIds.has(p.id)&&p.why&&!seen.has(p.id)&&seen.add(p.id)).slice(0,5);
+}
+let _nextPicks=null; // this visit's answer: {at, picks}
+async function openNextReads(again=false){
+  const old=document.getElementById('nextSheet');if(old)old.remove();
+  const wrap=vEl('div','sheet-backdrop');wrap.id='nextSheet';wrap.style.zIndex='8600';
+  const sheet=vEl('div','sheet');sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','nextTitle');
+  const close=()=>wrap.remove();
+  wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
+  const h=vEl('h3','sheet-title','What to read next');h.id='nextTitle';
+  const body=vEl('div');body.id='nextBody';
+  const cancel=vEl('button','sheet-cancel','Close');cancel.type='button';cancel.addEventListener('click',close);
+  sheet.append(vEl('div','sheet-grip'),h,body,cancel);wrap.append(sheet);document.body.append(wrap);
+  const P=nextReadPool(books);
+  const say=t=>body.replaceChildren(vEl('p','next-msg',t));
+  if(!localStorage.getItem(SK.api)){say('Add your Anthropic API key in Settings and Claude can pick from your shelf and wishlist, based on how you rated what you’ve read.');return;}
+  if(P.cand.length<2){say('Add a few books to your shelf (Unread) or wishlist first — Claude picks from those.');return;}
+  if(P.read.length<3){say('Finish and rate a few more books first, so Claude has a sense of your taste.');return;}
+  if(again||!_nextPicks){
+    say(`Thinking about ${plural(P.cand.length,'book')} on your shelf and wishlist…`);
+    try{
+      const {text}=await askClaude(nextReadPrompt(P),1500,{search:false});
+      const picks=normalizeNextPicks(parseMindmapReply(text),new Set(P.cand.map(b=>b.id)));
+      if(!picks.length)throw new Error('no usable picks came back');
+      _nextPicks={at:Date.now(),picks};
+    }catch(e){if(wrap.isConnected)say(`Couldn’t get suggestions (${e.message}). Try again in a moment.`);return;}
+  }
+  if(!wrap.isConnected)return;
+  const list=vEl('ol','next-list');
+  for(const p of _nextPicks.picks){
+    const b=books.find(x=>x.id===p.id);if(!b)continue;
+    const li=vEl('li','next-item');
+    const btn=vEl('button','next-open');btn.type='button';
+    const cv=coversDB[b.id];
+    if(cv){const img=document.createElement('img');img.src=cv;img.alt='';img.className='next-cover';img.addEventListener('error',()=>img.remove());btn.append(img);}
+    const t=vEl('span','next-text');
+    t.append(vEl('b',null,b.title),vEl('small',null,(b.author||'')+(b.status==='wishlist'?' · wishlist':' · on your shelf')));
+    btn.append(t);
+    btn.addEventListener('click',()=>{close();openEditModal(b.id);});
+    li.append(btn,vEl('p','next-why',p.why));
+    if(p.caution)li.append(vEl('p','next-caution',p.caution));
+    list.append(li);
+  }
+  const redo=vEl('button','btn btn-secondary next-again','↻ Ask again');redo.type='button';redo.addEventListener('click',()=>openNextReads(true));
+  body.replaceChildren(list,redo);
+}
 
 function renderLists(){
   const readingBks=books.filter(b=>b.status==='reading');
@@ -5646,9 +5775,10 @@ function buildGoalCard(year,read){
   </div>`;
 }
 
-function setReadingGoal(year){
+async function setReadingGoal(year){
   const cur=+goals[year]||'';
-  const raw=prompt(`How many books do you want to read in ${year}?\n(Leave blank to remove the goal.)`,cur);
+  const raw=await appAsk({title:`Your ${year} reading goal`,message:'How many books do you want to read? Leave it blank to remove the goal.',
+    ok:'Save goal',input:{value:String(cur),placeholder:'e.g. 30',inputmode:'numeric'}});
   if(raw===null)return;
   const n=parseInt(raw,10);
   if(!raw.trim()||!n||n<1){delete goals[year];}
@@ -6627,7 +6757,7 @@ function triggerImport(){document.getElementById('importFile').click();}
 function handleImport(e){
   const f=e.target.files[0];if(!f)return;
   const r=new FileReader();
-  r.onload=ev=>{
+  r.onload=async ev=>{
     let d;
     try{d=JSON.parse(ev.target.result);}
     catch{toast('That file isn’t valid JSON.','err');return;}
@@ -6641,7 +6771,7 @@ function handleImport(e){
       const newMaps=incomingMaps.filter(id=>!mindmapDB[id]).length;
       const updMaps=incomingMaps.filter(id=>mindmapDB[id]&&(d.maps[id]?.updatedAt||0)>(mindmapDB[id].updatedAt||0)).length;
       const mapNote=!incomingMaps.length?'':updMaps&&!newMaps?`, ${updMaps} mind map(s) updated`:`, ${newMaps} new mind map(s)${updMaps?` and ${updMaps} updated`:''}`;
-      if(!confirm(`Merge this backup into your library?\n\n${newCount} new book(s)${mapNote}, and reading history will be combined with what you already have. Nothing will be overwritten.`))return;
+      if(!await appAsk({title:'Merge this backup?',message:`${newCount} new book(s)${mapNote}. Reading history will be combined with what you already have — nothing is overwritten.`,ok:'Merge'}))return;
       // Run the backup through the same per-record merge sync uses. This used
       // to spread-replace progress/journal/covers, so restoring an old backup
       // to recover one book destroyed every newer entry on every other book.
@@ -6691,11 +6821,12 @@ function scheduleCoverFill(delay=8000){
 // lie) or, if anything was touched first, pushed the empty library and wiped
 // the gist for every device. The Gist now has to be dealt with explicitly.
 async function clearAll(){
-  if(!confirm('Delete ALL data permanently?\n\nThis erases every book, journal entry and reading record stored in this browser.'))return;
+  if(!await appAsk({title:'Delete all data?',message:'This permanently erases every book, journal entry and reading record stored on this device.',ok:'Delete everything',danger:true}))return;
   const connected=!!(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY));
   let wipeRemote=false;
   if(connected){
-    wipeRemote=confirm('Gist sync is connected.\n\nOK — also erase the synced copy (affects every device).\n\nCancel — leave the Gist untouched and just disconnect this browser from it.');
+    wipeRemote=await appAsk({title:'Also erase the synced copy?',message:'Gist sync is connected. Erasing the synced copy affects every device. Keeping it just disconnects this device.',
+      ok:'Erase it everywhere',cancel:'Keep it, just disconnect',danger:true});
   }
   // Stop any queued or retrying push from firing with the emptied state.
   clearTimeout(_gistPushTimer);_gistPushPending=false;_gistRetry=0;
@@ -7279,6 +7410,8 @@ function initMindmaps(){
   $('mmSheetScrim').addEventListener('click',closeMindmapSheet);
   $('mmOpenBtn').addEventListener('click',()=>{if(editId)openMindmap(editId);});
   $('mmAutoToggle').addEventListener('change',e=>setMindmapAuto(e.target.checked));
+  $('nextReadBtn').addEventListener('click',()=>openNextReads());
+  $('cpAutoToggle').addEventListener('change',e=>{localStorage.setItem(SK.cpAuto,e.target.checked?'on':'off');if(e.target.checked)toast('Finished books will get a Companion with their map','ok');});
 }
 
 function openMindmap(bookId){
@@ -7664,6 +7797,27 @@ Reply with JSON only, no code fence, in exactly this shape:
 ${COMPANION_SHAPE}`;
 }
 
+async function requestCompanion(b,map){
+  const {text,stop,sources}=await askClaude(companionPrompt(b,map),16000);
+  const c=normalizeCompanion(parseMindmapReply(text));
+  if(!c)throw Object.assign(new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Companion'),{status:0});
+  if(sources.length)c.sources=sources;
+  return c;
+}
+// After a map is made on its own: the Companion too, when Settings says so.
+// Quiet on failure — the Companion button still offers to write it.
+async function autoCompanion(bookId){
+  if(localStorage.getItem(SK.cpAuto)!=='on'||!localStorage.getItem(SK.api))return;
+  const b=mmBook(bookId),rec=mmRecord(bookId);
+  if(!b||!rec||rec.map.companion)return;
+  try{
+    const c=await requestCompanion(b,rec.map);
+    const cur=mmRecord(bookId);if(!cur||cur.map.companion)return;
+    cur.map={...cur.map,companion:c};cur.updatedAt=Date.now();save(SK.maps,mindmapDB);
+    toast(`Companion ready for ${b.title} 📖`,'ok');
+  }catch(e){console.warn('Auto Companion failed for',b.title,e);}
+}
+
 async function generateCompanion(bookId){
   const b=mmBook(bookId),rec=mmRecord(bookId);if(!b||!rec)return;
   if(!localStorage.getItem(SK.api))return;
@@ -7673,10 +7827,7 @@ async function generateCompanion(bookId){
   const tick=()=>{const s=document.getElementById('mmCpStatus');if(s)s.textContent=`Writing the Companion… ${Math.round((Date.now()-started)/1000)}s — usually about a minute, longer if Claude reads reviews.`;};
   tick();const timer=setInterval(tick,1000);
   try{
-    const {text,stop,sources}=await askClaude(companionPrompt(b,rec.map),16000);
-    const c=normalizeCompanion(parseMindmapReply(text));
-    if(!c)throw new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Companion');
-    if(sources.length)c.sources=sources;
+    const c=await requestCompanion(b,rec.map);
     const cur=mmRecord(bookId);if(!cur)return;
     cur.map={...cur.map,companion:c};cur.updatedAt=Date.now();save(SK.maps,mindmapDB);
     if(_mm&&_mm.bookId===bookId)showMindmapCompanion();
@@ -7780,11 +7931,11 @@ Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up t
 // books cost no searches. Returns the reply text and the sources it cited.
 // A long search can pause (stop_reason pause_turn); the turn is sent back to
 // resume it. If the account can't use web search, it's retried without.
-async function askClaude(prompt,maxTokens){
+async function askClaude(prompt,maxTokens,opts={}){
   const key=localStorage.getItem(SK.api);
   if(!key)throw Object.assign(new Error('no API key'),{status:401});
   const messages=[{role:'user',content:prompt}];
-  let search=true,blocks=[],stop='';
+  let search=opts.search!==false,blocks=[],stop='';
   for(let turn=0;turn<4;turn++){
     const body={model:CLAUDE_MODEL,max_tokens:maxTokens,messages};
     if(search)body.tools=[{type:'web_search_20260209',name:'web_search',max_uses:4}];
@@ -7900,6 +8051,7 @@ async function runMindmapQueue(){
         if(!mindmapDB[b.id]&&books.some(x=>x.id===b.id)){ // not synced in, or deleted, meanwhile
           storeMindmap(b.id,map);
           if(!quiet)toast(`Mind map ready for ${b.title} 🧠`,'ok');
+          if(!quiet)await autoCompanion(b.id); // not for a backlog pass: that's opt-in, book by book
         }
       }catch(e){
         console.warn('Auto mind map failed for',b.title,e);
