@@ -3279,3 +3279,92 @@ test('with the switch on, a map made on its own is followed by its Companion', a
   assert.match(reqs[1].messages[0].content, /Companion/);
   await ctx.close();
 });
+
+// ── Review deck, book club, connections ──────────────────────────────────
+
+test('the review deck: a book’s cards from its map, graded, then due on Today', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(raw => {
+    mindmapDB = { b1: { map: normalizeMindmap({ ...raw, companion: { form: 'fiction',
+      moments: [{ title: 'Linus is summoned', text: 'He is sent to the island.', why: 'It starts everything.' }],
+      themes: [{ title: 'Chosen family', text: 'Traced through the dinners.' }] } }), createdAt: 1, updatedAt: 1, seen: [] } };
+    save(SK.maps, mindmapDB); openMindmap('b1');
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#mmReviewBtn');
+  await page.locator('#deckSheet .deck-front').waitFor();
+  assert.match(await page.textContent('#deckSheet .dd-k'), /1 OF 2/);
+  assert.match(await page.textContent('#deckSheet .deck-front'), /Linus is summoned/);
+  assert.doesNotMatch(await page.textContent('#deckSheet'), /sent to the island/, 'answer hidden first');
+  await page.click('#deckShow');
+  assert.match(await page.textContent('#deckSheet'), /He is sent to the island\./);
+  await page.click('#deckGot');
+  await page.click('#deckShow');
+  await page.click('#deckAgain');
+  assert.match(await page.textContent('#deckSheet'), /1 card remembered, 1 to see again tomorrow/);
+  const st = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_deck')).b1);
+  assert.deepEqual(Object.values(st).map(r => r.box).sort(), [0, 1]);
+  // Tomorrow, the missed one is due and Today says so.
+  await page.evaluate(() => { closeDeck(); closeMindmap(); for (const r of Object.values(deckDB.b1)) r.due = localDateStr(); save(SK.deck, deckDB); showView('log'); renderLogSession(); });
+  assert.match(await page.textContent('#deckNudge'), /2 cards due/);
+  await page.click('#deckNudge');
+  assert.match(await page.textContent('#deckSheet .dd-k'), /1 OF 2/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('book club: opens with a Companion question, Claude answers back, and it can be kept', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [textReply('Fair — but think about Lucy’s records. What do they say about trust?')]);
+  await page.evaluate(raw => {
+    mindmapDB = { b1: { map: normalizeMindmap({ ...raw, companion: { form: 'fiction', overview: ['A fable.'],
+      moments: [{ title: 'Lucy’s records', text: 'They bond over music.' }], questions: ['Is gentleness a politics?'] } }), createdAt: 1, updatedAt: 1, seen: [] } };
+    save(SK.maps, mindmapDB); openMindmap('b1'); showMindmapCompanion();
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#mmCpTalk');
+  assert.match(await page.textContent('#clubLog'), /Is gentleness a politics\?/, 'the first question costs nothing');
+  assert.equal(await page.isDisabled('#clubSave'), true);
+  await page.fill('#clubInput', 'Yes, because the book makes kindness an act of resistance.');
+  await page.click('#clubSend');
+  await page.locator('#clubLog .club-msg.them', { hasText: 'Lucy’s records' }).waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.match(req.system, /book club discussion of "The House in the Cerulean Sea"/);
+  assert.match(req.system, /Is gentleness a politics\?/);
+  assert.equal(req.messages[0].role, 'user', 'the API conversation starts with the reader');
+  assert.equal(req.messages.at(-1).content, 'Yes, because the book makes kindness an act of resistance.');
+  await page.click('#clubSave');
+  const j = await page.evaluate(() => journalDB.b1.at(-1).text);
+  assert.match(j, /^💬 Book club\n\nClaude: Is gentleness a politics\?\n\nMe: Yes, because/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('connections across books: grouped by Claude, cached until the books change', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  const reply = JSON.stringify({ themes: [{ title: 'Chosen family', text: 'Families made, not given.', books: [
+    { id: 'a', note: 'A house of magical children.' }, { id: 'b', note: 'A lone man and the House.' }] }] });
+  await stubClaudeScript(page, [textReply(reply)]);
+  await page.evaluate(raw => {
+    localStorage.setItem(SK.api, 'sk-ant-test');
+    books = ['a', 'b', 'c'].map((id, i) => ({ id, title: ['Cerulean', 'Piranesi', 'Kindred'][i], status: 'read', addedAt: i, updatedAt: i }));
+    mindmapDB = Object.fromEntries(books.map(b => [b.id, { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] }]));
+    save(SK.books, books); save(SK.maps, mindmapDB); showView('lists');
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#linksBtn');
+  await page.locator('#linksSheet .links-theme').waitFor();
+  assert.equal(await page.textContent('#linksSheet .links-t'), 'Chosen family');
+  assert.deepEqual(await page.locator('#linksSheet .links-book b').allTextContents(), ['Cerulean', 'Piranesi']);
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.equal(req.tools, undefined);
+  assert.match(req.messages[0].content, /\[c\] Kindred/);
+  // Again: from the cache, no new request.
+  await page.evaluate(() => document.getElementById('linksSheet').remove());
+  await page.click('#linksBtn');
+  await page.locator('#linksSheet .links-theme').waitFor();
+  assert.equal((await page.evaluate(() => window.__reqs)).length, 1);
+  await page.click('#linksSheet .links-book >> nth=1');
+  assert.equal(await page.evaluate(() => _mm && _mm.bookId), 'b', 'a book opens its map');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -647,6 +647,23 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .sheet-backdrop{position:fixed;inset:0;z-index:7000;background:rgba(15,26,46,.55);display:flex;align-items:flex-end;justify-content:center}
 .sheet{width:100%;max-width:520px;max-height:85vh;overflow-y:auto;background:var(--cream);border-radius:18px 18px 0 0;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3);animation:su .2s ease}
 .next-btn{min-height:48px}
+.lists-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.cp-talk{width:100%;min-height:48px;justify-content:center;margin-bottom:.3rem}
+.deck-front{font-size:1.15rem}
+.club-sheet{display:flex;flex-direction:column;max-height:92vh}
+.club-log{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:.55rem;margin-bottom:.6rem}
+.club-msg{margin:0;padding:.65rem .85rem;border-radius:14px;line-height:1.55;font-size:.97rem;max-width:88%;white-space:pre-wrap}
+.club-msg.them{background:#eef2f8;align-self:flex-start;border-bottom-left-radius:4px}
+.club-msg.me{background:#fdf6e3;align-self:flex-end;border-bottom-right-radius:4px}
+.club-msg.typing{color:var(--ink-faint)}
+.club-status{margin:0 0 .4rem;font-size:.85rem;color:var(--burgundy);min-height:1em}
+.links-sheet{max-height:90vh}
+.links-theme{padding:.8rem 0;border-top:1px solid var(--parchment-dark)}
+.links-theme:first-child{border-top:0}
+.links-t{font-family:'Playfair Display',serif;font-size:1.08rem;margin:0 0 .2rem;color:var(--ink)}
+.links-x{margin:0 0 .5rem;color:var(--ink-light);line-height:1.5;font-size:.93rem}
+.links-book{display:flex;align-items:flex-start;gap:.7rem;width:100%;min-height:56px;padding:.4rem 0;border:0;background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.links-book .next-text small{font-style:normal;line-height:1.45;margin-top:.1rem}
 .next-msg{color:var(--ink-light);line-height:1.5;margin:.2rem 0 .8rem}
 .next-list{list-style:none;margin:0 0 .6rem;padding:0;counter-reset:nx}
 .next-item{padding:.7rem 0;border-top:1px solid var(--parchment-dark)}
@@ -997,7 +1014,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 
 <!-- LISTS -->
 <div class="view" id="view-lists">
-  <div class="sec-head"><h2 class="sec-title">My Lists</h2><button type="button" class="btn btn-secondary next-btn" id="nextReadBtn">✦ What should I read next?</button></div>
+  <div class="sec-head"><h2 class="sec-title">My Lists</h2><div class="lists-actions"><button type="button" class="btn btn-secondary next-btn" id="nextReadBtn">✦ What should I read next?</button><button type="button" class="btn btn-secondary next-btn" id="linksBtn">🕸 Connections across your books</button></div></div>
   <div class="lists-grid" id="listsGrid"></div>
 </div>
 
@@ -1513,7 +1530,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map is short — treat its details with care.</p>
       <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
       <div class="mm-map" id="mmMap"></div>
-      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button><button type="button" class="mm-tlbtn" id="mmCompanionBtn">📖 Companion</button></div>
+      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button><button type="button" class="mm-tlbtn" id="mmCompanionBtn">📖 Companion</button><button type="button" class="mm-tlbtn" id="mmReviewBtn">🃏 Review</button></div>
       <div class="mm-take" id="mmTake"></div>
     </div>
   </div>
@@ -1625,7 +1642,9 @@ const SK={
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
-  cpAuto: 'trr_v1_cp_auto',  // 'on' also writes the Companion for each map made automatically (off by default)
+  cpAuto: 'trr_v1_cp_auto',
+  deck:   'trr_v1_deck',     // review deck progress per book: {bookId:{cardKey:{box,due,reviews,lapses}}} — this device
+  links:  'trr_v1_links',    // connections across books (Claude's answer, cached): {sig, at, themes}  // 'on' also writes the Companion for each map made automatically (off by default)
   deepDive:'trr_v1_deepdive',// {days:{date:question}, seenOn:{bookId:date}} — the daily mind-map question (this device only)
   updated:'trr_v1_updated'   // ISO timestamp of last local change (sync conflict resolution)
 };
@@ -6118,6 +6137,8 @@ function renderLogSession(){
   if(nudge)el.prepend(nudge);
   const dive=deepDiveCard();
   if(dive)nudge?nudge.after(dive):el.prepend(dive);
+  const deck=deckNudge();
+  if(deck){const after=dive||nudge;after?after.after(deck):el.prepend(deck);}
 }
 
 function buildLogCard(b){
@@ -7411,6 +7432,8 @@ function initMindmaps(){
   $('mmOpenBtn').addEventListener('click',()=>{if(editId)openMindmap(editId);});
   $('mmAutoToggle').addEventListener('change',e=>setMindmapAuto(e.target.checked));
   $('nextReadBtn').addEventListener('click',()=>openNextReads());
+  $('linksBtn').addEventListener('click',()=>openConnections());
+  $('mmReviewBtn').addEventListener('click',()=>{if(_mm)startDeck([_mm.bookId],true);});
   $('cpAutoToggle').addEventListener('change',e=>{localStorage.setItem(SK.cpAuto,e.target.checked?'on':'off');if(e.target.checked)toast('Finished books will get a Companion with their map','ok');});
 }
 
@@ -7742,6 +7765,9 @@ function showMindmapCompanion(){
   // Rewrite: two taps, like Remake — it replaces this Companion.
   const foot=vEl('div','cp-foot');
   if(has){
+    const talk=vEl('button','btn btn-primary cp-talk','💬 Discuss it, book-club style');talk.type='button';talk.id='mmCpTalk';
+    talk.addEventListener('click',()=>openBookClub(_mm.bookId));
+    foot.append(talk,vEl('p',null,'Claude asks the open questions one at a time and answers back. About a cent a reply.'));
     const redo=vEl('button','cp-redo','↻ Rewrite this Companion');redo.type='button';redo.id='mmCpRedo';
     let armed=false,t=0;
     redo.addEventListener('click',()=>{
@@ -8411,6 +8437,303 @@ function renderDeepDive(q){
   if(q.done&&streak)body.append(vEl('p','dd-foot',`🧠 ${plural(streak,'day')} in a row`));
   sheet.replaceChildren(vEl('div','mm-grip'),head,body);
   sheet.scrollTop=0;
+}
+
+// ══════════════════════════════════════════
+// REVIEW DECK
+// ══════════════════════════════════════════
+// Cards for each finished book, made from its Companion (moments, themes,
+// arcs, argument) or, without one, from the map's bubbles. Reviewed like the
+// vocabulary: right moves a card up a box and pushes it further out; "again"
+// sends it back to the start. A book's new cards come in through its map's
+// 🃏 Review; Today shows when cards are due. Progress stays on this device.
+
+function deckSlug(t){return String(t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'x';}
+function deckCards(map){
+  if(!map)return [];
+  const c=map.companion,out=[];
+  const add=(kind,key,front,back,note)=>{if(front&&back)out.push({key:kind+':'+deckSlug(key),kind,front,back,note:note||''});};
+  if(c){
+    for(const m of c.moments)add('moment',m.title,`${c.form==='argument'?'What does this passage do':'What happens here'}: “${m.title}”${m.where?` (${m.where})`:''}?`,m.text,m.why);
+    for(const t of c.themes)add('theme',t.title,`What does the book do with “${t.title}”?`,t.text,t.readings);
+    for(const a of c.arcs)add('arc',a.name,`How does ${a.name} change over the book?`,a.text);
+    for(const a of c.argument)add('arg',a.claim,`What supports this claim: “${a.claim}”?`,a.support,a.gap?`Where it leaps: ${a.gap}`:'');
+  }else{
+    for(const br of map.branches)for(const n of br.nodes)if(n.remind)add('node',n.id,`${br.label}: who or what is “${n.title}”?`,n.remind,n.deeper);
+  }
+  return out;
+}
+// Due cards for one book, then up to `fresh` new ones.
+function deckDue(state,cards,today,fresh){
+  const st=state||{};
+  const due=cards.filter(c=>st[c.key]&&st[c.key].due<=today).sort((a,b)=>st[a.key].due.localeCompare(st[b.key].due));
+  const unseen=cards.filter(c=>!st[c.key]).slice(0,fresh);
+  return [...due,...unseen];
+}
+function deckGrade(rec,right,today){
+  const r={box:0,due:today,reviews:0,lapses:0,...(rec||{})};
+  r.reviews++;
+  if(right){r.box=Math.min(6,r.box+1);r.due=ddAddDays(today,vocabInterval(r.box));}
+  else{r.box=0;r.lapses++;r.due=ddAddDays(today,1);}
+  return r;
+}
+
+let deckDB=load(SK.deck,'object')||{};
+function deckDueAll(today){
+  const out=[];
+  for(const b of books){
+    if(b.status!=='read'||!mindmapDB[b.id]||!deckDB[b.id])continue;
+    const cards=deckCards(mindmapDB[b.id].map);
+    for(const c of deckDue(deckDB[b.id],cards,today,0))out.push({bookId:b.id,card:c});
+  }
+  return out;
+}
+function deckNudge(){
+  const due=deckDueAll(localDateStr());
+  if(!due.length)return null;
+  const ids=[...new Set(due.map(d=>d.bookId))];
+  const b=vEl('button','vn vn-due deck-nudge');b.type='button';b.id='deckNudge';
+  const badge=vEl('span','vn-badge');badge.append(vEl('b',null,String(due.length)),vEl('small',null,due.length===1?'CARD':'CARDS'));
+  const text=vEl('span','vn-text');
+  text.append(vEl('span','vn-kicker','BOOK REVIEW'),vEl('b','vn-title',`${plural(due.length,'card')} due`));
+  const chips=vEl('span','vn-chips');
+  for(const id of ids.slice(0,2))chips.append(vEl('span','vn-chip',ddShort((books.find(x=>x.id===id)||{}).title)));
+  if(ids.length>2)chips.append(vEl('span','vn-chip more',`+${ids.length-2}`));
+  text.append(chips);
+  b.append(badge,text,vEl('span','vn-go','Review ›'));
+  b.addEventListener('click',()=>startDeck(ids,false));
+  return b;
+}
+
+let _deck=null; // {queue:[{bookId,card}], at, right, wrong, shown}
+function startDeck(bookIds,withNew){
+  const today=localDateStr(),queue=[];
+  for(const id of bookIds){
+    const rec=mindmapDB[id];if(!rec)continue;
+    const cards=deckCards(rec.map);
+    for(const c of deckDue(deckDB[id],cards,today,withNew?5:0))queue.push({bookId:id,card:c});
+  }
+  _deck={queue:queue.slice(0,20),at:0,right:0,wrong:0,shown:false,again:[]};
+  let wrap=document.getElementById('deckView');
+  if(!wrap){
+    wrap=vEl('div');wrap.id='deckView';
+    const scrim=vEl('div','dd-scrim');scrim.addEventListener('click',closeDeck);
+    const sheet=vEl('div','dd-sheet');sheet.id='deckSheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label','Book review');
+    wrap.append(scrim,sheet);document.body.append(wrap);
+  }
+  wrap.style.display='block';document.body.style.overflow='hidden';
+  renderDeck();
+}
+function closeDeck(){const w=document.getElementById('deckView');if(w)w.style.display='none';document.body.style.overflow='';_deck=null;if(document.getElementById('view-log').classList.contains('active'))renderLogSession();}
+function renderDeck(){
+  const sheet=document.getElementById('deckSheet');if(!sheet||!_deck)return;
+  const head=vEl('div','dd-head');
+  const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeDeck);
+  const body=vEl('div','dd-body');
+  const item=_deck.queue[_deck.at];
+  if(!item){
+    head.append(vEl('div','dd-titles'),x);
+    head.firstChild.append(vEl('div','dd-k','BOOK REVIEW'),vEl('div','dd-bk',_deck.queue.length?'Done for now':'Nothing to review'));
+    body.append(vEl('p','dd-verdict',_deck.queue.length?`${plural(_deck.right,'card')} remembered${_deck.wrong?`, ${_deck.wrong} to see again tomorrow`:''}.`:'This book’s cards are all caught up. New ones come in a few at a time.'));
+    const done=vEl('button','dd-btn','Close');done.type='button';done.addEventListener('click',closeDeck);
+    const r=vEl('div','dd-row');r.append(done);body.append(r);
+    sheet.replaceChildren(vEl('div','mm-grip'),head,body);return;
+  }
+  const b=books.find(z=>z.id===item.bookId)||{},map=mindmapDB[item.bookId].map;
+  const pal=map.palette||['#1f3a5f'];
+  head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
+  const titles=vEl('div','dd-titles');
+  titles.append(vEl('div','dd-k',`BOOK REVIEW · ${_deck.at+1} OF ${_deck.queue.length}`),vEl('div','dd-bk',ddShort(b.title)));
+  head.append(ddCoverBadge(vEl('div','dd-emb',map.emblem),item.bookId,map.emblem),titles,x);
+  body.append(vEl('p','dd-q deck-front',item.card.front));
+  if(_deck.shown){
+    const ans=vEl('div','dd-reveal');ans.append(vEl('b',null,'ANSWER'),document.createTextNode(item.card.back));body.append(ans);
+    if(item.card.note){const n=vEl('div','dd-reveal gold');n.append(vEl('b',null,'ALSO'),document.createTextNode(item.card.note));body.append(n);}
+    const grade=right=>{
+      const st=deckDB[item.bookId]||(deckDB[item.bookId]={});
+      st[item.card.key]=deckGrade(st[item.card.key],right,localDateStr());
+      save(SK.deck,deckDB);
+      right?_deck.right++:_deck.wrong++;
+      _deck.at++;_deck.shown=false;renderDeck();
+    };
+    const again=vEl('button','dd-btn ghost','Didn’t remember');again.type='button';again.id='deckAgain';again.addEventListener('click',()=>grade(false));
+    const got=vEl('button','dd-btn','Remembered it');got.type='button';got.id='deckGot';got.addEventListener('click',()=>grade(true));
+    const r=vEl('div','dd-row');r.append(again,got);body.append(r);
+  }else{
+    body.append(vEl('p','dd-foot','Answer it in your head, then check.'));
+    const show=vEl('button','dd-btn','Show answer');show.type='button';show.id='deckShow';show.addEventListener('click',()=>{_deck.shown=true;renderDeck();});
+    const r=vEl('div','dd-row');r.append(show);body.append(r);
+  }
+  sheet.replaceChildren(vEl('div','mm-grip'),head,body);
+  sheet.scrollTop=0;
+}
+
+// ══════════════════════════════════════════
+// BOOK CLUB
+// ══════════════════════════════════════════
+// A one-on-one discussion of a finished book: Claude opens with one of the
+// Companion's questions, answers back — engaging, pushing back with the book —
+// and asks the next. The conversation can be kept in the book's journal.
+
+function bookClubSystem(b,c){
+  const brief=JSON.stringify({form:c.form,overview:c.overview,themes:c.themes.map(t=>({title:t.title,text:t.text,readings:t.readings})),
+    moments:c.moments.map(m=>({title:m.title,text:m.text})),argument:c.argument,conversation:c.conversation,strengths:c.strengths,weaknesses:c.weaknesses,questions:c.questions});
+  return `You are leading a one-on-one book club discussion of "${b.title}"${b.author?` by ${b.author}`:''} with a reader who has finished it. What you know about the book is in this Companion; rely on it and don't invent scenes, quotes or critics:
+${brief}
+
+How to talk: answer the reader's point first — take it seriously, agree where it's right, push back where the book or its critics suggest otherwise, and bring in a specific moment or a competing reading. Then ask one follow-up or the next open question. Two to five sentences, conversational, no headings or lists, no flattery. One question at a time.`;
+}
+let _club=null; // {bookId, system, messages:[{role,content}]}
+async function clubReply(system,messages){
+  const key=localStorage.getItem(SK.api)||'';
+  const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:700,system,messages:messages.slice(-16)})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error((e.error&&e.error.message)||`HTTP ${res.status}`);}
+  const data=await res.json();
+  return (data.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('').trim();
+}
+function openBookClub(bookId){
+  const b=mmBook(bookId),rec=mmRecord(bookId),c=rec&&rec.map.companion;
+  if(!b||!c)return;
+  const q=(c.questions[0]||`What stayed with you most from ${b.title}?`);
+  // The opening question needs no call; Claude takes over from the first answer.
+  // (The API needs the conversation to start with the reader, so it's framed that way.)
+  _club={bookId,system:bookClubSystem(b,c),messages:[{role:'user',content:'Let’s discuss the book. Start with your first question.'},{role:'assistant',content:q}],busy:false};
+  let wrap=document.getElementById('clubView');
+  if(!wrap){
+    wrap=vEl('div');wrap.id='clubView';
+    const scrim=vEl('div','dd-scrim');scrim.addEventListener('click',closeBookClub);
+    const sheet=vEl('div','dd-sheet club-sheet');sheet.id='clubSheet';sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-label','Book club');
+    wrap.append(scrim,sheet);document.body.append(wrap);
+  }
+  wrap.style.display='block';
+  renderBookClub();
+}
+function closeBookClub(){const w=document.getElementById('clubView');if(w)w.style.display='none';_club=null;}
+function renderBookClub(status){
+  const sheet=document.getElementById('clubSheet');if(!sheet||!_club)return;
+  const b=mmBook(_club.bookId),map=mmRecord(_club.bookId).map,pal=map.palette||['#1f3a5f'];
+  const head=vEl('div','dd-head');head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
+  const titles=vEl('div','dd-titles');titles.append(vEl('div','dd-k','BOOK CLUB'),vEl('div','dd-bk',ddShort(b.title)));
+  const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeBookClub);
+  head.append(ddCoverBadge(vEl('div','dd-emb',map.emblem),_club.bookId,map.emblem),titles,x);
+  const log=vEl('div','club-log');log.id='clubLog';
+  for(const m of _club.messages.slice(1))log.append(vEl('p','club-msg '+(m.role==='assistant'?'them':'me'),m.content));
+  if(_club.busy)log.append(vEl('p','club-msg them typing','…'));
+  const st=vEl('p','club-status',status||'');st.id='clubStatus';
+  const ta=vEl('textarea','dd-ta club-ta');ta.id='clubInput';ta.rows=3;ta.placeholder='Your answer…';
+  const send=vEl('button','dd-btn','Send');send.type='button';send.id='clubSend';send.disabled=_club.busy;
+  send.addEventListener('click',()=>sendBookClub(ta.value));
+  const keep=vEl('button','dd-btn ghost','Save to journal');keep.type='button';keep.id='clubSave';keep.disabled=_club.messages.length<4;
+  keep.addEventListener('click',saveBookClub);
+  const row=vEl('div','dd-row');row.append(keep,send);
+  const body=vEl('div','dd-body');body.append(log,st,ta,row);
+  sheet.replaceChildren(vEl('div','mm-grip'),head,body);
+  log.scrollTop=log.scrollHeight;sheet.scrollTop=sheet.scrollHeight;
+}
+async function sendBookClub(text){
+  const t=String(text||'').trim();
+  if(!_club||_club.busy)return;
+  if(!t){const s=document.getElementById('clubStatus');if(s)s.textContent='Write an answer first.';return;}
+  const session=_club;
+  session.messages.push({role:'user',content:t});session.busy=true;renderBookClub();
+  try{
+    const reply=await clubReply(session.system,session.messages);
+    if(_club!==session)return;
+    session.messages.push({role:'assistant',content:reply||'Say more?'});session.busy=false;renderBookClub();
+  }catch(e){
+    if(_club!==session)return;
+    session.messages.pop();session.busy=false;renderBookClub(`Couldn’t reach Claude (${e.message}). Your answer is still here — try again.`);
+    const ta=document.getElementById('clubInput');if(ta)ta.value=t;
+  }
+}
+function saveBookClub(){
+  if(!_club)return;
+  const now=new Date(),b=mmBook(_club.bookId);
+  const text='💬 Book club\n\n'+_club.messages.slice(1).map(m=>(m.role==='assistant'?'Claude: ':'Me: ')+m.content).join('\n\n');
+  if(!journalDB[_club.bookId])journalDB[_club.bookId]=[];
+  journalDB[_club.bookId].push({date:localDateStr(now),time:now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}),text});
+  save(SK.journal,journalDB);
+  toast(`Saved to your ${ddShort(b?b.title:'')} journal`,'ok');
+}
+
+// ══════════════════════════════════════════
+// CONNECTIONS ACROSS BOOKS
+// ══════════════════════════════════════════
+// Claude groups the finished books that have maps by what they share — themes,
+// questions, ways of seeing — with a line on how each book treats it. Cached
+// until the set of books changes.
+
+function linksInput(list,maps){
+  return list.filter(b=>b.status==='read'&&maps[b.id]&&maps[b.id].map).map(b=>{
+    const m=maps[b.id].map,c=m.companion;
+    const themes=c?c.themes.map(t=>t.title):m.branches.filter(br=>/theme|idea/i.test(br.label)).flatMap(br=>br.nodes.map(n=>n.title));
+    return {id:b.id,title:b.title,author:b.author||'',thesis:m.thesis||'',themes:themes.slice(0,6)};
+  });
+}
+function linksSig(items){return items.map(i=>i.id).sort().join(',');}
+function normalizeLinks(raw,ids){
+  return (raw&&Array.isArray(raw.themes)?raw.themes:[]).map(t=>{
+    if(!t||typeof t!=='object')return null;
+    const seen=new Set();
+    const bks=(Array.isArray(t.books)?t.books:[]).map(x=>x&&typeof x==='object'?{id:String(x.id||''),note:mmStr(x.note,300)}:null)
+      .filter(x=>x&&ids.has(x.id)&&!seen.has(x.id)&&seen.add(x.id));
+    const title=mmStr(t.title,60);
+    return title&&bks.length>=2?{title,text:mmStr(t.text,400),books:bks.slice(0,6)}:null;
+  }).filter(Boolean).slice(0,8);
+}
+function linksPrompt(items){
+  return `Here are books a reader has finished, each with what it's about and its main themes:
+${items.map(i=>`- [${i.id}] ${i.title}${i.author?' — '+i.author:''}: ${i.thesis}${i.themes.length?` Themes: ${i.themes.join('; ')}.`:''}`).join('\n')}
+
+Find 4–7 meaningful connections across these books: shared themes, questions or ways of seeing that link at least two of them — not surface similarities like genre. For each, a short title, one sentence on the shared idea, and for each book (2–6 per connection) one sentence on how that book treats it differently from the others.
+Reply with JSON only: {"themes":[{"title":"…","text":"…","books":[{"id":"book id","note":"…"}]}]}`;
+}
+let linksDB=load(SK.links,'object')||{};
+async function openConnections(refresh=false){
+  const old=document.getElementById('linksSheet');if(old)old.remove();
+  const wrap=vEl('div','sheet-backdrop');wrap.id='linksSheet';wrap.style.zIndex='8600';
+  const sheet=vEl('div','sheet links-sheet');sheet.setAttribute('role','dialog');sheet.setAttribute('aria-modal','true');sheet.setAttribute('aria-labelledby','linksTitle');
+  const close=()=>wrap.remove();
+  wrap.addEventListener('click',e=>{if(e.target===wrap)close();});
+  const h=vEl('h3','sheet-title','Connections across your books');h.id='linksTitle';
+  const body=vEl('div');body.id='linksBody';
+  const cancel=vEl('button','sheet-cancel','Close');cancel.type='button';cancel.addEventListener('click',close);
+  sheet.append(vEl('div','sheet-grip'),h,body,cancel);wrap.append(sheet);document.body.append(wrap);
+  const say=t=>body.replaceChildren(vEl('p','next-msg',t));
+  const items=linksInput(books,mindmapDB),sig=linksSig(items);
+  if(items.length<3){say('Connections appear once at least three finished books have mind maps.');return;}
+  let themes=!refresh&&linksDB.sig===sig&&Array.isArray(linksDB.themes)?linksDB.themes:null;
+  if(!themes){
+    if(!localStorage.getItem(SK.api)){say('Add your Anthropic API key in Settings and Claude can find the threads that run between your books.');return;}
+    say(`Looking for threads across ${plural(items.length,'book')}… about half a minute.`);
+    try{
+      const {text}=await askClaude(linksPrompt(items),4000,{search:false});
+      themes=normalizeLinks(parseMindmapReply(text),new Set(items.map(i=>i.id)));
+      if(!themes.length)throw new Error('no usable connections came back');
+      linksDB={sig,at:Date.now(),themes};save(SK.links,linksDB);
+    }catch(e){if(wrap.isConnected)say(`Couldn’t find them (${e.message}). Try again in a moment.`);return;}
+  }
+  if(!wrap.isConnected)return;
+  const out=vEl('div','links-list');
+  for(const t of themes){
+    const sec=vEl('section','links-theme');
+    sec.append(vEl('h4','links-t',t.title));
+    if(t.text)sec.append(vEl('p','links-x',t.text));
+    for(const x of t.books){
+      const b=books.find(z=>z.id===x.id);if(!b)continue;
+      const row=vEl('button','links-book');row.type='button';
+      const cv=coversDB[b.id];
+      if(cv){const img=document.createElement('img');img.src=cv;img.alt='';img.className='next-cover';img.addEventListener('error',()=>img.remove());row.append(img);}
+      const tx=vEl('span','next-text');tx.append(vEl('b',null,b.title),vEl('small',null,x.note));row.append(tx);
+      row.addEventListener('click',()=>{close();openMindmap(b.id);});
+      sec.append(row);
+    }
+    out.append(sec);
+  }
+  const redo=vEl('button','btn btn-secondary next-again','↻ Find them again');redo.type='button';redo.addEventListener('click',()=>openConnections(true));
+  body.replaceChildren(out,redo);
 }
 
 // ══════════════════════════════════════════

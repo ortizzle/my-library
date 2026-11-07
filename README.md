@@ -33,6 +33,8 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 ### Reading Tracker
 - Log today's reading by page number, audiobook % finished, or a one-tap "listened today"
+- **Today, furthest along first**, and each card says what's left — time for audiobooks, pages otherwise — and, when the last three weeks show progress, the day you'd finish at that pace
+- **⏱ Enter the time from your player** for audiobooks: type the position and length (or the time left, with a −), or let Claude read a screenshot of the player. It fills Audio % and the page, remembers the book's length, and logs the session in minutes
 - **Reading streaks** tracked daily — shown in the header, with a last-7-days
   strip and a browsable month calendar on the Stats page
 - Progress history per book with timestamps
@@ -75,6 +77,12 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 
 ### Finishing a book
 - **🏁 Finished this book** on Today marks it read, then opens its editor at **My Reading** with the review box ready, so the final review gets written while the book is fresh
+- In Settings, **Also write its Companion** (off by default) has the Companion written right after the book's map is made automatically
+
+### Learning a book you've read
+- **🃏 Review** on a book's map: short cards drawn from its Companion — moments to recall, themes, character arcs, steps in an argument (or the map's bubbles if it has no Companion). Answer in your head, check, and say whether you remembered; cards come back on a spaced schedule like the vocabulary. New cards come in five at a time; due ones show on Today as **Book review**. Progress stays on this device
+- **💬 Discuss it, book-club style** at the end of a Companion: Claude opens with one of its open questions, then answers back — agreeing, pushing back with the book, offering other readings — and asks the next. **Save to journal** keeps the conversation with the book. About a cent a reply
+- **🕸 Connections across your books** on the Lists tab: the threads that run between finished books with maps, and how each book treats them differently. Remembered until the set of books changes
 
 ### Daily Deep Dive
 - **One question a day on Today**, from a finished book's mind map, in a small card under the vocabulary card. Tap **Play ›** to open it
@@ -94,6 +102,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **Favorites** — automatically includes any 5-star book; also taggable manually
 - **To Be Read, DNF Shelf, Articles, Loaned Out** — curated lists
 - **Wishlist** — its own page (open it from the Lists tab) for books you want but don't own yet
+- **✦ What should I read next?** — Claude picks five from your shelf and wishlist, weighing how you rated what you finished and what you gave up on, with a reason (and a caution) for each
 - DNF tag and DNF status stay in sync — set one and the other updates automatically
 
 ### Physical Location Tracking
