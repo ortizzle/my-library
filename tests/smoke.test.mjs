@@ -3506,3 +3506,123 @@ test('“Your notes” says so when there’s nothing yet', async () => {
   assert.match(await page.textContent('#mmSheet'), /Nothing yet/);
   await ctx.close();
 });
+
+// ── Book home ────────────────────────────────────────────────────────────
+
+test('a finished book opens its home page: header, and Map / Companion / Your notes / Review tabs', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(raw => {
+    books.push({ id: 'u1', title: 'Unread One', author: 'X', status: 'unread', addedAt: 2, updatedAt: 2 });
+    books[0].date = '2026-06-20'; save(SK.books, books);
+    mindmapDB = { b1: { map: normalizeMindmap({ ...raw, companion: { form: 'fiction', overview: ['A found-family fable.'],
+      moments: [{ title: 'Lucy’s records', text: 'They bond over music.' }], themes: [{ title: 'Chosen family', text: 'Traced through the dinners.' }],
+      questions: ['Is gentleness a politics?'] } }), createdAt: 1, updatedAt: 1, seen: [] } };
+    save(SK.maps, mindmapDB); showView('library'); renderLibrary();
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#bc-b1');
+  assert.equal(await page.isVisible('#bookHome'), true, 'a finished book opens its home, not the editor');
+  assert.equal(await page.isVisible('#bookModal'), false);
+  const head = await page.textContent('#bookHome .bh-head');
+  assert.match(head, /The House in the Cerulean Sea/);
+  assert.match(head, /★★★★☆/);
+  assert.match(head, /Finished Sat, Jun 20/);
+  assert.match(head, /Lovely and kind\./, 'the review sits in the header');
+  assert.deepEqual(await page.locator('#bookHome .bh-tab').allTextContents(), ['Map', 'Companion', 'Your notes', 'Review']);
+  assert.match(await page.textContent('#bookHome .bh-thesis'), /\S/);
+  await page.click('#bookHome .bh-tab:text-is("Companion")');
+  assert.match(await page.textContent('#bookHome .bh-body'), /Central moments[\s\S]*Lucy’s records/);
+  await page.click('#bookHome .bh-tab:text-is("Your notes")');
+  assert.match(await page.textContent('#bookHome .bh-body'), /Lucy danced to another record/);
+  assert.doesNotMatch(await page.textContent('#bookHome .bh-body'), /YOUR REVIEW/, 'the review isn’t repeated');
+  await page.click('#bookHome .bh-tab:text-is("Review")');
+  assert.match(await page.textContent('#bookHome .bh-stats'), /2cards0started/);
+  await page.click('#bhReview');
+  assert.equal(await page.isVisible('#deckSheet'), true);
+  await page.evaluate(() => closeDeck());
+  assert.equal(await page.isVisible('#bookHome'), true, 'back on the home page');
+  // The map opens over it, and closing returns here.
+  await page.click('#bookHome .bh-tab:text-is("Map")');
+  await page.click('#bhOpenMap');
+  assert.equal(await page.isVisible('#mindmapView'), true);
+  await page.evaluate(() => closeMindmap());
+  assert.equal(await page.isVisible('#bookHome'), true);
+  // Edit opens the editor on top; closing it refreshes the page.
+  await page.click('#bhEdit');
+  assert.equal(await page.isVisible('#bookModal'), true);
+  assert.equal(await page.evaluate(() => document.getElementById('bookModal').style.zIndex), '8320');
+  await page.evaluate(() => { books[0].rating = 5; closeM('bookModal'); });
+  assert.match(await page.textContent('#bookHome .bh-head'), /★★★★★/);
+  assert.equal(await page.evaluate(() => document.getElementById('bookModal').style.zIndex), '');
+  await page.click('#bookHome .bh-back');
+  assert.equal(await page.isVisible('#bookHome'), false);
+  // A book not finished still opens the editor.
+  await page.evaluate(() => openBook('u1'));
+  assert.equal(await page.isVisible('#bookModal'), true);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a finished book with no map yet offers to make one from its home page', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(() => { mindmapDB = {}; openBook('b1'); });
+  assert.match(await page.textContent('#bookHome .bh-body'), /No mind map yet/);
+  await page.click('#bookHome .bh-tab:text-is("Review")');
+  assert.match(await page.textContent('#bookHome .bh-body'), /Make the map first/);
+  await ctx.close();
+});
+
+// ── Today's practice ─────────────────────────────────────────────────────
+
+test('Today’s practice: one card for words, the deep dive and book review, and Start runs them in turn', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(raw => {
+    const today = localDateStr();
+    books = [{ id: 'b1', title: 'The House in the Cerulean Sea', author: 'T. J. Klune', status: 'read', addedAt: 1, updatedAt: 1 }];
+    mindmapDB = { b1: { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] } };
+    vocabDB = [{ id: 'w1', word: 'terse', definition: 'Brief.', bookId: 'b1', addedAt: 1, box: 1, due: today, reviews: 1, lapses: 0 },
+               { id: 'w2', word: 'lugubrious', definition: 'Gloomy.', bookId: 'b1', addedAt: 2, box: 1, due: today, reviews: 1, lapses: 0 }];
+    const card = deckCards(mindmapDB.b1.map)[0];
+    deckDB = { b1: { [card.key]: { box: 1, due: today, reviews: 1, lapses: 0 } } };
+    save(SK.books, books); save(SK.maps, mindmapDB); save(SK.vocab, vocabDB); save(SK.deck, deckDB);
+    showView('log'); renderLogSession();
+  }, JSON.parse(MAP_REPLY));
+  const card = page.locator('#practiceCard');
+  assert.equal(await card.count(), 1);
+  for (const id of ['#vocabNudge', '#deepDiveCard', '#deckNudge'])
+    assert.equal(await card.locator(id).count(), 1, `${id} is a row of the practice card`);
+  assert.match(await card.locator('.practice-sum').textContent(), /4 things · about 2 min/);
+  await page.click('#practiceGo');
+  assert.equal(await page.isVisible('#vocabQuiz'), true, 'words first');
+  // Finish the words (as if reviewed), close: the deep dive opens next.
+  await page.evaluate(() => { for (const w of vocabDB) w.due = ddAddDays(localDateStr(), 3); save(SK.vocab, vocabDB); closeVocabQuiz(); });
+  await page.waitForFunction(() => document.getElementById('ddView') && document.getElementById('ddView').style.display === 'block');
+  // Skip the deep dive: book review opens next.
+  await page.click('#ddSheet .dd-btn.ghost:text-is("Not today")');
+  await page.waitForFunction(() => document.getElementById('deckView') && document.getElementById('deckView').style.display === 'block');
+  await page.click('#deckShow'); await page.click('#deckGot');
+  await page.evaluate(() => closeDeck());
+  await page.locator('.toast', { hasText: 'Practice done for today' }).waitFor();
+  assert.match(await page.textContent('#practiceCard .practice-sum'), /All done for today ✓/);
+  assert.equal(await page.locator('#practiceGo').count(), 0);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('closing a practice part before finishing it stops the run there', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(raw => {
+    const today = localDateStr();
+    books = [{ id: 'b1', title: 'Cerulean', status: 'read', addedAt: 1, updatedAt: 1 }];
+    mindmapDB = { b1: { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] } };
+    vocabDB = [{ id: 'w1', word: 'terse', definition: 'Brief.', bookId: 'b1', addedAt: 1, box: 1, due: today, reviews: 1, lapses: 0 }];
+    save(SK.books, books); save(SK.maps, mindmapDB); save(SK.vocab, vocabDB); showView('log'); renderLogSession();
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#practiceGo');
+  await page.evaluate(() => closeVocabQuiz());
+  await page.waitForTimeout(400);
+  assert.notEqual(await page.evaluate(() => document.getElementById('ddView') ? document.getElementById('ddView').style.display : 'none'), 'block');
+  assert.equal(await page.evaluate(() => _practice), null);
+  await ctx.close();
+});

@@ -81,10 +81,14 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - In Settings, **Also write its Companion** (off by default) has the Companion written right after the book's map is made automatically
 
 ### Learning a book you've read
+- **A home page for every finished book.** Tap a finished book anywhere — a Library card, a list, a cover — and it opens its own page: cover, rating, the date you finished and your review up top, then tabs for **Map**, **Companion**, **Your notes** and **Review** (cards learned and due, and a way into the book club). ✏️ Edit is one tap away. Books you haven't finished still open the editor
 - **📓 Your notes** on a book's map: your review and rating, your highlights in page order, your journal entries newest first (including saved book-club conversations), and the words you saved from it — tap a word for its page. Read-only here; edit them where they live
 - **🃏 Review** on a book's map: short cards drawn from its Companion — moments to recall, themes, character arcs, steps in an argument (or the map's bubbles if it has no Companion). Answer in your head, check, and say whether you remembered; cards come back on a spaced schedule like the vocabulary. New cards come in five at a time; due ones show on Today as **Book review**. Progress stays on this device
 - **💬 Discuss it, book-club style** at the end of a Companion: Claude opens with one of its open questions, then answers back — agreeing, pushing back with the book, offering other readings — and asks the next. **Save to journal** keeps the conversation with the book. About a cent a reply
 - **🕸 Connections across your books** on the Lists tab: the threads that run between finished books with maps, and how each book treats them differently. Remembered until the set of books changes
+
+### Today's practice
+- The vocabulary words due, the daily deep dive and any book review cards sit together in one **Today's practice** card, with how many things are waiting and roughly how long they'll take. **Start** runs them one after another; closing one part-way stops there. Each row still opens on its own
 
 ### Daily Deep Dive
 - **One question a day on Today**, from a finished book's mind map, in a small card under the vocabulary card. Tap **Play ›** to open it

@@ -134,6 +134,41 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .prog-label span{font-size:.76rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em}
 .prog-label strong{font-size:.76rem;color:var(--amber)}
 .prog-bar{height:4px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
+#bookHome{position:fixed;inset:0;z-index:8300;background:var(--parchment);overflow-y:auto;-webkit-overflow-scrolling:touch}
+.bh-head{color:#fff;padding:calc(.6rem + env(safe-area-inset-top)) 1.1rem 1.1rem}
+.bh-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;max-width:620px;margin:0 auto}
+.bh-back{width:48px;height:48px;border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:50%;font-size:1.6rem;cursor:pointer}
+.bh-kicker{font-family:'IM Fell English SC',serif;letter-spacing:.16em;font-size:.76rem;color:rgba(255,255,255,.75)}
+.bh-edit{min-height:48px;padding:0 1rem;border-radius:24px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font:600 .9rem 'Lora',serif;cursor:pointer}
+.bh-id{display:flex;gap:1rem;align-items:flex-end;max-width:620px;margin:.9rem auto 0}
+.bh-cover{width:104px;height:152px;border-radius:5px;object-fit:cover;flex-shrink:0;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.bh-cover-gen{display:flex;align-items:flex-end;padding:.5rem;font-family:'Playfair Display',serif;font-size:.8rem;line-height:1.3;color:rgba(255,255,255,.9)}
+.bh-meta{min-width:0}
+.bh-title{font-family:'Playfair Display',serif;font-size:1.6rem;line-height:1.15;margin:0;color:#fff}
+.bh-author{font-style:italic;color:rgba(255,255,255,.85);margin-top:.2rem}
+.bh-stars{color:#f1cf7a;letter-spacing:.12em;margin-top:.45rem;font-size:1.05rem}
+.bh-when{font-size:.82rem;color:rgba(255,255,255,.7);margin-top:.25rem}
+.bh-review{max-width:620px;margin:1rem auto 0;padding:.75rem .9rem;border-radius:12px;background:rgba(255,255,255,.12);border-left:3px solid #f1cf7a;line-height:1.6;font-style:italic;white-space:pre-wrap}
+.bh-tabs{position:sticky;top:0;z-index:2;display:flex;gap:.3rem;overflow-x:auto;scrollbar-width:none;padding:.55rem 1.1rem;background:var(--parchment);border-bottom:1px solid var(--parchment-dark)}
+.bh-tabs::-webkit-scrollbar{display:none}
+.bh-tab{flex:1 0 auto;min-height:48px;padding:0 .95rem;border:0;border-radius:24px;background:transparent;color:var(--ink-light);font:600 .92rem 'Lora',serif;cursor:pointer;white-space:nowrap}
+.bh-tab.on{background:var(--ink);color:var(--cream)}
+.bh-body{max-width:620px;margin:0 auto;padding:1.1rem 1.1rem calc(2rem + env(safe-area-inset-bottom))}
+.bh-empty{color:var(--ink-light);line-height:1.6;margin:.2rem 0 1rem}
+.bh-btn{width:100%;min-height:48px;justify-content:center;margin-bottom:.6rem}
+.bh-row{display:flex;gap:.6rem}.bh-row .bh-btn{flex:1}
+.bh-gap{height:1.2rem}
+.bh-maptile{border-radius:16px;padding:1.1rem;color:#fff;margin-bottom:.9rem;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.bh-emblem{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:#fffaf2;font-size:1.8rem;box-shadow:0 0 0 3px rgba(255,255,255,.4)}
+.bh-thesis{font-family:'Playfair Display',serif;font-size:1.1rem;line-height:1.45;margin:.8rem 0}
+.bh-chips{display:flex;flex-wrap:wrap;gap:.35rem}
+.bh-chip{font-size:.8rem;padding:.25rem .6rem;border-radius:12px;background:rgba(255,255,255,.16)}
+.bh-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;margin-bottom:.7rem}
+.bh-stat{text-align:center;padding:.7rem .3rem;border-radius:12px;background:var(--cream);border:1px solid var(--parchment-dark)}
+.bh-stat b{display:block;font-family:'Playfair Display',serif;font-size:1.5rem;color:var(--ink)}
+.bh-stat span{font-size:.76rem;color:var(--ink-light)}
+.bh-note{font-size:.88rem;color:var(--ink-light);line-height:1.5;margin:0 0 .9rem}
+.bh-body .cp-sec{scroll-margin-top:4.5rem}
 .yn-empty{color:var(--ink-light);font-style:italic}
 .yn-review{padding:.75rem .9rem;border-radius:12px;background:#fdf6e3;border-left:4px solid var(--gold)}
 .yn-review p{margin:0;line-height:1.6;white-space:pre-wrap}
@@ -378,6 +413,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .final-review-tip{font-family:'Playfair Display',serif;font-weight:700;color:var(--burgundy);margin-bottom:.35rem}
 .mm-pills{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin:1rem 1rem .4rem}
 .mm-pills .mm-tlbtn{margin:0}
+.mm-pills{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;max-width:460px;margin-left:auto;margin-right:auto}
+.mm-pills .mm-tlbtn{width:100%;font-size:.95rem;padding:0 .6rem;box-shadow:3px 3px 0 var(--gold)}
+.mm-pills .mm-tlbtn:last-child:nth-child(odd){grid-column:1/-1}
 .sm-line{font-family:'Playfair Display',serif;font-size:1.12rem;line-height:1.45;margin:.4rem 0 0;padding:.8rem 1rem;background:var(--cream);border:2px solid var(--ink);border-radius:12px;box-shadow:4px 4px 0 var(--gold)}
 .sm-para{margin:0 0 .75rem}
 .sm-pts{margin:0;padding:0;list-style:none;display:grid;gap:.6rem}
@@ -531,6 +569,25 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .vq-say{flex-wrap:wrap}
 .vq-syll{font-size:1rem;color:var(--ink);letter-spacing:.03em}
 .vq-pron{font-size:1rem;color:var(--ink-light)}
+.practice{margin-bottom:1.1rem;border-radius:16px;padding:.35rem 1rem .9rem;border:1px solid #2f4a78;background:radial-gradient(circle at 0 0,rgba(214,174,76,.22),transparent 55%),linear-gradient(135deg,#15233d,#24395f);color:var(--parchment);box-shadow:0 6px 20px var(--shadow-deep),0 1px 4px var(--shadow)}
+.practice-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;flex-wrap:wrap;padding:.55rem 0 .45rem}
+.practice-k{font-family:'IM Fell English SC',serif;font-size:.8rem;letter-spacing:.14em;color:var(--gold-lt)}
+.practice-sum{font-size:.86rem;color:#c9d3e6;font-style:italic}
+.practice .vn{margin:0;border:0;border-top:1px solid rgba(255,255,255,.12);border-radius:0;box-shadow:none;background:transparent;padding:.75rem 0;color:var(--parchment)}
+.practice .vn .vn-kicker{font-size:.7rem}
+.practice .vn-badge{width:46px;height:46px}
+.practice .vn-badge b{font-size:1.15rem}
+.practice .vn-badge small{font-size:.58rem}
+.practice .dd-badge.cover{width:46px;height:66px}
+.practice .vn-title{font-size:1.02rem}
+.practice .vn-go{padding:.4rem .7rem;font-size:.9rem}
+.practice .vn-wotd{display:block}
+.practice .vn-wotd .vn-kicker{color:var(--gold-lt)}
+.practice .vn-caught{color:#aab6cc}
+.practice .vn-word{color:#f1cf7a}
+.practice .vn-pron,.practice .vn-def{color:#c9d3e6}
+.practice .dd-done{opacity:.8}
+.practice-go{display:block;width:100%;min-height:48px;margin-top:.4rem;border:0;border-radius:24px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font:700 1rem 'Playfair Display',serif;cursor:pointer}
 .vn{display:block;width:100%;text-align:left;margin-bottom:1rem;border-radius:14px;cursor:pointer;font-family:'Lora',serif;box-shadow:0 6px 20px var(--shadow-deep),0 1px 4px var(--shadow)}
 .vn-due{display:flex;align-items:center;gap:.85rem;padding:.9rem 1rem;border:1px solid #2f4a78;background:radial-gradient(circle at 0 0,rgba(214,174,76,.22),transparent 55%),linear-gradient(135deg,#15233d,#24395f);color:var(--parchment)}
 .vn-badge{flex-shrink:0;width:58px;height:58px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);box-shadow:0 0 0 3px rgba(214,174,76,.25),0 2px 8px rgba(0,0,0,.35)}
@@ -2560,7 +2617,7 @@ function bookCard(b){
   const showProg=b.status==='reading'&&b.itemType!=='article';
   const hasJournal=(journalDB[b.id]||[]).length>0;
   return `<div class="book-card-wrap">
-    <div class="book-card ${spineClass(b)} card-has-cover" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openEditModal('${b.id}')">
+    <div class="book-card ${spineClass(b)} card-has-cover" style="border-radius:var(--r) var(--r) 0 0;margin-bottom:0;cursor:pointer" id="bc-${b.id}" onclick="openBook('${b.id}')">
       ${coverHtml}
       <div class="badge-row">${statusBadge(b)}${listBadges(b)}</div>
       <div class="book-title">${esc(b.title)}</div>
@@ -2697,7 +2754,10 @@ function clearForm(){
   setCoverPreview(null);toggleYearOnly();updateFmtChips();updateListChips();updateRatingDisplay(0);setProgType('pages',null);handleStatusChange();
 }
 
-function closeM(id){document.getElementById(id).style.display='none';}
+function closeM(id){
+  document.getElementById(id).style.display='none';
+  if(id==='bookModal'){document.getElementById(id).style.zIndex='';if(bookHomeOpen())renderBookHome();}
+}
 function ovc(e,id){if(e.target===e.currentTarget)closeM(id);}
 function switchModalTab(n){
   document.querySelectorAll('.modal-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===n));
@@ -4315,6 +4375,7 @@ function closeVocabQuiz(){
   document.getElementById('vocabQuiz').style.display='none';
   document.body.style.overflow='';
   vocabChanged();
+  if(_practice&&_practice.cur&&_practice.cur.kind==='vocab')practiceAfter('vocab',vocabDue(vocabDB,localDateStr()).length<_practice.cur.before);
 }
 
 function vqHeader(){
@@ -5612,7 +5673,7 @@ async function openNextReads(again=false){
     const t=vEl('span','next-text');
     t.append(vEl('b',null,b.title),vEl('small',null,(b.author||'')+(b.status==='wishlist'?' · wishlist':' · on your shelf')));
     btn.append(t);
-    btn.addEventListener('click',()=>{close();openEditModal(b.id);});
+    btn.addEventListener('click',()=>{close();openBook(b.id);});
     li.append(btn,vEl('p','next-why',p.why));
     if(p.caution)li.append(vEl('p','next-caution',p.caution));
     list.append(li);
@@ -5636,7 +5697,7 @@ function renderLists(){
     const rows=items.length?items.map(b=>{
       const prog=progressDB[b.id];const last=prog&&prog.length?prog[prog.length-1]:null;
       const progTxt=last&&last.total?`${Math.round((last.cur/last.total)*100)}%`:'';
-      const onclick=clickFn?clickFn(b):`openEditModal('${b.id}')`;
+      const onclick=clickFn?clickFn(b):`openBook('${b.id}')`;
       return `<div class="list-row" onclick="${onclick}">
         ${rowCover(b)}
         <div class="list-row-info">
@@ -5684,7 +5745,7 @@ function renderLists(){
   const finishedBks=books.filter(b=>b.status==='read'&&b.date&&b.date.startsWith(String(thisYear))).sort((a,b)=>a.date<b.date?1:-1);
   const finishedRows=finishedBks.length?finishedBks.map(b=>{
     const dateStr=b.yearOnly?b.yearOnly:b.date?fmtDate(b.date):'';
-    return `<div class="list-row" onclick="openEditModal('${b.id}')">
+    return `<div class="list-row" onclick="openBook('${b.id}')">
       ${rowCover(b)}
       <div class="list-row-info">
         <div class="list-row-title">${esc(b.title)}</div>
@@ -5700,7 +5761,7 @@ function renderLists(){
 
   // Wishlist rows — with Move to Library action
   const wishlistRows=wishlistBks.length?wishlistBks.map(b=>{
-    return `<div class="list-row" style="cursor:pointer" onclick="openEditModal('${b.id}')">
+    return `<div class="list-row" style="cursor:pointer" onclick="openBook('${b.id}')">
       ${rowCover(b)}
       <div class="list-row-info">
         <div class="list-row-title">${esc(b.title)}</div>
@@ -5718,7 +5779,7 @@ function renderLists(){
   const loanedBks=books.filter(b=>activeLoan(b));
   const loanedRows=loanedBks.length?loanedBks.map(b=>{
     const al=activeLoan(b);
-    return `<div class="list-row" onclick="openEditModal('${b.id}')">
+    return `<div class="list-row" onclick="openBook('${b.id}')">
       ${rowCover(b)}
       <div class="list-row-info">
         <div class="list-row-title">${esc(b.title)}</div>
@@ -5786,8 +5847,8 @@ function renderYear(){
       const url=coversDB[b.id];
       const t=esc(b.title||'');
       return url
-        ?`<img src="${esc(url)}" onclick="openEditModal('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="${t}" onerror="this.style.display='none'">`
-        :`<div onclick="openEditModal('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.84rem">📗</div>`;
+        ?`<img src="${esc(url)}" onclick="openBook('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;object-fit:cover;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);flex-shrink:0" alt="${t}" onerror="this.style.display='none'">`
+        :`<div onclick="openBook('${b.id}')" title="${t}" style="width:32px;height:46px;border-radius:3px;background:var(--parchment-dark);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.84rem">📗</div>`;
     }).join('');
 
     return `<div style="display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .9rem;border-bottom:1px dotted var(--parchment-dark);${isFuture?'opacity:.4':''}">
@@ -6189,12 +6250,59 @@ function renderLogSession(){
     reading.forEach(b=>_logRatings[b.id]=b.rating||0);
     el.innerHTML=reading.map(b=>buildLogCard(b)).join('');
   }
-  const nudge=vocabNudge();
-  if(nudge)el.prepend(nudge);
-  const dive=deepDiveCard();
-  if(dive)nudge?nudge.after(dive):el.prepend(dive);
-  const deck=deckNudge();
-  if(deck){const after=dive||nudge;after?after.after(deck):el.prepend(deck);}
+  // Vocabulary, the deep dive and book review, as rows of one practice card.
+  const parts=[vocabNudge(),deepDiveCard(),deckNudge()].filter(Boolean);
+  if(parts.length)el.prepend(practiceCard(parts));
+}
+
+// ── Today's practice ──
+// What's waiting today across the three kinds of review, with a rough time.
+function practiceSteps(){
+  const today=localDateStr(),out=[];
+  const words=vocabDB.length?vocabDue(vocabDB,today).length:0;
+  if(words)out.push({kind:'vocab',n:words,secs:words*20});
+  const q=deepDiveToday();
+  if(q&&!q.done&&!q.skipped)out.push({kind:'dive',n:1,secs:60});
+  const cards=deckDueAll(today).length;
+  if(cards)out.push({kind:'deck',n:cards,secs:cards*15});
+  return out;
+}
+function practiceCard(parts){
+  const steps=practiceSteps();
+  const box=vEl('section','practice');box.id='practiceCard';box.setAttribute('aria-label','Today’s practice');
+  const head=vEl('div','practice-head');
+  const things=steps.reduce((a,s)=>a+s.n,0),mins=Math.max(1,Math.round(steps.reduce((a,s)=>a+s.secs,0)/60));
+  head.append(vEl('span','practice-k','TODAY’S PRACTICE'),vEl('span','practice-sum',steps.length?`${plural(things,'thing')} · about ${mins} min`:'All done for today ✓'));
+  box.append(head,...parts);
+  if(steps.length>1){
+    const go=vEl('button','practice-go',`Start · about ${mins} min ›`);go.type='button';go.id='practiceGo';
+    go.addEventListener('click',startPractice);
+    box.append(go);
+  }
+  return box;
+}
+// Start runs each waiting kind in turn; finishing one opens the next.
+// Closing one part-way stops there.
+let _practice=null; // {steps:[kind], cur:{kind,before}}
+function startPractice(){
+  _practice={steps:practiceSteps().map(s=>s.kind),cur:null};
+  practiceNext();
+}
+function practiceNext(){
+  if(!_practice)return;
+  const kind=_practice.steps.shift();
+  if(!kind){_practice=null;renderLogSession();toast('Practice done for today ✓','ok');return;}
+  const today=localDateStr();
+  _practice.cur={kind,before:kind==='vocab'?vocabDue(vocabDB,today).length:0};
+  if(kind==='vocab')startVocabQuiz();
+  else if(kind==='dive')openDeepDive();
+  else startDeck([...new Set(deckDueAll(today).map(d=>d.bookId))],false);
+}
+// Called as each part closes: carry on if it was finished, else stop.
+function practiceAfter(kind,finished){
+  if(!_practice||!_practice.cur||_practice.cur.kind!==kind)return;
+  if(!finished){_practice=null;return;}
+  setTimeout(practiceNext,250);
 }
 
 function buildLogCard(b){
@@ -7508,7 +7616,8 @@ function closeMindmap(){
   closeMindmapSheet();
   _mm=null;
   document.getElementById('mindmapView').style.display='none';
-  document.body.style.overflow='';
+  document.body.style.overflow=bookHomeOpen()?'hidden':'';
+  if(bookHomeOpen())renderBookHome();
 }
 
 function renderMindmapView(){
@@ -7677,17 +7786,22 @@ function bookNotesFor(bookId,journal,vocab){
 }
 function showMindmapNotes(){
   const b=mmBook(_mm&&_mm.bookId);if(!b)return;
+  openMindmapSheet([vEl('div','mm-s-kind','YOUR NOTES'),vEl('h2','mm-s-title',ddShort(b.title)),...bookNotesKids(b,true)]);
+}
+// The notes sections for a book. withReview: include the review (the book
+// home shows it in its header instead).
+function bookNotesKids(b,withReview){
   const {highlights,notes,words}=bookNotesFor(b.id,journalDB,vocabDB);
-  const review=String(b.notes||'').trim();
+  const review=withReview?String(b.notes||'').trim():'';
   const counts=[highlights.length&&plural(highlights.length,'highlight'),notes.length&&plural(notes.length,'journal entry').replace('entrys','entries'),words.length&&plural(words.length,'word')].filter(Boolean);
-  const kids=[vEl('div','mm-s-kind','YOUR NOTES'),vEl('h2','mm-s-title',ddShort(b.title))];
+  const kids=[];
   if(counts.length)kids.push(vEl('p','mm-s-sub',counts.join(' · ')));
   if(!review&&!counts.length){
-    kids.push(vEl('p','mm-s-p yn-empty','Nothing yet. Your review, highlights, journal entries and the words you save from this book will gather here.'));
-    openMindmapSheet(kids);return;
+    kids.push(vEl('p','mm-s-p yn-empty','Nothing yet. Your highlights, journal entries and the words you save from this book will gather here.'));
+    return kids;
   }
   const sec=(label,...els)=>kids.push(vEl('div','mm-s-lbl',label),...els);
-  if(review||b.rating){
+  if(withReview&&(review||b.rating)){
     const box=vEl('div','yn-review');
     if(b.rating)box.append(vEl('div','yn-stars','★'.repeat(b.rating)+'☆'.repeat(5-b.rating)));
     if(review)box.append(vEl('p',null,review));
@@ -7724,7 +7838,129 @@ function showMindmapNotes(){
     }
     sec('WORDS',list);
   }
-  openMindmapSheet(kids);
+  return kids;
+}
+
+// ══════════════════════════════════════════
+// BOOK HOME
+// ══════════════════════════════════════════
+// A finished book's own page: cover, rating and review at the top, then its
+// map, Companion, your notes and review practice as tabs. Tapping a finished
+// book anywhere opens this; the editor is a tap away (✏️ Edit).
+
+function openBook(id){
+  const b=books.find(x=>x.id===id);
+  if(b&&b.status==='read'&&b.itemType!=='article')openBookHome(id);
+  else openEditModal(id);
+}
+let _bh=null; // {bookId, tab}
+const BH_TABS=[['map','Map'],['companion','Companion'],['notes','Your notes'],['review','Review']];
+function openBookHome(id,tab){
+  if(!books.some(b=>b.id===id))return;
+  _bh={bookId:id,tab:tab||(_bh&&_bh.bookId===id?_bh.tab:'map')};
+  let v=document.getElementById('bookHome');
+  if(!v){v=vEl('div');v.id='bookHome';v.setAttribute('role','dialog');v.setAttribute('aria-modal','true');v.setAttribute('aria-labelledby','bhTitle');document.body.append(v);}
+  v.style.display='block';document.body.style.overflow='hidden';
+  renderBookHome();
+  v.scrollTop=0;
+}
+function closeBookHome(){
+  const v=document.getElementById('bookHome');if(v)v.style.display='none';
+  _bh=null;document.body.style.overflow='';
+}
+function bookHomeOpen(){const v=document.getElementById('bookHome');return !!v&&v.style.display!=='none'&&!!_bh;}
+function renderBookHome(){
+  const v=document.getElementById('bookHome');if(!v||!_bh)return;
+  const b=books.find(x=>x.id===_bh.bookId);
+  if(!b){closeBookHome();return;}
+  const rec=mindmapDB[b.id],map=rec&&rec.map,pal=(map&&map.palette)||['#1f3a5f','#0f1a2e'];
+  // Header
+  const head=vEl('header','bh-head');
+  head.style.background=`linear-gradient(160deg,${pal[0]},${pal[1]||pal[0]} 70%,#0f1a2e)`;
+  const top=vEl('div','bh-top');
+  const back=vEl('button','bh-back','‹');back.type='button';back.setAttribute('aria-label','Back');back.addEventListener('click',closeBookHome);
+  const edit=vEl('button','bh-edit','✏️ Edit');edit.type='button';edit.id='bhEdit';
+  edit.addEventListener('click',()=>{openEditModal(b.id);document.getElementById('bookModal').style.zIndex='8320';});
+  top.append(back,vEl('span','bh-kicker','YOUR BOOK'),edit);
+  const id=vEl('div','bh-id');
+  const cv=coversDB[b.id];
+  let cover;
+  if(cv){cover=document.createElement('img');cover.src=cv;cover.alt='';cover.className='bh-cover';cover.addEventListener('error',()=>cover.replaceWith(bhCoverFallback(b)));}
+  else cover=bhCoverFallback(b);
+  const meta=vEl('div','bh-meta');
+  const h=vEl('h2','bh-title',b.title||'Untitled');h.id='bhTitle';
+  meta.append(h);
+  if(b.author)meta.append(vEl('div','bh-author',b.author));
+  if(b.rating)meta.append(vEl('div','bh-stars','★'.repeat(b.rating)+'☆'.repeat(5-b.rating)));
+  const when=b.date?`Finished ${fmtShortDate(b.date)}`:'Finished';
+  meta.append(vEl('div','bh-when',when));
+  id.append(cover,meta);
+  head.append(top,id);
+  const review=String(b.notes||'').trim();
+  if(review)head.append(vEl('p','bh-review',review));
+  // Tabs
+  const nav=vEl('nav','bh-tabs');nav.setAttribute('role','tablist');
+  for(const [k,label] of BH_TABS){
+    const t=vEl('button','bh-tab'+(k===_bh.tab?' on':''),label);t.type='button';t.setAttribute('role','tab');t.setAttribute('aria-selected',String(k===_bh.tab));t.dataset.tab=k;
+    t.addEventListener('click',()=>{_bh.tab=k;renderBookHome();});
+    nav.append(t);
+  }
+  const body=vEl('div','bh-body');body.setAttribute('role','tabpanel');
+  body.append(...bookHomeTab(b,map,_bh.tab));
+  v.replaceChildren(head,nav,body);
+}
+function bhCoverFallback(b){
+  const d=vEl('div','bh-cover bh-cover-gen');d.style.background=bookGradient(b.title,b.author);
+  d.append(vEl('span',null,b.title||''));return d;
+}
+function bhButton(label,id,fn,primary){
+  const x=vEl('button','btn '+(primary?'btn-primary':'btn-secondary')+' bh-btn',label);x.type='button';if(id)x.id=id;x.addEventListener('click',fn);return x;
+}
+function bookHomeTab(b,map,tab){
+  const has=!!localStorage.getItem(SK.api);
+  const openMap=then=>()=>{openMindmap(b.id);if(then)then();};
+  if(tab==='map'){
+    if(!map)return [vEl('p','bh-empty',has?'No mind map yet. Claude can make one — the people, themes and story of the book, at a glance.':'No mind map yet. Add an Anthropic key in Settings and Claude can make one.'),
+      bhButton('🧠 Make the mind map','bhOpenMap',openMap(),true)];
+    const tile=vEl('div','bh-maptile');
+    tile.style.background=`linear-gradient(135deg,${map.palette[0]},${map.palette[1]||map.palette[0]})`;
+    tile.append(vEl('span','bh-emblem',map.emblem),vEl('p','bh-thesis',map.thesis||''));
+    const chips=vEl('div','bh-chips');
+    for(const br of map.branches)chips.append(vEl('span','bh-chip',`${br.label} · ${br.nodes.length}`));
+    tile.append(chips);
+    tile.setAttribute('role','button');tile.tabIndex=0;tile.addEventListener('click',openMap());
+    const row=vEl('div','bh-row');
+    row.append(bhButton('📜 Summary','bhSummary',openMap(()=>showMindmapSummary())),bhButton('🕰 Chronology','bhChron',openMap(()=>showMindmapTimeline())));
+    return [tile,bhButton('🧠 Open the mind map','bhOpenMap',openMap(),true),row];
+  }
+  if(tab==='companion'){
+    const c=map&&map.companion;
+    if(!c)return [vEl('p','bh-empty',map?'No Companion yet: a close, critical reading of the book — its moments or argument, themes, craft and how it’s been read.':'The Companion comes after the mind map.'),
+      map?bhButton('📖 Write the Companion','bhCpOpen',openMap(()=>showMindmapCompanion()),true):bhButton('🧠 Make the mind map first','bhOpenMap',openMap(),true)];
+    const out=[vEl('div','cp-kicker',`COMPANION · ${CP_FORM_LABEL[c.form].toUpperCase()}`)];
+    companionSections(c.form).filter(([f])=>Array.isArray(c[f])?c[f].length:c[f]).forEach(([f,label],i)=>{
+      const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num',String(i+1).padStart(2,'0')),vEl('h3','cp-sec-t',label));
+      out.push(hd,companionBlock(f,c));
+    });
+    if(c.sources.length){const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num','·'),vEl('h3','cp-sec-t','Sources'));out.push(hd,mmSourceList(c.sources));}
+    if(has)out.push(vEl('div','bh-gap'),bhButton('💬 Discuss it, book-club style','bhTalk',()=>openBookClub(b.id),true));
+    return out;
+  }
+  if(tab==='notes')return bookNotesKids(b,false);
+  // review
+  const cards=map?deckCards(map):[];
+  if(!cards.length)return [vEl('p','bh-empty','Review cards come from the book’s Companion or mind map. Make the map first.'),
+    bhButton('🧠 Make the mind map','bhOpenMap',openMap(),true)];
+  const st=deckDB[b.id]||{},today=localDateStr();
+  const seen=cards.filter(c=>st[c.key]),due=seen.filter(c=>st[c.key].due<=today),strong=seen.filter(c=>st[c.key].box>=3);
+  const stats=vEl('div','bh-stats');
+  for(const [n,l] of [[cards.length,'cards'],[seen.length,'started'],[strong.length,'well known'],[due.length,'due today']]){
+    const d=vEl('div','bh-stat');d.append(vEl('b',null,String(n)),vEl('span',null,l));stats.append(d);
+  }
+  const out=[stats,vEl('p','bh-note',seen.length<cards.length?'Each review brings in up to five new cards; the rest come back on a spaced schedule.':'Every card has been started; they come back on a spaced schedule.'),
+    bhButton(due.length?`🃏 Review ${plural(due.length,'card')} due`:'🃏 Review','bhReview',()=>startDeck([b.id],true),true)];
+  if(has&&map.companion)out.push(bhButton('💬 Discuss it, book-club style','bhTalk',()=>openBookClub(b.id)));
+  return out;
 }
 
 function showMindmapTimeline(){
@@ -8404,7 +8640,11 @@ function ddSheet(){
   wrap.append(scrim,sheet);document.body.append(wrap);
   return wrap;
 }
-function closeDeepDive(){const w=document.getElementById('ddView');if(w)w.style.display='none';document.body.style.overflow='';renderLogSession();}
+function closeDeepDive(){
+  const w=document.getElementById('ddView');if(w)w.style.display='none';document.body.style.overflow='';renderLogSession();
+  const q=ddState().days[localDateStr()];
+  practiceAfter('dive',!!(q&&(q.done||q.skipped)));
+}
 function deepDiveOpen(){const w=document.getElementById('ddView');return !!w&&w.style.display!=='none';}
 
 function openDeepDive(){
@@ -8645,7 +8885,7 @@ function startDeck(bookIds,withNew){
   wrap.style.display='block';document.body.style.overflow='hidden';
   renderDeck();
 }
-function closeDeck(){const w=document.getElementById('deckView');if(w)w.style.display='none';document.body.style.overflow='';_deck=null;if(document.getElementById('view-log').classList.contains('active'))renderLogSession();}
+function closeDeck(){const finished=!!_deck&&_deck.at>=_deck.queue.length;const w=document.getElementById('deckView');if(w)w.style.display='none';document.body.style.overflow=bookHomeOpen()?'hidden':'';_deck=null;practiceAfter('deck',finished);if(bookHomeOpen())renderBookHome();if(document.getElementById('view-log').classList.contains('active'))renderLogSession();}
 function renderDeck(){
   const sheet=document.getElementById('deckSheet');if(!sheet||!_deck)return;
   const head=vEl('div','dd-head');
@@ -8731,7 +8971,7 @@ function openBookClub(bookId){
   wrap.style.display='block';
   renderBookClub();
 }
-function closeBookClub(){const w=document.getElementById('clubView');if(w)w.style.display='none';_club=null;}
+function closeBookClub(){const w=document.getElementById('clubView');if(w)w.style.display='none';_club=null;if(bookHomeOpen())renderBookHome();}
 function renderBookClub(status){
   const sheet=document.getElementById('clubSheet');if(!sheet||!_club)return;
   const b=mmBook(_club.bookId),map=mmRecord(_club.bookId).map,pal=map.palette||['#1f3a5f'];
