@@ -603,7 +603,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .practice-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;flex-wrap:wrap;padding:.55rem 0 .45rem}
 .practice-k{font-family:'IM Fell English SC',serif;font-size:.8rem;letter-spacing:.14em;color:var(--gold-lt)}
 .practice-sum{font-size:.86rem;color:#c9d3e6;font-style:italic}
-.practice .vn{margin:.3rem -1rem .75rem;width:calc(100% + 2rem);border:0;border-radius:0;box-shadow:0 -2px 8px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.38);background:#fffdf8;padding:.85rem 1rem .95rem;color:var(--ink)}
+.practice .vn{margin:0;border:0;border-radius:0;box-shadow:none;background:transparent;padding:.75rem 0;color:var(--parchment)}
+.practice #vocabNudge{margin:.3rem -1rem .35rem;width:calc(100% + 2rem);box-shadow:0 -2px 8px rgba(0,0,0,.22),0 4px 14px rgba(0,0,0,.38);background:#fffdf8;padding:.85rem 1rem .95rem;color:var(--ink)}
 .practice .vn .vn-kicker{font-size:.7rem}
 .practice .vn-badge{width:46px;height:46px}
 .practice .vn-badge b{font-size:1.15rem}
@@ -612,13 +613,16 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .practice .vn-title{font-size:1.02rem}
 .practice .vn-go{padding:.4rem .7rem;font-size:.9rem}
 .practice .vn-wotd{display:block}
-.practice .vn .vn-kicker{color:#8a6a1c}
-.practice .vn-caught{color:var(--ink-light)}
-.practice .vn-word{color:var(--ink)}
-.practice .vn-pron{color:var(--ink-light)}
-.practice .vn-def{color:var(--ink)}
-.practice .vn-title{color:var(--ink)}
-.practice .vn-chip{background:var(--parchment);border-color:var(--parchment-dark);color:var(--ink)}
+.practice #vocabNudge .vn-kicker{color:#8a6a1c}
+.practice #vocabNudge .vn-caught{color:var(--ink-light)}
+.practice #vocabNudge .vn-word{color:var(--ink)}
+.practice .vn-wotd .vn-kicker{color:var(--gold-lt)}
+.practice .vn-caught{color:#aab6cc}
+.practice .vn-word{color:#f1cf7a}
+.practice .vn-pron,.practice .vn-def{color:#c9d3e6}
+.practice #vocabNudge .vn-pron{color:var(--ink-light)}
+.practice #vocabNudge .vn-def,.practice #vocabNudge .vn-title{color:var(--ink)}
+.practice #vocabNudge .vn-chip{background:var(--parchment);border-color:var(--parchment-dark);color:var(--ink)}
 .practice .dd-done{opacity:.8}
 .practice-go{display:block;width:100%;min-height:48px;margin-top:.4rem;border:0;border-radius:24px;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--ink);font:700 1rem 'Playfair Display',serif;cursor:pointer}
 .vn{display:block;width:100%;text-align:left;margin-bottom:1rem;border-radius:14px;cursor:pointer;font-family:'Lora',serif;box-shadow:0 6px 20px var(--shadow-deep),0 1px 4px var(--shadow)}
