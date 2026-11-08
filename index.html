@@ -169,6 +169,21 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .bh-stat span{font-size:.76rem;color:var(--ink-light)}
 .bh-note{font-size:.88rem;color:var(--ink-light);line-height:1.5;margin:0 0 .9rem}
 .bh-body .cp-sec{scroll-margin-top:4.5rem}
+.copy-hint{font-size:.86rem;color:var(--ink-light);margin:-.2rem 0 .7rem;line-height:1.45}
+.copy-rows{display:grid;gap:.55rem}
+.copy-row{display:grid;grid-template-columns:6.2rem 1fr;align-items:center;gap:.45rem .6rem;padding:.55rem .6rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--cream)}
+.copy-row.on{border-color:var(--gold);background:#fdf6e3}
+.copy-name{display:flex;align-items:center;gap:.35rem;font-family:'Playfair Display',serif;font-size:.98rem;color:var(--ink)}
+.copy-ico{font-size:1.1rem}
+.copy-seg{display:flex;border:1px solid var(--parchment-dark);border-radius:24px;overflow:hidden;background:var(--parchment)}
+.copy-opt{flex:1;min-height:44px;border:0;background:transparent;color:var(--ink-light);font:600 .86rem 'Lora',serif;cursor:pointer;padding:0 .3rem}
+.copy-opt+.copy-opt{border-left:1px solid var(--parchment-dark)}
+.copy-opt.on{background:var(--ink);color:var(--cream)}
+.copy-note{grid-column:1/-1;min-height:44px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
+.b-borrowed{letter-spacing:-.15em}
+.copy-review-row{display:flex;align-items:center;gap:.6rem;width:100%;min-height:52px;padding:.45rem 0;border:0;border-top:1px dotted var(--parchment-dark);background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.copy-review-row .next-text{flex:1;min-width:0}
+.copy-review-go{color:var(--burgundy);font-size:.9rem;white-space:nowrap}
 .yn-empty{color:var(--ink-light);font-style:italic}
 .yn-review{padding:.75rem .9rem;border-radius:12px;background:#fdf6e3;border-left:4px solid var(--gold)}
 .yn-review p{margin:0;line-height:1.6;white-space:pre-wrap}
@@ -1223,6 +1238,11 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <p class="hint" id="mmAutoStatus"></p>
     <label class="mm-auto"><input type="checkbox" id="cpAutoToggle"> 📖 Also write its Companion (about 10–20¢ a book)</label>
   </div>
+  <div class="settings-card" id="copyReviewCard" style="display:none">
+    <h3>📦 Check how you have these</h3>
+    <p class="hint">These were marked “Library Loan” alongside more than one format (or none), so the app guessed which copy was borrowed — usually the eBook or audio. Tap one to check it under Location.</p>
+    <div id="copyReviewList"></div>
+  </div>
   <div class="settings-card">
     <h3>Export My Library</h3>
     <div style="display:flex;gap:.52rem;flex-wrap:wrap">
@@ -1446,21 +1466,9 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <!-- ── TAB 3: LOCATION & OWNERSHIP ── -->
     <div class="modal-tab-panel" data-panel="location">
       <div class="own-section" id="ownershipSection">
-        <h4>📦 How I Own / Access This Book</h4>
-        <div class="fg" style="margin-bottom:.5rem">
-          <label>Formats</label>
-          <div class="fmt-grp">
-            <button type="button" class="fmt-chip" data-fmt="physical" onclick="toggleFmt(this)">📗 Physical</button>
-            <button type="button" class="fmt-chip fc-ebook" data-fmt="ebook" onclick="toggleFmt(this)">📱 eBook</button>
-            <button type="button" class="fmt-chip fc-audio" data-fmt="audio" onclick="toggleFmt(this)">🎧 Audiobook</button>
-            <button type="button" class="fmt-chip" data-fmt="borrowed" onclick="toggleFmt(this)">🏛 Library Loan</button>
-            <button type="button" class="fmt-chip" data-fmt="wishlist" onclick="toggleFmt(this)">🌿 Wishlist</button>
-          </div>
-        </div>
-        <div id="srcPhysicalWrap" class="src-row"><label style="font-size:.77rem;color:var(--ink-faint)">Physical — edition / notes</label><input type="text" id="srcPhysical" placeholder="e.g. Hardcover, signed…"></div>
-        <div id="srcEbookWrap" class="src-row"><label style="font-size:.77rem;color:var(--ink-faint)">eBook platform</label><input type="text" id="srcEbook" placeholder="e.g. Kindle, Apple Books…"></div>
-        <div id="srcAudioWrap" class="src-row"><label style="font-size:.77rem;color:var(--ink-faint)">Audiobook platform</label><input type="text" id="srcAudio" placeholder="e.g. Audible, Libby…"></div>
-        <div id="srcBorrowedWrap" class="src-row"><label style="font-size:.77rem;color:var(--ink-faint)">Library / borrowed from</label><input type="text" id="srcBorrowed" placeholder="e.g. Chandler Public Library…"></div>
+        <h4>📦 How I Have This Book</h4>
+        <p class="copy-hint">For each format: do you own it, or have you borrowed it (library, Libby, a friend)?</p>
+        <div class="copy-rows" id="copyRows"></div>
       </div>
       <div class="fg" id="locationSection">
         <label>📍 Location in Home <span style="font-size:.77rem;color:var(--ink-faint);font-style:italic">(where does this book live?)</span></label>
@@ -2318,7 +2326,7 @@ let _mmAutoTimer=null,_mmAutoRunning=false,_mmAutoStop='';
 // STATE
 // ══════════════════════════════════════════
 let editId=null,curRating=0,curDiscId=null,discQs=[];
-let activeFmts=new Set(),activeLists=new Set();
+let editCopies={},activeLists=new Set();
 let curItemType='book';
 let filters={status:'all',list:null,fmt:null,type:null,genre:null,room:null};
 let pendingCoverUrl='';
@@ -2367,7 +2375,7 @@ function renderView(n){
     document.getElementById('mmAutoToggle').checked=localStorage.getItem(SK.mmAuto)!=='off';
     document.getElementById('cpAutoToggle').checked=localStorage.getItem(SK.cpAuto)==='on';
     renderMindmapAutoStatus();
-    renderStorageCheck();
+    renderStorageCheck();renderCopyReview();
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
     mountDriveSettings();
   }
@@ -2400,7 +2408,7 @@ const FILTER_DEFS=[
    values:()=>[['tbr','To be read'],['fav','⭐ Favorites'],['loaned','📤 Loaned out']]},
   {id:'fFormat',label:'Format',get:()=>filters.type==='article'?'article':(filters.fmt||''),
    set:v=>{filters.type=v==='article'?'article':null;filters.fmt=v&&v!=='article'?v:null;},
-   test:(b,v)=>v==='article'?b.itemType==='article':(b.formats||[]).includes(v),
+   test:(b,v)=>v==='article'?b.itemType==='article':!!bookCopies(b)[v],
    values:()=>[['physical','Physical'],['ebook','eBook'],['audio','Audio'],['article','Articles']]},
   {id:'fGenre',label:'Genre',get:()=>filters.genre||'',set:v=>{filters.genre=v||null;},
    test:(b,v)=>b.genre===v,values:pool=>distinct(pool.map(b=>b.genre))},
@@ -2565,9 +2573,47 @@ function listBadges(b){
   return o;
 }
 
+// ── How the reader has a book: each format owned or borrowed ──
+// b.copies = {physical|ebook|audio: {how:'own'|'borrowed', note}}. Books saved
+// before this have only b.formats (a flat list where 'borrowed' didn't say
+// which format) and srcPhysical/srcEbook/srcAudio/srcBorrowed notes; they're
+// read through copiesFromLegacy() until they're next saved.
+const COPY_FORMATS=[['physical','📗','Print','e.g. Hardcover, signed'],['ebook','📱','eBook','e.g. Kindle, Apple Books'],['audio','🎧','Audio','e.g. Audible, Libby']];
+function copiesFromLegacy(b){
+  const f=b.formats||[],present=['physical','ebook','audio'].filter(x=>f.includes(x)),lent=f.includes('borrowed');
+  const note={physical:b.srcPhysical||'',ebook:b.srcEbook||'',audio:b.srcAudio||''};
+  // With a library loan and several formats, the digital copy is the likely loan.
+  const borrowed=!lent?[]:present.length===1?present:present.filter(x=>x!=='physical');
+  const out={};
+  for(const x of present){
+    const how=borrowed.includes(x)?'borrowed':'own';
+    out[x]={how,note:note[x]||(how==='borrowed'?(b.srcBorrowed||''):'')};
+  }
+  return out;
+}
+function bookCopies(b){return b&&b.copies&&typeof b.copies==='object'?b.copies:copiesFromLegacy(b||{});}
+// Books whose old "Library Loan" didn't say which format was borrowed.
+function copiesNeedReview(b){
+  if(!b||b.copies)return false;
+  const f=b.formats||[];
+  return f.includes('borrowed')&&['physical','ebook','audio'].filter(x=>f.includes(x)).length!==1;
+}
+// The flat list the rest of the app (filters, older backups) still reads.
+function formatsFromCopies(c){
+  const out=COPY_FORMATS.map(([k])=>k).filter(k=>c[k]);
+  if(out.some(k=>c[k].how==='borrowed'))out.push('borrowed');
+  return out;
+}
+function copiesText(c){
+  return COPY_FORMATS.filter(([k])=>c[k]).map(([k,,label])=>`${label} (${c[k].how==='own'?'own':'borrowed'}${c[k].note?': '+c[k].note:''})`).join('; ');
+}
+function ownsAny(b){const c=bookCopies(b);return Object.values(c).some(x=>x.how==='own');}
+
 function fmtBadges(b){
-  const m={physical:'📗',ebook:'📱',audio:'🎧',borrowed:'🏛',wishlist:'🌿'};
-  return(b.formats||[]).map(f=>m[f]?`<span class="badge b-fmt">${m[f]}</span>`:'').join('');
+  const c=bookCopies(b);
+  return COPY_FORMATS.filter(([k])=>c[k]).map(([k,ico,label])=>c[k].how==='borrowed'
+    ?`<span class="badge b-fmt b-borrowed" title="${label}, borrowed">${ico}🏛</span>`
+    :`<span class="badge b-fmt" title="${label}, owned">${ico}</span>`).join('');
 }
 
 function bestProgress(id){
@@ -2658,7 +2704,7 @@ function setItemType(type){
 }
 
 function openAddModal(){
-  editId=null;curRating=0;activeFmts=new Set();activeLists=new Set();pendingCoverUrl='';
+  editId=null;curRating=0;editCopies={};activeLists=new Set();pendingCoverUrl='';
   clearFinalReview();
   document.getElementById('modalTitle').textContent='Add to Library';
   document.getElementById('loanHistorySection').style.display='none';
@@ -2676,7 +2722,7 @@ function openEditModal(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   clearFinalReview();
   editId=id;curRating=b.rating||0;
-  activeFmts=new Set(b.formats||[]);activeLists=new Set(b.lists||[]);
+  editCopies=JSON.parse(JSON.stringify(bookCopies(b)));activeLists=new Set(b.lists||[]);
   pendingCoverUrl=coversDB[id]||'';
   curItemType=b.itemType||'book';
   document.getElementById('modalTitle').textContent='Edit';
@@ -2699,10 +2745,6 @@ function openEditModal(id){
   document.getElementById('bPublication').value=b.publication||'';
   document.getElementById('bWordCount').value=b.wordCount||'';
   document.getElementById('bArticleUrl').value=b.articleUrl||'';
-  document.getElementById('srcPhysical').value=b.srcPhysical||'';
-  document.getElementById('srcEbook').value=b.srcEbook||'';
-  document.getElementById('srcAudio').value=b.srcAudio||'';
-  document.getElementById('srcBorrowed').value=b.srcBorrowed||'';
   document.getElementById('coverUrlInput').value=coversDB[id]||'';
   coversDB[id]?setCoverPreview(coversDB[id]):setCoverPreview(null);
   document.getElementById('bLocationRoom').value=b.location?.room||'';
@@ -2733,7 +2775,7 @@ function openEditModal(id){
     const lbl=document.getElementById('dateFinishedLabel');
     if(lbl&&b.status==='reading') lbl.textContent='Date Finished';
   }
-  document.getElementById('loanHistorySection').style.display='block';
+  // (shown by updateFmtChips when there's an owned print copy or loans on record)
   document.getElementById('journalSection').style.display='block';
   document.getElementById('vocabSection').style.display='block';
   document.getElementById('loanAddForm').style.display='none';
@@ -2743,7 +2785,7 @@ function openEditModal(id){
 }
 
 function clearForm(){
-  ['bTitle','bAuthor','bNotes','srcPhysical','srcEbook','srcAudio','srcBorrowed','isbnInput','titleSearchInput','progCurPage','progTotalPage','progAudioPct','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['bTitle','bAuthor','bNotes','isbnInput','titleSearchInput','progCurPage','progTotalPage','progAudioPct','bStartDate','bDate','bYearOnly','coverUrlInput','bPublication','bWordCount','bArticleUrl','bLocationRoom','bLocationShelf'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const tsr=document.getElementById('titleSearchResults');if(tsr)tsr.style.display='none';
   const phe=document.getElementById('progHistoryEdit');if(phe)phe.innerHTML='';
   updateRoomsDatalist();
@@ -2805,21 +2847,47 @@ function toggleYearOnly(){
   document.getElementById('bStartDate').disabled=on;
 }
 
-function toggleFmt(el){
-  const f=el.dataset.fmt;
-  const turningOn=!activeFmts.has(f);
-  activeFmts.has(f)?activeFmts.delete(f):activeFmts.add(f);
-  updateFmtChips();
-  // Auto-fill sensible defaults when a format is first selected
-  if(turningOn){
-    const defaults={physical:{id:'srcPhysical',val:'Hardcover'},ebook:{id:'srcEbook',val:'Kindle'},audio:{id:'srcAudio',val:'Audible'}};
-    const d=defaults[f];
-    if(d){const inp=document.getElementById(d.id);if(inp&&!inp.value)inp.value=d.val;}
+// The editor's rows: Print / eBook / Audio, each — / Own / Borrowed, with a note.
+const COPY_GUESS={physical:{own:'',borrowed:''},ebook:{own:'Kindle',borrowed:'Libby'},audio:{own:'Audible',borrowed:'Libby'}};
+function setCopy(k,how){
+  const cur=editCopies[k];
+  if(!how)delete editCopies[k];
+  else{
+    // Keep what the reader typed; replace only an empty note or our own guess.
+    const keep=cur&&cur.note&&cur.note!==COPY_GUESS[k][cur.how];
+    editCopies[k]={how,note:keep?cur.note:COPY_GUESS[k][how]};
   }
+  updateFmtChips();
 }
 function updateFmtChips(){
-  document.querySelectorAll('.fmt-chip[data-fmt]').forEach(el=>el.classList.toggle('on',activeFmts.has(el.dataset.fmt)));
-  ['Physical','Ebook','Audio','Borrowed'].forEach(f=>{const w=document.getElementById('src'+f+'Wrap');if(w)w.classList.toggle('show',activeFmts.has(f.toLowerCase()));});
+  const box=document.getElementById('copyRows');if(!box)return;
+  box.replaceChildren(...COPY_FORMATS.map(([k,ico,label,ph])=>{
+    const c=editCopies[k],row=vEl('div','copy-row'+(c?' on':''));row.dataset.fmt=k;
+    const name=vEl('span','copy-name');name.append(vEl('span','copy-ico',ico),document.createTextNode(label));
+    const seg=vEl('div','copy-seg');seg.setAttribute('role','group');seg.setAttribute('aria-label',label);
+    for(const [how,txt] of [['','—'],['own','Own'],['borrowed','Borrowed']]){
+      const on=(c?c.how:'')===how;
+      const bt=vEl('button','copy-opt'+(on?' on':''),txt);bt.type='button';bt.dataset.how=how;bt.setAttribute('aria-pressed',String(on));
+      bt.addEventListener('click',()=>setCopy(k,how));
+      seg.append(bt);
+    }
+    row.append(name,seg);
+    if(c){
+      const inp=document.createElement('input');inp.type='text';inp.className='copy-note';inp.id='copyNote-'+k;
+      inp.placeholder=c.how==='borrowed'?'e.g. Libby, Chandler Library, a friend':ph;inp.value=c.note||'';
+      inp.setAttribute('aria-label',`${label} — ${c.how==='own'?'edition or platform':'borrowed from'}`);
+      inp.addEventListener('input',()=>{if(editCopies[k])editCopies[k].note=inp.value;});
+      row.append(inp);
+    }
+    return row;
+  }));
+  // Shelf location and lending out are about a print copy you own.
+  const printOwned=!!(editCopies.physical&&editCopies.physical.how==='own');
+  const b=editId&&books.find(x=>x.id===editId);
+  const hasLoc=!!(document.getElementById('bLocationRoom').value||document.getElementById('bLocationShelf').value);
+  document.getElementById('locationSection').style.display=printOwned||hasLoc?'':'none';
+  const loans=document.getElementById('loanHistorySection');
+  if(loans)loans.style.display=editId&&(printOwned||(b&&(b.loans||[]).length))?'block':'none';
 }
 function toggleListChip(el){
   const l=el.dataset.list;
@@ -4715,11 +4783,14 @@ async function saveBook(){
     date:document.getElementById('bDate').value,
     startDate:document.getElementById('bStartDate').value,yearOnly,
     notes:document.getElementById('bNotes').value.trim(),rating:curRating,
-    formats:[...activeFmts],lists:[...activeLists],
-    srcPhysical:document.getElementById('srcPhysical').value.trim(),
-    srcEbook:document.getElementById('srcEbook').value.trim(),
-    srcAudio:document.getElementById('srcAudio').value.trim(),
-    srcBorrowed:document.getElementById('srcBorrowed').value.trim(),
+    ...(()=>{
+      const copies={};
+      for(const [k] of COPY_FORMATS)if(editCopies[k])copies[k]={how:editCopies[k].how,note:String(editCopies[k].note||'').trim()};
+      const note=k=>copies[k]?copies[k].note:'';
+      return {copies,formats:formatsFromCopies(copies),srcPhysical:note('physical'),srcEbook:note('ebook'),srcAudio:note('audio'),
+        srcBorrowed:COPY_FORMATS.filter(([k])=>copies[k]&&copies[k].how==='borrowed').map(([k])=>copies[k].note).filter(Boolean).join('; ')};
+    })(),
+    lists:[...activeLists],
     publication:document.getElementById('bPublication').value.trim(),
     wordCount:+document.getElementById('bWordCount').value||null,
     articleUrl:document.getElementById('bArticleUrl').value.trim(),
@@ -6009,7 +6080,7 @@ function buildDailyMap(){
 function renderStats(){
   const bookOnly=books.filter(b=>b.itemType!=='article');
   const readBks=bookOnly.filter(b=>b.status==='read');
-  const ownCnt=bookOnly.filter(b=>(b.formats||[]).some(f=>['physical','ebook','audio'].includes(f))).length;
+  const ownCnt=bookOnly.filter(ownsAny).length;
   const activeLoanCnt=books.reduce((n,b)=>n+(b.loans||[]).filter(l=>!l.returnedDate).length,0);
   const articleCnt=books.filter(b=>b.itemType==='article').length;
 
@@ -6914,14 +6985,14 @@ async function shareFile(content,base){
 }
 
 function exportCSV(){
-  const headers=['Title','Author','Type','Genre','Status','Rating','Formats','Lists','Start Date','Finish Date','Year Only','Review/Notes','Publication','Word Count','Article URL','eBook Platform','Audio Platform','Borrowed From','Active Loan To','Loan History Count','Journal Entries','Cover URL'];
+  const headers=['Title','Author','Type','Genre','Status','Rating','How I have it','Lists','Start Date','Finish Date','Year Only','Review/Notes','Publication','Word Count','Article URL','eBook Platform','Audio Platform','Borrowed From','Active Loan To','Loan History Count','Journal Entries','Cover URL'];
   const rows=books.map(b=>{
     const al=activeLoan(b);
     const loanCnt=(b.loans||[]).length;
     const journalCnt=(journalDB[b.id]||[]).length;
     return [
       b.title,b.author,b.itemType||'book',b.genre||'',b.status,b.rating||'',
-      (b.formats||[]).join('; '),(b.lists||[]).join('; '),
+      copiesText(bookCopies(b)),(b.lists||[]).join('; '),
       b.startDate||'',b.date||'',b.yearOnly||'',b.notes||'',
       b.publication||'',b.wordCount||'',b.articleUrl||'',
       b.srcEbook||'',b.srcAudio||'',b.srcBorrowed||'',
@@ -7141,9 +7212,9 @@ function paceText(p,today){
 // Which progress fields fit this book: audio-only books get just the % field,
 // print/ebook books just pages, both-format (or untagged) books get both
 function progressFieldsFor(b){
-  const fmts=b.formats||[];
-  const isAudio=fmts.includes('audio');
-  const hasPrint=fmts.includes('physical')||fmts.includes('ebook')||fmts.includes('borrowed');
+  const c=bookCopies(b),fmts=b.formats||[];
+  const isAudio=!!c.audio;
+  const hasPrint=!!(c.physical||c.ebook)||(fmts.includes('borrowed')&&!Object.keys(c).length);
   return{showPages:hasPrint||!isAudio,showPct:isAudio||!hasPrint};
 }
 // Both-format books: page and audio-% describe the same position, so typing
@@ -9134,6 +9205,20 @@ function storageEntries(){
 function fmtSize(n){return n>=1048576?`${(n/1048576).toFixed(2)} MB`:n>=1024?`${Math.round(n/1024)} KB`:`${n} bytes`;}
 
 let _storageArmed=false;
+function renderCopyReview(){
+  const card=document.getElementById('copyReviewCard');if(!card)return;
+  const list=books.filter(copiesNeedReview);
+  card.style.display=list.length?'':'none';
+  const box=document.getElementById('copyReviewList');
+  box.replaceChildren(...list.map(b=>{
+    const bt=vEl('button','copy-review-row');bt.type='button';
+    const t=vEl('span','next-text');t.append(vEl('b',null,b.title||'Untitled'),vEl('small',null,copiesText(bookCopies(b))||'No format recorded'));
+    bt.append(t,vEl('span','copy-review-go','Check ›'));
+    bt.addEventListener('click',()=>{openEditModal(b.id);switchModalTab('location');});
+    return bt;
+  }));
+}
+
 function renderStorageCheck(){
   const body=document.getElementById('storageBody');if(!body)return;
   const r=storageReport(storageEntries());

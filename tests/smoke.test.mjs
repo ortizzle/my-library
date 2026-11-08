@@ -3626,3 +3626,53 @@ test('closing a practice part before finishing it stops the run there', async ()
   assert.equal(await page.evaluate(() => _practice), null);
   await ctx.close();
 });
+
+// ── How I have this book: own / borrowed per format ──────────────────────
+
+test('the editor records each format as owned or borrowed, and location follows an owned print copy', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await addBook(page, 'Fruit Fly', 'Josh Silver');
+  const id = await page.evaluate(() => books[0].id);
+  await page.evaluate(i => { openEditModal(i); switchModalTab('location'); }, id);
+  const rows = page.locator('#copyRows .copy-row');
+  assert.deepEqual(await page.locator('#copyRows .copy-name').allTextContents(), ['📗Print', '📱eBook', '🎧Audio']);
+  assert.equal(await page.isVisible('#locationSection'), false, 'no print copy yet: no shelf to record');
+  await rows.nth(0).locator('.copy-opt[data-how="own"]').click();
+  assert.equal(await page.isVisible('#locationSection'), true);
+  await page.fill('#copyNote-physical', 'Hardcover, signed');
+  await rows.nth(2).locator('.copy-opt[data-how="borrowed"]').click();
+  assert.equal(await page.inputValue('#copyNote-audio'), 'Libby', 'a likely note to start');
+  await rows.nth(1).locator('.copy-opt[data-how="own"]').click();
+  await rows.nth(1).locator('.copy-opt[data-how=""]').click();
+  assert.equal(await page.locator('#copyNote-ebook').count(), 0, '— clears it');
+  await page.evaluate(() => saveBook());
+  const b = (await storedBooks(page))[0];
+  assert.deepEqual(b.copies, { physical: { how: 'own', note: 'Hardcover, signed' }, audio: { how: 'borrowed', note: 'Libby' } });
+  assert.deepEqual(b.formats, ['physical', 'audio', 'borrowed'], 'the flat list still follows, for filters and older backups');
+  assert.equal(b.srcBorrowed, 'Libby');
+  await page.evaluate(() => { showView('library'); renderLibrary(); });
+  const badges = await page.locator(`#bc-${id} .b-fmt`).allTextContents();
+  assert.deepEqual(badges, ['📗', '🎧🏛']);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('old “Library Loan” books are read sensibly, and the unclear ones are listed in Settings to check', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await page.evaluate(() => {
+    books = [{ id: 'a', title: 'Clear One', author: 'X', status: 'unread', formats: ['audio', 'borrowed'], srcBorrowed: 'Libby', addedAt: 1, updatedAt: 1 },
+             { id: 'b', title: 'Unclear One', author: 'X', status: 'unread', formats: ['physical', 'ebook', 'borrowed'], addedAt: 2, updatedAt: 2 },
+             { id: 'c', title: 'Owned One', author: 'X', status: 'unread', formats: ['physical'], addedAt: 3, updatedAt: 3 }];
+    save(SK.books, books); showView('settings');
+  });
+  assert.equal(await page.isVisible('#copyReviewCard'), true);
+  assert.deepEqual(await page.locator('#copyReviewList .next-text b').allTextContents(), ['Unclear One']);
+  assert.match(await page.textContent('#copyReviewList'), /Print \(own\); eBook \(borrowed\)/);
+  await page.click('#copyReviewList .copy-review-row');
+  assert.equal(await page.isVisible('#bookModal'), true);
+  assert.equal(await page.evaluate(() => document.querySelector('.modal-tab.active').dataset.tab), 'location');
+  await page.evaluate(() => saveBook());
+  await page.evaluate(() => showView('settings'));
+  assert.equal(await page.isVisible('#copyReviewCard'), false, 'saved with copies, it drops off the list');
+  await ctx.close();
+});

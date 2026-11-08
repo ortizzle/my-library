@@ -111,6 +111,12 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - **✦ What should I read next?** — Claude picks five from your shelf and wishlist, weighing how you rated what you finished and what you gave up on, with a reason (and a caution) for each
 - DNF tag and DNF status stay in sync — set one and the other updates automatically
 
+### How I Have This Book
+- On the editor's **Location** tab, each format — 📗 Print, 📱 eBook, 🎧 Audio — is **Own**, **Borrowed** or not at all, with a note (*Hardcover, signed* · *Kindle* · *Libby*). So owning the hardcover while borrowing the audiobook from Libby is recorded as exactly that
+- Library cards show 📗 📱 🎧 for owned copies and 🏛 beside a borrowed one; Stats counts only books you own a copy of
+- The shelf location and lending a book out appear when you own the print copy
+- Books saved before this are read the old way until you next save them. Where an old “Library Loan” didn't say which format was borrowed, the app guesses the eBook or audio, and **Settings → Check how you have these** lists those books to confirm
+
 ### Physical Location Tracking
 - Record which **room** and **shelf** a book lives on
 - Room names autocomplete from your existing entries
