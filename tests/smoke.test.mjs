@@ -2330,7 +2330,7 @@ test('maps sync (newer wins), go into backups, and go away with their book', asy
 async function seedShelfForMaps(page, list) {
   await page.evaluate(list => {
     localStorage.setItem(SK.api, 'sk-ant-test');
-    books = list.map(([id, title, status, date]) => ({ id, title, author: 'A', status, date, addedAt: 1, updatedAt: 1 }));
+    books = list.map(([id, title, status, date]) => ({ id, title, author: 'A', status, date: date || (status === 'read' ? '2026-01-01' : undefined), addedAt: 1, updatedAt: 1 }));
     save(SK.books, books); renderLibrary();
   }, list);
 }
@@ -2341,7 +2341,7 @@ test('every finished book gets a map in the background, newest first, and nothin
                                 ['n1', 'Still Reading', 'reading'], ['a1', 'An Article', 'read']]);
   await page.evaluate(() => { books.find(b => b.id === 'a1').itemType = 'article'; });
   const calls = await stubClaude(page, MAP_REPLY);
-  await page.evaluate(() => setMindmapAuto(true));
+  await page.evaluate(() => { setMindmapAuto(true); localStorage.setItem(SK.mmSince, '2000-01-01'); });
   await page.waitForFunction(() => mindmapDB.r1 && mindmapDB.r2, null, { timeout: 15000 });
   assert.equal(calls.length, 2);
   assert.match(calls[0].messages[0].content, /Newer Read/, 'most recently finished first');
@@ -2363,7 +2363,7 @@ test('marking a book read makes its map, with a note when it is ready', async ()
   const calls = await stubClaude(page, MAP_REPLY);
   await page.waitForTimeout(500);
   assert.equal(calls.length, 0);
-  await page.evaluate(() => { books[0].status = 'read'; save(SK.books, books); });
+  await page.evaluate(() => { books[0].status = 'read'; books[0].date = localDateStr(); save(SK.books, books); });
   await page.waitForFunction(() => mindmapDB.b1, null, { timeout: 15000 });
   await page.locator('.toast', { hasText: 'Mind map ready for Dune' }).first().waitFor();
   assert.equal(calls.length, 1);
@@ -2374,7 +2374,7 @@ test('a key problem pauses the queue instead of retrying every book', async () =
   const { ctx, page } = await openApp(browser, base);
   await seedShelfForMaps(page, [['b1', 'One', 'read'], ['b2', 'Two', 'read'], ['b3', 'Three', 'read']]);
   const calls = await stubClaude(page, 401);
-  await page.evaluate(() => setMindmapAuto(true));
+  await page.evaluate(() => { setMindmapAuto(true); localStorage.setItem(SK.mmSince, '2000-01-01'); });
   await page.evaluate(() => showView('settings'));
   await page.waitForFunction(() => /Paused/.test(document.getElementById('mmAutoStatus').textContent), null, { timeout: 15000 });
   await page.waitForTimeout(300);
@@ -2388,7 +2388,7 @@ test('a map that fails is remembered, not paid for again next launch, and the au
   await seedShelfForMaps(page, [['b1', 'One', 'read', '2026-01-05'], ['b2', 'Two', 'read', '2026-01-04'], ['b3', 'Three', 'read', '2026-01-03'],
                                 ['b4', 'Four', 'read', '2026-01-02'], ['b5', 'Five', 'read', '2026-01-01']]);
   const calls = await stubClaude(page, 'Sorry, not a map.');
-  await page.evaluate(() => { setMindmapAuto(true); showView('settings'); });
+  await page.evaluate(() => { setMindmapAuto(true); localStorage.setItem(SK.mmSince, '2000-01-01'); showView('settings'); });
   await page.waitForFunction(() => !_mmAutoRunning && Object.keys(JSON.parse(localStorage.getItem(SK.mmFailed) || '{}')).length === 3, null, { timeout: 15000 });
   await page.waitForTimeout(300);
   assert.equal(calls.length, 3, 'daily cap');
@@ -2428,6 +2428,21 @@ test('Settings shows what Claude was used for on this device', async () => {
   await ctx.close();
 });
 
+test('turned on, it maps books finished from then on — not the backlog', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelfForMaps(page, [['old', 'Read Long Ago', 'read', '2024-03-01']]);
+  const calls = await stubClaude(page, MAP_REPLY);
+  await page.evaluate(() => { setMindmapAuto(true); showView('settings'); });
+  await page.waitForTimeout(1200);
+  assert.equal(calls.length, 0, 'the backlog waits to be asked for');
+  assert.match(await page.textContent('#mmAutoStatus'), /0 of 1 finished books have a map\. Older ones: make them from the book/);
+  await page.evaluate(() => { books.push({ id: 'new', title: 'Just Finished', author: 'A', status: 'read', date: localDateStr(), addedAt: 2, updatedAt: 2 }); save(SK.books, books); });
+  await page.waitForFunction(() => mindmapDB.new, null, { timeout: 15000 });
+  assert.equal(calls.length, 1);
+  assert.ok(!(await page.evaluate(() => mindmapDB.old)));
+  await ctx.close();
+});
+
 test('turned off in Settings, nothing is made', async () => {
   const { ctx, page } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_mm_auto', 'on'));
@@ -2449,7 +2464,7 @@ test('opening a book while its map is being made says so instead of starting ano
   const calls = await stubClaude(page, MAP_REPLY);
   // Hold the reply until the map screen is open.
   await page.evaluate(() => { const f = window.fetch; window.fetch = async (u, o) => { await new Promise(r => { window.__release = r; }); return f(u, o); }; });
-  await page.evaluate(() => setMindmapAuto(true));
+  await page.evaluate(() => { setMindmapAuto(true); localStorage.setItem(SK.mmSince, '2000-01-01'); });
   await page.waitForFunction(() => typeof window.__release === 'function');
   await page.evaluate(() => openMindmap('b1'));
   assert.match(await page.textContent('#mmStatus'), /Being made now/);
@@ -3313,10 +3328,10 @@ test('What to read next explains itself without a key or enough history', async 
 
 test('with the switch on, a map made on its own is followed by its Companion', async () => {
   const { ctx, page } = await openApp(browser, base);
-  await page.evaluate(() => { localStorage.setItem('trr_v1_mm_auto', 'on'); localStorage.setItem(SK.cpAuto, 'on'); });
+  await page.evaluate(() => { localStorage.setItem('trr_v1_mm_auto', 'on'); localStorage.setItem(SK.mmSince, '2000-01-01'); localStorage.setItem(SK.cpAuto, 'on'); });
   await stubClaudeScript(page, [textReply(MAP_REPLY), textReply(JSON.stringify(COMPANION))]);
   await seedFinished(page);
-  await page.evaluate(() => { _mmAutoStop = ''; scheduleMindmaps(10); });
+  await page.evaluate(() => { books[0].date = '2026-06-12'; _mmAutoStop = ''; scheduleMindmaps(10); });
   await page.waitForFunction(() => mindmapDB.b1 && mindmapDB.b1.map.companion, null, { timeout: 15000 });
   assert.equal((await storedMaps(page)).b1.map.companion.moments[0].title, 'Linus is summoned');
   const reqs = await page.evaluate(() => window.__reqs);

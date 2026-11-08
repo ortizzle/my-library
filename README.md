@@ -65,7 +65,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - Words sync, export and import like books; deleting one leaves a tombstone so it can't come back from another device
 
 ### Mind Maps
-- **Made for every book you finish** — automatically, in the background: a pass over books you've already read, then a new map whenever you mark one read (one at a time; about 5–10¢ each on your Anthropic key). Turn it off in Settings, under the Anthropic key, which also shows how many have maps. A key or billing problem pauses it rather than retrying. At most 3 are made automatically a day, and a book whose map fails isn't retried on its own (Settings → **Try them again**, or make it from the book)
+- **Made when you finish a book** — automatically, in the background, for books finished after the setting is turned on (books read before that get a map when you ask, from the book's 🧠 button) (one at a time; about 5–10¢ each on your Anthropic key). Turn it off in Settings, under the Anthropic key, which also shows how many have maps. A key or billing problem pauses it rather than retrying. At most 3 are made automatically a day, and a book whose map fails isn't retried on its own (Settings → **Try them again**, or make it from the book)
 
 ### Claude Usage
 - **Settings → Claude Usage** shows what the app's Claude calls cost on this device: today, the last 7 days, and this month and last broken down by feature (mind maps, Companions, book club, definitions…) with calls, tokens in and out, and web searches. Counted from Claude's own replies; the Anthropic Console has the billing

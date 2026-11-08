@@ -1249,7 +1249,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     </div>
     <div id="keyStatus" style="margin-top:.55rem;font-size:.84rem;font-style:italic"></div>
     <p class="hint" style="margin-top:.3rem">To check your credit balance, visit <a href="https://console.anthropic.com/settings/billing" target="_blank" style="color:var(--sage)">console.anthropic.com → Billing</a>.</p>
-    <label class="mm-auto"><input type="checkbox" id="mmAutoToggle"> 🧠 Make a mind map for every finished book</label>
+    <label class="mm-auto"><input type="checkbox" id="mmAutoToggle"> 🧠 Make a mind map when I finish a book</label>
     <p class="hint" id="mmAutoStatus"></p>
     <label class="mm-auto"><input type="checkbox" id="cpAutoToggle"> 📖 Also write its Companion (about 10–20¢ a book)</label>
   </div>
@@ -1746,6 +1746,7 @@ const SK={
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
+  mmSince:'trr_v1_mm_since', // 'YYYY-MM-DD' — automatic maps are only for books finished on or after this (set when turned on)
   mmFailed:'trr_v1_mm_failed',// {bookId:{at,why}} — automatic maps that failed; not retried on their own (this device)
   mmDaily:'trr_v1_mm_daily', // {d:'YYYY-MM-DD',n} — automatic maps attempted today, for the daily cap (this device)
   usage:  'trr_v1_usage',    // Claude token counts by month and feature, and by day (this device)
@@ -5912,7 +5913,7 @@ function renderLists(){
         </div>
         <div class="list-row-right">
           ${b.rating?`<span class="list-row-stars">${'★'.repeat(b.rating)}</span>`:''}
-          ${progTxt?`<span class="list-row-prog">${progTxt}</span>`:''}
+          ${progTxt&&b.status!=='read'?`<span class="list-row-prog">${progTxt}</span>`:''}
         </div>
       </div>`;
     }).join(''):`<div style="padding:1rem;font-size:.84rem;color:var(--ink-faint);font-style:italic">${emptyMsg}</div>`;
@@ -8617,6 +8618,13 @@ async function generateMindmap(bookId){
 
 function mmAutoOn(){return localStorage.getItem(SK.mmAuto)!=='off'&&!!localStorage.getItem(SK.api);}
 function mmEligible(b){return b&&b.status==='read'&&b.itemType!=='article';}
+// Automatic maps are for books finished from the day the setting was turned on;
+// older books get one when asked for (the book's 🧠 button).
+function mmAutoSince(){
+  let d=localStorage.getItem(SK.mmSince);
+  if(!d){d=localDateStr();localStorage.setItem(SK.mmSince,d);}
+  return d;
+}
 // Automatic maps that failed stay failed on this device until made by hand
 // (or retried from Settings), so a bad book isn't paid for on every launch.
 const MM_AUTO_DAILY=3; // automatic maps attempted per day, at most
@@ -8627,7 +8635,8 @@ function mmDailyCount(){try{const d=JSON.parse(localStorage.getItem(SK.mmDaily)|
 function mmDailyBump(){localStorage.setItem(SK.mmDaily,JSON.stringify({d:localDateStr(),n:mmDailyCount()+1}));}
 function mindmapBacklog(){
   const failed=mmFailedStore();
-  return books.filter(b=>mmEligible(b)&&!mindmapDB[b.id]&&!_mmBusy.has(b.id)&&!_mmFailed.has(b.id)&&!failed[b.id])
+  const since=mmAutoSince();
+  return books.filter(b=>mmEligible(b)&&b.date&&b.date>=since&&!mindmapDB[b.id]&&!_mmBusy.has(b.id)&&!_mmFailed.has(b.id)&&!failed[b.id])
     .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.updatedAt||0)-(a.updatedAt||0));
 }
 function scheduleMindmaps(delay=4000){
@@ -8673,7 +8682,7 @@ function renderMindmapAutoStatus(){
   const read=books.filter(mmEligible),done=read.filter(b=>mindmapDB[b.id]).length;
   const busy=read.find(b=>_mmBusy.has(b.id));
   const failed=mmFailedStore(),nFailed=read.filter(b=>!mindmapDB[b.id]&&failed[b.id]).length;
-  let t=`${done} of ${read.length} finished books have a map.`;
+  let t=`${done} of ${read.length} finished books have a map.`+(read.length>done?' Older ones: make them from the book.':'');
   if(!localStorage.getItem(SK.api))t+=' Add an Anthropic key above to make them.';
   else if(_mmAutoStop)t+=` Paused: ${_mmAutoStop}`;
   else if(busy)t+=` Making ${busy.title}…`;
@@ -8688,6 +8697,7 @@ function renderMindmapAutoStatus(){
 }
 function setMindmapAuto(on){
   localStorage.setItem(SK.mmAuto,on?'on':'off');
+  if(on)localStorage.setItem(SK.mmSince,localDateStr()); // from now on, not the backlog
   _mmAutoStop='';
   if(on)scheduleMindmaps(500);
   renderMindmapAutoStatus();
