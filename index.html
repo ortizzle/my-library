@@ -7713,7 +7713,7 @@ function renderMindmapTake(){
   if(b.notes)kids.push(vEl('p','mm-take-q',`“${b.notes.length>220?b.notes.slice(0,217)+'…':b.notes}”`));
   const bits=[hl&&plural(hl,'highlight'),notes&&plural(notes,'journal note'),words&&plural(words,'saved word')].filter(Boolean);
   if(bits.length)kids.push(vEl('p','mm-take-m',bits.join(' · ')));
-  if(!b.notes&&!bits.length)kids.push(vEl('p','mm-take-m','Add a review or highlights and they’ll feature in your next map.'));
+  if(!b.notes&&!bits.length)kids.push(vEl('p','mm-take-m','Add a review in ✏️ Edit; your highlights, journal and words gather in 📓 Your notes.'));
   box.replaceChildren(...kids);
 }
 
