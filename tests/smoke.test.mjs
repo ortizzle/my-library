@@ -3458,3 +3458,51 @@ test('after a highlight, Today shows the book read today with its new page', asy
   assert.ok(day.streak, 'and it counts toward the streak');
   await ctx.close();
 });
+
+// ── Your notes, from the map ─────────────────────────────────────────────
+
+test('the map’s “Your notes” gathers the review, highlights by page, journal and words', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(raw => {
+    books[0].notes = 'Kind, funny, and braver than it looks.'; books[0].rating = 4; save(SK.books, books);
+    journalDB = { b1: [
+      { date: '2026-06-01', time: '9 PM', text: 'Linus finally talks back.', at: 1 },
+      { date: '2026-06-10', time: '9 PM', type: 'highlight', text: 'Lucy danced to another record.', page: '112', at: 2 },
+      { date: '2026-06-02', time: '8 PM', type: 'highlight', text: 'Rules exist for a reason.', page: '14', at: 3 },
+      { date: '2026-06-12', time: '7 PM', text: '💬 Book club\n\nClaude: Is gentleness a politics?\n\nMe: Yes.', at: 4 }] };
+    save(SK.journal, journalDB);
+    vocabDB = [{ id: 'w1', word: 'insipid', definition: 'Lacking flavor.', pos: 'adjective', bookId: 'b1', page: '30', addedAt: 1, box: 0, due: '2026-06-01' },
+               { id: 'w2', word: 'other', definition: 'Not this book.', bookId: 'zz', addedAt: 1, box: 0, due: '2026-06-01' }];
+    save(SK.vocab, vocabDB);
+    mindmapDB = { b1: { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] } }; save(SK.maps, mindmapDB);
+    openMindmap('b1');
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#mmNotesBtn');
+  const sheet = page.locator('#mmSheet');
+  assert.match(await sheet.locator('.mm-s-sub').textContent(), /2 highlights · 2 journal entries · 1 word/);
+  assert.deepEqual(await sheet.locator('.mm-s-lbl').allTextContents(), ['YOUR REVIEW', 'HIGHLIGHTS', 'JOURNAL', 'WORDS']);
+  assert.match(await sheet.locator('.yn-review').textContent(), /★★★★☆Kind, funny/);
+  assert.deepEqual(await sheet.locator('.yn-quote').allTextContents(), ['Rules exist for a reason.', 'Lucy danced to another record.'], 'highlights in page order');
+  const entries = await sheet.locator('.yn-text').allTextContents();
+  assert.match(entries[0], /^💬 Book club/, 'journal newest first');
+  assert.equal(entries[1], 'Linus finally talks back.');
+  assert.deepEqual(await sheet.locator('.yn-word b').allTextContents(), ['insipid'], 'only this book’s words');
+  await sheet.locator('.yn-word').click();
+  assert.equal(await page.isVisible('#vocabView'), true, 'a word opens its page');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('“Your notes” says so when there’s nothing yet', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(raw => {
+    books[0].notes = ''; books[0].rating = 0; save(SK.books, books);
+    journalDB = {}; save(SK.journal, journalDB);
+    mindmapDB = { b1: { map: normalizeMindmap(raw), createdAt: 1, updatedAt: 1, seen: [] } }; openMindmap('b1');
+  }, JSON.parse(MAP_REPLY));
+  await page.click('#mmNotesBtn');
+  assert.match(await page.textContent('#mmSheet'), /Nothing yet/);
+  await ctx.close();
+});

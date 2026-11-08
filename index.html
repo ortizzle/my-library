@@ -134,6 +134,22 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .prog-label span{font-size:.76rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em}
 .prog-label strong{font-size:.76rem;color:var(--amber)}
 .prog-bar{height:4px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
+.yn-empty{color:var(--ink-light);font-style:italic}
+.yn-review{padding:.75rem .9rem;border-radius:12px;background:#fdf6e3;border-left:4px solid var(--gold)}
+.yn-review p{margin:0;line-height:1.6;white-space:pre-wrap}
+.yn-stars{color:var(--gold);letter-spacing:.1em;margin-bottom:.3rem}
+.yn-list{display:grid;gap:.75rem}
+.yn-hl{border-left:3px solid var(--gold);padding:.1rem 0 .1rem .75rem}
+.yn-quote{margin:0;font-style:italic;line-height:1.6;color:var(--ink)}
+.yn-meta{display:block;font-size:.8rem;color:var(--ink-faint);margin-top:.25rem}
+.yn-note{margin:.3rem 0 0;font-size:.92rem;color:var(--ink-light);line-height:1.5}
+.yn-entry{padding-bottom:.7rem;border-bottom:1px dotted var(--parchment-dark)}
+.yn-entry:last-child{border-bottom:0}
+.yn-text{margin:.2rem 0 0;line-height:1.6;white-space:pre-wrap}
+.yn-words{display:grid;gap:.4rem}
+.yn-word{display:block;width:100%;min-height:48px;padding:.55rem .75rem;border:1px solid var(--parchment-dark);border-radius:10px;background:var(--parchment);text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
+.yn-word b{display:block;font-family:'Playfair Display',serif;font-size:1rem}
+.yn-word span{display:block;font-size:.88rem;color:var(--ink-light);line-height:1.4;margin-top:.1rem}
 .ph-src{font-size:.85rem;color:var(--gold);font-family:'Playfair Display',serif;white-space:nowrap;min-width:1.1rem;text-align:center}
 .log-pace{font-size:.8rem;color:var(--ink-light);font-style:italic;margin-top:.15rem;line-height:1.35}
 .log-apos{display:block;width:100%;min-height:48px;margin:0 0 .6rem;border:1px dashed var(--parchment-dark);border-radius:10px;background:none;color:var(--burgundy);font-family:'Lora',serif;font-size:.92rem;cursor:pointer}
@@ -1531,7 +1547,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <p class="mm-unsure" id="mmUnsure" style="display:none">Claude didn’t know this book well, so this map is short — treat its details with care.</p>
       <div class="mm-prog"><span id="mmProgress"></span><div class="mm-bar"><div id="mmProgressBar"></div></div></div>
       <div class="mm-map" id="mmMap"></div>
-      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button><button type="button" class="mm-tlbtn" id="mmCompanionBtn">📖 Companion</button><button type="button" class="mm-tlbtn" id="mmReviewBtn">🃏 Review</button></div>
+      <div class="mm-pills"><button type="button" class="mm-tlbtn" id="mmSummaryBtn">📜 Summary</button><button type="button" class="mm-tlbtn" id="mmTimelineBtn">🕰 Chronology</button><button type="button" class="mm-tlbtn" id="mmCompanionBtn">📖 Companion</button><button type="button" class="mm-tlbtn" id="mmReviewBtn">🃏 Review</button><button type="button" class="mm-tlbtn" id="mmNotesBtn">📓 Your notes</button></div>
       <div class="mm-take" id="mmTake"></div>
     </div>
   </div>
@@ -7474,6 +7490,7 @@ function initMindmaps(){
   $('nextReadBtn').addEventListener('click',()=>openNextReads());
   $('linksBtn').addEventListener('click',()=>openConnections());
   $('mmReviewBtn').addEventListener('click',()=>{if(_mm)startDeck([_mm.bookId],true);});
+  $('mmNotesBtn').addEventListener('click',()=>showMindmapNotes());
   $('cpAutoToggle').addEventListener('change',e=>{localStorage.setItem(SK.cpAuto,e.target.checked?'on':'off');if(e.target.checked)toast('Finished books will get a Companion with their map','ok');});
 }
 
@@ -7643,6 +7660,70 @@ function showMindmapNode(id){
   next.addEventListener('click',()=>showMindmapNode(_mm.order[_mm.at+1]));
   nav.append(prev,vEl('span','mm-s-count',`${_mm.at+1} / ${_mm.order.length}`),next);
   kids.push(nav);
+  openMindmapSheet(kids);
+}
+
+// Your own record of the book, beside the map: the review you wrote, your
+// highlights in page order, journal entries newest first, and the words you
+// saved from it. Read-only here — each is still edited where it lives.
+function bookNotesFor(bookId,journal,vocab){
+  const entries=(journal[bookId]||[]).slice();
+  const pg=e=>{const m=String(e.page||'').match(/\d+/);return m?+m[0]:Infinity;};
+  const highlights=entries.filter(isHighlight).sort((a,b)=>pg(a)-pg(b)||String(a.date).localeCompare(String(b.date)));
+  const notes=entries.filter(e=>!isHighlight(e)&&String(e.text||'').trim())
+    .sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.time||'').localeCompare(String(a.time||'')));
+  const words=vocab.filter(w=>w.bookId===bookId).sort((a,b)=>pg(a)-pg(b)||String(a.word).localeCompare(String(b.word)));
+  return {highlights,notes,words};
+}
+function showMindmapNotes(){
+  const b=mmBook(_mm&&_mm.bookId);if(!b)return;
+  const {highlights,notes,words}=bookNotesFor(b.id,journalDB,vocabDB);
+  const review=String(b.notes||'').trim();
+  const counts=[highlights.length&&plural(highlights.length,'highlight'),notes.length&&plural(notes.length,'journal entry').replace('entrys','entries'),words.length&&plural(words.length,'word')].filter(Boolean);
+  const kids=[vEl('div','mm-s-kind','YOUR NOTES'),vEl('h2','mm-s-title',ddShort(b.title))];
+  if(counts.length)kids.push(vEl('p','mm-s-sub',counts.join(' · ')));
+  if(!review&&!counts.length){
+    kids.push(vEl('p','mm-s-p yn-empty','Nothing yet. Your review, highlights, journal entries and the words you save from this book will gather here.'));
+    openMindmapSheet(kids);return;
+  }
+  const sec=(label,...els)=>kids.push(vEl('div','mm-s-lbl',label),...els);
+  if(review||b.rating){
+    const box=vEl('div','yn-review');
+    if(b.rating)box.append(vEl('div','yn-stars','★'.repeat(b.rating)+'☆'.repeat(5-b.rating)));
+    if(review)box.append(vEl('p',null,review));
+    sec('YOUR REVIEW',box);
+  }
+  if(highlights.length){
+    const list=vEl('div','yn-list');
+    for(const e of highlights){
+      const d=vEl('div','yn-hl');
+      d.append(vEl('p','yn-quote',e.text));
+      const meta=[e.page?`p. ${e.page}`:'',fmtShortDate(e.date)].filter(Boolean).join(' · ');
+      d.append(vEl('span','yn-meta',meta));
+      if(e.note)d.append(vEl('p','yn-note',e.note));
+      list.append(d);
+    }
+    sec('HIGHLIGHTS',list);
+  }
+  if(notes.length){
+    const list=vEl('div','yn-list');
+    for(const e of notes){
+      const d=vEl('div','yn-entry');
+      d.append(vEl('span','yn-meta',fmtShortDate(e.date)+(e.time?` · ${e.time}`:'')),vEl('p','yn-text',e.text));
+      list.append(d);
+    }
+    sec('JOURNAL',list);
+  }
+  if(words.length){
+    const list=vEl('div','yn-words');
+    for(const w of words){
+      const btn=vEl('button','yn-word');btn.type='button';
+      btn.append(vEl('b',null,w.word),vEl('span',null,(w.pos?w.pos+' · ':'')+(w.definition||'')));
+      btn.addEventListener('click',()=>openVocabDetail(w.id));
+      list.append(btn);
+    }
+    sec('WORDS',list);
+  }
   openMindmapSheet(kids);
 }
 

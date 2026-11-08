@@ -81,6 +81,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - In Settings, **Also write its Companion** (off by default) has the Companion written right after the book's map is made automatically
 
 ### Learning a book you've read
+- **📓 Your notes** on a book's map: your review and rating, your highlights in page order, your journal entries newest first (including saved book-club conversations), and the words you saved from it — tap a word for its page. Read-only here; edit them where they live
 - **🃏 Review** on a book's map: short cards drawn from its Companion — moments to recall, themes, character arcs, steps in an argument (or the map's bubbles if it has no Companion). Answer in your head, check, and say whether you remembered; cards come back on a spaced schedule like the vocabulary. New cards come in five at a time; due ones show on Today as **Book review**. Progress stays on this device
 - **💬 Discuss it, book-club style** at the end of a Companion: Claude opens with one of its open questions, then answers back — agreeing, pushing back with the book, offering other readings — and asks the next. **Save to journal** keeps the conversation with the book. About a cent a reply
 - **🕸 Connections across your books** on the Lists tab: the threads that run between finished books with maps, and how each book treats them differently. Remembered until the set of books changes
