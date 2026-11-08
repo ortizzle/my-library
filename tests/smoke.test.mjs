@@ -2383,6 +2383,51 @@ test('a key problem pauses the queue instead of retrying every book', async () =
   await ctx.close();
 });
 
+test('a map that fails is remembered, not paid for again next launch, and the automatic pass stops at 3 a day', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  await seedShelfForMaps(page, [['b1', 'One', 'read', '2026-01-05'], ['b2', 'Two', 'read', '2026-01-04'], ['b3', 'Three', 'read', '2026-01-03'],
+                                ['b4', 'Four', 'read', '2026-01-02'], ['b5', 'Five', 'read', '2026-01-01']]);
+  const calls = await stubClaude(page, 'Sorry, not a map.');
+  await page.evaluate(() => { setMindmapAuto(true); showView('settings'); });
+  await page.waitForFunction(() => !_mmAutoRunning && Object.keys(JSON.parse(localStorage.getItem(SK.mmFailed) || '{}')).length === 3, null, { timeout: 15000 });
+  await page.waitForTimeout(300);
+  assert.equal(calls.length, 3, 'daily cap');
+  assert.match(await page.textContent('#mmAutoStatus'), /3 made today; the rest continue tomorrow/);
+  assert.match(await page.textContent('#mmAutoStatus'), /3 couldn’t be made and won’t be retried on their own/);
+  // Next day, next launch: only the two not yet tried.
+  await page.evaluate(() => { localStorage.removeItem(SK.mmDaily); _mmFailed.clear(); scheduleMindmaps(0); });
+  await page.waitForFunction(() => !_mmAutoRunning && Object.keys(JSON.parse(localStorage.getItem(SK.mmFailed) || '{}')).length === 5, null, { timeout: 15000 });
+  await page.waitForTimeout(300);
+  assert.equal(calls.length, 5);
+  await page.evaluate(() => { localStorage.removeItem(SK.mmDaily); _mmFailed.clear(); scheduleMindmaps(0); });
+  await page.waitForTimeout(800);
+  assert.equal(calls.length, 5, 'failed books are not retried on their own');
+  // Asked for: they're tried again (within the day's cap).
+  await page.evaluate(() => renderMindmapAutoStatus());
+  await page.click('#mmRetryFailed');
+  await page.waitForFunction(() => !_mmAutoRunning && mmDailyCount() === 3, null, { timeout: 15000 });
+  assert.equal(calls.length, 8);
+  await ctx.close();
+});
+
+test('Settings shows what Claude was used for on this device', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await page.evaluate(() => localStorage.setItem('trr_v1_api', 'sk-ant-test'));
+  await page.route('**://api.anthropic.com/**', route => route.fulfill({ status: 200, contentType: 'application/json',
+    body: JSON.stringify({ content: [{ type: 'text', text: '{"headword":"x","definition":"y"}' }], stop_reason: 'end_turn',
+      usage: { input_tokens: 1200, cache_read_input_tokens: 300, output_tokens: 80, server_tool_use: { web_search_requests: 2 } } }) }));
+  await page.evaluate(() => showView('settings'));
+  assert.match(await page.textContent('#usageSummary'), /Nothing yet/);
+  await page.evaluate(async () => { await defineWithClaude('lugubrious', null, ''); await defineWithClaude('lugubrious', null, ''); });
+  await page.waitForFunction(() => (JSON.parse(localStorage.getItem(SK.usage) || '{}').days || {})[localDateStr()]?.n === 2);
+  await page.evaluate(() => { showView('library'); showView('settings'); });
+  assert.match(await page.textContent('#usageSummary'), /Today: 2 calls · 3k in \/ 160 out · 4 searches/);
+  const row = await page.locator('#usageTable tr').nth(1).locator('td').allTextContents();
+  assert.deepEqual(row, ['Word definitions', '2', '3k', '160', '4']);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('turned off in Settings, nothing is made', async () => {
   const { ctx, page } = await openApp(browser, base);
   await page.evaluate(() => localStorage.setItem('trr_v1_mm_auto', 'on'));

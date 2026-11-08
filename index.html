@@ -189,6 +189,13 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .copy-note-chip.on{background:var(--gold);border-color:var(--gold);color:var(--ink)}
 .copy-note{margin-top:.4rem;min-height:40px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
 .b-borrowed{letter-spacing:-.15em}
+.link-btn{border:0;background:none;padding:0;color:var(--burgundy);font:inherit;text-decoration:underline;cursor:pointer}
+.usage-sub{font:italic 400 .78rem 'Lora',serif;color:var(--ink-faint)}
+.usage-month h4{font-size:.86rem;margin:.7rem 0 .35rem}
+.usage-table{width:100%;border-collapse:collapse;font-size:.8rem}
+.usage-table th{text-align:right;font-weight:600;color:var(--ink-light);padding:.2rem .3rem;border-bottom:1px solid var(--parchment-dark)}
+.usage-table td{text-align:right;padding:.28rem .3rem;border-bottom:1px dotted var(--parchment-dark)}
+.usage-table th:first-child,.usage-table td:first-child{text-align:left}
 .copy-review-row{display:flex;align-items:center;gap:.6rem;width:100%;min-height:52px;padding:.45rem 0;border:0;border-top:1px dotted var(--parchment-dark);background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
 .copy-review-row .next-text{flex:1;min-width:0}
 .copy-review-go{color:var(--burgundy);font-size:.9rem;white-space:nowrap}
@@ -1234,7 +1241,7 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
       <div class="fg"><input type="password" id="apiKeyInput" placeholder="sk-ant-…"></div>
       <button class="eye-btn" onclick="toggleKey()">👁</button>
     </div>
-    <p class="hint">Stored only in this browser's localStorage. Sent only to Anthropic's API for AI discussion questions.</p>
+    <p class="hint">Stored only in this browser's localStorage. Sent only to Anthropic's API, for the app's Claude features.</p>
     <div style="margin-top:.65rem;display:flex;gap:.42rem;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="saveKey()">Save Key</button>
       <button class="btn btn-secondary" onclick="clearKey()">Clear</button>
@@ -1245,6 +1252,12 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <label class="mm-auto"><input type="checkbox" id="mmAutoToggle"> 🧠 Make a mind map for every finished book</label>
     <p class="hint" id="mmAutoStatus"></p>
     <label class="mm-auto"><input type="checkbox" id="cpAutoToggle"> 📖 Also write its Companion (about 10–20¢ a book)</label>
+  </div>
+  <div class="settings-card" id="usageCard">
+    <h3>🧮 Claude Usage <span class="usage-sub">on this device</span></h3>
+    <p class="hint" id="usageSummary"></p>
+    <div id="usageTable"></div>
+    <p class="hint">Counted from Claude's own replies. Tokens in include web-search results Claude read. For what you're billed, see <a href="https://console.anthropic.com/usage" target="_blank" rel="noopener" style="color:var(--sage)">console.anthropic.com → Usage</a>.</p>
   </div>
   <div class="settings-card" id="copyReviewCard" style="display:none">
     <h3>📦 Check how you have these</h3>
@@ -1733,6 +1746,9 @@ const SK={
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
+  mmFailed:'trr_v1_mm_failed',// {bookId:{at,why}} — automatic maps that failed; not retried on their own (this device)
+  mmDaily:'trr_v1_mm_daily', // {d:'YYYY-MM-DD',n} — automatic maps attempted today, for the daily cap (this device)
+  usage:  'trr_v1_usage',    // Claude token counts by month and feature, and by day (this device)
   cpAuto: 'trr_v1_cp_auto',
   deck:   'trr_v1_deck',     // review deck progress per book: {bookId:{cardKey:{box,due,reviews,lapses}}} — this device
   links:  'trr_v1_links',    // connections across books (Claude's answer, cached): {sig, at, themes}  // 'on' also writes the Companion for each map made automatically (off by default)
@@ -2384,7 +2400,7 @@ function renderView(n){
     document.getElementById('mmAutoToggle').checked=localStorage.getItem(SK.mmAuto)!=='off';
     document.getElementById('cpAutoToggle').checked=localStorage.getItem(SK.cpAuto)==='on';
     renderMindmapAutoStatus();
-    renderStorageCheck();renderCopyReview();
+    renderStorageCheck();renderCopyReview();renderUsage();
     document.getElementById('gbKeyInput').value=localStorage.getItem(SK.gbkey)||'';
     mountDriveSettings();
   }
@@ -5220,6 +5236,79 @@ function previewCoverUrl(){const url=document.getElementById('coverUrlInput').va
 // so there is one place to change it. Sonnet 5 is the current default for
 // quality generation; claude-haiku-4-5-20251001 is the cheaper, faster option.
 const CLAUDE_MODEL='claude-sonnet-5';
+
+// ══ CLAUDE USAGE (this device) ══
+// Every reply from Claude reports its own token counts. They're tallied by
+// month and feature (and by day) so Settings can show where the API spend went.
+// The feature is read off the call stack: each request starts from a named function.
+const USAGE_FEATURES=[
+  ['autoCompanion','Companions (automatic)'],['runMindmapQueue','Mind maps (automatic)'],
+  ['requestMindmap','Mind maps'],['requestCompanion','Companions'],['generateSummary','Book summaries'],
+  ['claudeByIsbn','ISBN lookup'],['clubReply','Book club'],['defineWithClaude','Word definitions'],
+  ['pronounceWithClaude','Pronunciation'],['transcribePassage','Passage photos'],['readPlayerShot','Audio player photos'],
+  ['generateQs','Discussion questions'],['openNextReads','What to read next'],['openConnections','Connections']];
+function usageFeature(stack){
+  const st=String(stack||'');
+  for(const [fn,label] of USAGE_FEATURES)if(new RegExp('\\b'+fn+'\\b').test(st))return label;
+  return 'Other';
+}
+// Pure: adds one reply's usage to the tally and trims old days and months.
+function usageAdd(db,feature,u,dateStr){
+  db=db&&typeof db==='object'?db:{};
+  const add=o=>{o.n=(o.n||0)+1;
+    o.in=(o.in||0)+(u.input_tokens||0)+(u.cache_creation_input_tokens||0)+(u.cache_read_input_tokens||0);
+    o.out=(o.out||0)+(u.output_tokens||0);
+    o.s=(o.s||0)+((u.server_tool_use&&u.server_tool_use.web_search_requests)||0);return o;};
+  const ym=dateStr.slice(0,7);
+  db.months=db.months||{};const m=db.months[ym]=db.months[ym]||{};m[feature]=add(m[feature]||{});
+  db.days=db.days||{};db.days[dateStr]=add(db.days[dateStr]||{});
+  const keep=(o,n)=>{for(const k of Object.keys(o).sort().slice(0,-n))delete o[k];};
+  keep(db.days,62);keep(db.months,13);
+  return db;
+}
+function loadUsage(){try{return JSON.parse(localStorage.getItem(SK.usage)||'{}')||{};}catch(e){return {};}}
+function recordUsage(feature,u){
+  if(!u||typeof u!=='object')return;
+  try{localStorage.setItem(SK.usage,JSON.stringify(usageAdd(loadUsage(),feature,u,localDateStr())));}catch(e){console.warn('usage not saved',e);}
+}
+(function watchClaudeUsage(){
+  if(typeof window==='undefined'||!window.fetch||window.fetch.__usage)return;
+  const orig=window.fetch.bind(window);
+  const wrapped=function(url,opts){
+    const p=orig(url,opts);
+    if(typeof url==='string'&&url.startsWith('https://api.anthropic.com/v1/messages')){
+      const lim=Error.stackTraceLimit;Error.stackTraceLimit=40;
+      const feature=usageFeature(new Error().stack);Error.stackTraceLimit=lim;
+      p.then(r=>{if(r&&r.ok)r.clone().json().then(d=>recordUsage(feature,d&&d.usage)).catch(()=>{});}).catch(()=>{});
+    }
+    return p;
+  };
+  wrapped.__usage=true;window.fetch=wrapped;
+})();
+function fmtTok(n){n=n||0;return n>=1e6?(n/1e6).toFixed(n>=1e7?0:1)+'M':n>=1e3?Math.round(n/1e3)+'k':String(n);}
+function renderUsage(){
+  const sum=document.getElementById('usageSummary'),box=document.getElementById('usageTable');if(!sum||!box)return;
+  const db=loadUsage(),today=localDateStr(),ym=today.slice(0,7);
+  const months=Object.keys(db.months||{}).sort().reverse();
+  const t=(db.days||{})[today]||{};
+  const line=o=>`${o.n||0} call${o.n===1?'':'s'} · ${fmtTok(o.in)} in / ${fmtTok(o.out)} out${o.s?` · ${o.s} search${o.s===1?'':'es'}`:''}`;
+  const week={};for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const o=(db.days||{})[localDateStr(d)];if(o)for(const k of ['n','in','out','s'])week[k]=(week[k]||0)+(o[k]||0);}
+  sum.replaceChildren();
+  if(!months.length){sum.textContent='Nothing yet — calls are counted from now on.';box.replaceChildren();return;}
+  const p1=vEl('span',null,'Today: '+line(t)),p2=vEl('span',null,'Last 7 days: '+line(week));
+  sum.append(p1,document.createElement('br'),p2);
+  box.replaceChildren(...months.slice(0,2).map(m=>{
+    const rows=Object.entries(db.months[m]).sort((a,b)=>(b[1].in+b[1].out)-(a[1].in+a[1].out));
+    const tot=rows.reduce((o,[,r])=>{for(const k of ['n','in','out','s'])o[k]=(o[k]||0)+(r[k]||0);return o;},{});
+    const wrap=vEl('div','usage-month');
+    const [y,mo]=m.split('-');
+    wrap.append(vEl('h4',null,(m===ym?'This month':new Date(+y,+mo-1,1).toLocaleDateString(undefined,{month:'long',year:'numeric'}))+' — '+line(tot)));
+    const tbl=vEl('table','usage-table');
+    const hr=vEl('tr');for(const h of ['Feature','Calls','In','Out','Searches'])hr.append(vEl('th',null,h));tbl.append(hr);
+    for(const [f,r] of rows){const tr=vEl('tr');for(const v of [f,String(r.n||0),fmtTok(r.in),fmtTok(r.out),String(r.s||0)])tr.append(vEl('td',null,v));tbl.append(tr);}
+    wrap.append(tbl);return wrap;
+  }));
+}
 
 const GENRE_MAP={fiction:'Literary Fiction',mystery:'Mystery / Thriller',thriller:'Mystery / Thriller',horror:'Horror','ghost stories':'Horror',history:'Nonfiction',biography:'Memoir / Biography',memoir:'Memoir / Biography',fantasy:'Fantasy','science fiction':'Science Fiction',romance:'Romance','self-help':'Self-Help',business:'Business',economics:'Business',management:'Business',entrepreneurship:'Business',poetry:'Poetry','young adult':'Young Adult'};
 
@@ -8481,6 +8570,7 @@ function storeMindmap(bookId,map){
   const now=Date.now();
   // A remake redraws the map; the Companion (a separate, costlier request) stays.
   if(!map.companion&&mindmapDB[bookId]?.map?.companion)map={...map,companion:mindmapDB[bookId].map.companion};
+  mmClearFailed(bookId);
   mindmapDB[bookId]={map,createdAt:(mindmapDB[bookId]&&mindmapDB[bookId].createdAt)||now,updatedAt:now,seen:[]};
   save(SK.maps,mindmapDB);
 }
@@ -8527,8 +8617,17 @@ async function generateMindmap(bookId){
 
 function mmAutoOn(){return localStorage.getItem(SK.mmAuto)!=='off'&&!!localStorage.getItem(SK.api);}
 function mmEligible(b){return b&&b.status==='read'&&b.itemType!=='article';}
+// Automatic maps that failed stay failed on this device until made by hand
+// (or retried from Settings), so a bad book isn't paid for on every launch.
+const MM_AUTO_DAILY=3; // automatic maps attempted per day, at most
+function mmFailedStore(){try{return JSON.parse(localStorage.getItem(SK.mmFailed)||'{}')||{};}catch(e){return {};}}
+function mmMarkFailed(id,why){const f=mmFailedStore();f[id]={at:Date.now(),why:String(why||'')};localStorage.setItem(SK.mmFailed,JSON.stringify(f));}
+function mmClearFailed(id){const f=mmFailedStore();if(id==null){localStorage.removeItem(SK.mmFailed);return;}if(f[id]){delete f[id];localStorage.setItem(SK.mmFailed,JSON.stringify(f));}}
+function mmDailyCount(){try{const d=JSON.parse(localStorage.getItem(SK.mmDaily)||'{}');return d.d===localDateStr()?(d.n||0):0;}catch(e){return 0;}}
+function mmDailyBump(){localStorage.setItem(SK.mmDaily,JSON.stringify({d:localDateStr(),n:mmDailyCount()+1}));}
 function mindmapBacklog(){
-  return books.filter(b=>mmEligible(b)&&!mindmapDB[b.id]&&!_mmBusy.has(b.id)&&!_mmFailed.has(b.id))
+  const failed=mmFailedStore();
+  return books.filter(b=>mmEligible(b)&&!mindmapDB[b.id]&&!_mmBusy.has(b.id)&&!_mmFailed.has(b.id)&&!failed[b.id])
     .sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||(b.updatedAt||0)-(a.updatedAt||0));
 }
 function scheduleMindmaps(delay=4000){
@@ -8543,6 +8642,8 @@ async function runMindmapQueue(){
   try{
     while(mmAutoOn()&&!_mmAutoStop&&navigator.onLine!==false){
       const b=mindmapBacklog()[0];if(!b)break;
+      if(mmDailyCount()>=MM_AUTO_DAILY)break; // the rest wait for tomorrow
+      mmDailyBump();
       _mmBusy.add(b.id);renderMindmapAutoStatus();
       if(_mm&&_mm.bookId===b.id)renderMindmapView();
       try{
@@ -8556,7 +8657,7 @@ async function runMindmapQueue(){
         console.warn('Auto mind map failed for',b.title,e);
         if([401,403,429].includes(e.status)||/credit|billing/i.test(e.message))_mmAutoStop=e.message; // key or account problem: stop asking
         else if(e.status>=500||e.status===undefined)break; // overloaded or offline: try again next time the app opens
-        else _mmFailed.add(b.id);
+        else{_mmFailed.add(b.id);mmMarkFailed(b.id,e.message);}
       }finally{
         _mmBusy.delete(b.id);
         if(_mm&&_mm.bookId===b.id)renderMindmapView();
@@ -8571,11 +8672,19 @@ function renderMindmapAutoStatus(){
   const el=document.getElementById('mmAutoStatus');if(!el)return;
   const read=books.filter(mmEligible),done=read.filter(b=>mindmapDB[b.id]).length;
   const busy=read.find(b=>_mmBusy.has(b.id));
+  const failed=mmFailedStore(),nFailed=read.filter(b=>!mindmapDB[b.id]&&failed[b.id]).length;
   let t=`${done} of ${read.length} finished books have a map.`;
   if(!localStorage.getItem(SK.api))t+=' Add an Anthropic key above to make them.';
   else if(_mmAutoStop)t+=` Paused: ${_mmAutoStop}`;
   else if(busy)t+=` Making ${busy.title}…`;
-  el.textContent=t;
+  else if(mmAutoOn()&&mindmapBacklog().length&&mmDailyCount()>=MM_AUTO_DAILY)t+=` ${MM_AUTO_DAILY} made today; the rest continue tomorrow.`;
+  el.replaceChildren(document.createTextNode(t));
+  if(nFailed){
+    el.append(document.createTextNode(` ${nFailed} couldn’t be made and won’t be retried on their own. `));
+    const bt=vEl('button','link-btn','Try them again');bt.type='button';bt.id='mmRetryFailed';
+    bt.addEventListener('click',()=>{mmClearFailed();_mmFailed.clear();scheduleMindmaps(500);renderMindmapAutoStatus();});
+    el.append(bt);
+  }
 }
 function setMindmapAuto(on){
   localStorage.setItem(SK.mmAuto,on?'on':'off');
