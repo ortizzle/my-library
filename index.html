@@ -169,17 +169,24 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .bh-stat span{font-size:.76rem;color:var(--ink-light)}
 .bh-note{font-size:.88rem;color:var(--ink-light);line-height:1.5;margin:0 0 .9rem}
 .bh-body .cp-sec{scroll-margin-top:4.5rem}
-.copy-hint{font-size:.86rem;color:var(--ink-light);margin:-.2rem 0 .7rem;line-height:1.45}
+.copy-q-text{font-size:.92rem;color:var(--ink);margin:-.1rem 0 .5rem}
+.copy-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-bottom:.7rem}
+.copy-fmt{display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:44px;padding:0 .4rem;border:1px solid var(--parchment-dark);border-radius:24px;background:var(--cream);color:var(--ink-light);font:600 .9rem 'Lora',serif;cursor:pointer}
+.copy-fmt.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
 .copy-rows{display:grid;gap:.55rem}
-.copy-row{display:grid;grid-template-columns:6.2rem 1fr;align-items:center;gap:.45rem .6rem;padding:.55rem .6rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--cream)}
-.copy-row.on{border-color:var(--gold);background:#fdf6e3}
-.copy-name{display:flex;align-items:center;gap:.35rem;font-family:'Playfair Display',serif;font-size:.98rem;color:var(--ink)}
-.copy-ico{font-size:1.1rem}
-.copy-seg{display:flex;border:1px solid var(--parchment-dark);border-radius:24px;overflow:hidden;background:var(--parchment)}
-.copy-opt{flex:1;min-height:44px;border:0;background:transparent;color:var(--ink-light);font:600 .86rem 'Lora',serif;cursor:pointer;padding:0 .3rem}
-.copy-opt+.copy-opt{border-left:1px solid var(--parchment-dark)}
-.copy-opt.on{background:var(--ink);color:var(--cream)}
-.copy-note{grid-column:1/-1;min-height:44px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
+.copy-row{padding:.65rem .75rem .75rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--cream)}
+.copy-row.on{border-color:var(--gold)}
+.copy-q{margin:0 0 .45rem;font:600 .95rem 'Playfair Display',serif;color:var(--ink);line-height:1.4}
+.copy-q-ask{font:italic 400 .86rem 'Lora',serif;color:var(--ink-light)}
+.copy-q-sub{margin:.7rem 0 .4rem;font:400 .84rem 'Lora',serif;color:var(--ink-light)}
+.copy-ico{font-size:1.05rem}
+.copy-seg{display:flex;gap:.45rem}
+.copy-opt{flex:1;min-height:44px;border:1px solid var(--parchment-dark);border-radius:24px;background:#fff;color:var(--ink-light);font:600 .88rem 'Lora',serif;cursor:pointer;padding:0 .6rem}
+.copy-opt.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
+.copy-notes{display:flex;flex-wrap:wrap;gap:.4rem}
+.copy-note-chip{min-height:40px;padding:0 .85rem;border:1px solid var(--parchment-dark);border-radius:20px;background:#fff;color:var(--ink);font:.86rem 'Lora',serif;cursor:pointer}
+.copy-note-chip.on{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.copy-note{margin-top:.5rem;min-height:44px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
 .b-borrowed{letter-spacing:-.15em}
 .copy-review-row{display:flex;align-items:center;gap:.6rem;width:100%;min-height:52px;padding:.45rem 0;border:0;border-top:1px dotted var(--parchment-dark);background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
 .copy-review-row .next-text{flex:1;min-width:0}
@@ -1467,7 +1474,8 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
     <div class="modal-tab-panel" data-panel="location">
       <div class="own-section" id="ownershipSection">
         <h4>📦 How I Have This Book</h4>
-        <p class="copy-hint">For each format: do you own it, or have you borrowed it (library, Libby, a friend)?</p>
+        <p class="copy-q-text">Which formats do you have?</p>
+        <div class="copy-pick" id="copyPick" role="group" aria-label="Formats"></div>
         <div class="copy-rows" id="copyRows"></div>
       </div>
       <div class="fg" id="locationSection">
@@ -2704,7 +2712,7 @@ function setItemType(type){
 }
 
 function openAddModal(){
-  editId=null;curRating=0;editCopies={};activeLists=new Set();pendingCoverUrl='';
+  editId=null;curRating=0;editCopies={};copyOther=new Set();activeLists=new Set();pendingCoverUrl='';
   clearFinalReview();
   document.getElementById('modalTitle').textContent='Add to Library';
   document.getElementById('loanHistorySection').style.display='none';
@@ -2722,7 +2730,7 @@ function openEditModal(id){
   const b=books.find(x=>x.id===id);if(!b)return;
   clearFinalReview();
   editId=id;curRating=b.rating||0;
-  editCopies=JSON.parse(JSON.stringify(bookCopies(b)));activeLists=new Set(b.lists||[]);
+  editCopies=JSON.parse(JSON.stringify(bookCopies(b)));copyOther=new Set();activeLists=new Set(b.lists||[]);
   pendingCoverUrl=coversDB[id]||'';
   curItemType=b.itemType||'book';
   document.getElementById('modalTitle').textContent='Edit';
@@ -2847,42 +2855,78 @@ function toggleYearOnly(){
   document.getElementById('bStartDate').disabled=on;
 }
 
-// The editor's rows: Print / eBook / Audio, each — / Own / Borrowed, with a note.
-const COPY_GUESS={physical:{own:'',borrowed:''},ebook:{own:'Kindle',borrowed:'Libby'},audio:{own:'Audible',borrowed:'Libby'}};
+// The editor asks in steps: which formats → own or borrowed → which edition / from where.
+const COPY_NOTES={physical:{own:['Hardcover','Paperback','Signed'],borrowed:['Library','A friend']},
+  ebook:{own:['Kindle','Apple Books','Kobo'],borrowed:['Libby','Hoopla','Kindle Unlimited']},
+  audio:{own:['Audible','Libro.fm','Spotify'],borrowed:['Libby','Hoopla','A friend']}};
+let copyOther=new Set();
+function toggleCopyFormat(k){
+  if(editCopies[k]){delete editCopies[k];copyOther.delete(k);}
+  else editCopies[k]={how:'',note:''};
+  updateFmtChips();
+}
 function setCopy(k,how){
   const cur=editCopies[k];
-  if(!how)delete editCopies[k];
+  if(!how){delete editCopies[k];copyOther.delete(k);}
   else{
-    // Keep what the reader typed; replace only an empty note or our own guess.
-    const keep=cur&&cur.note&&cur.note!==COPY_GUESS[k][cur.how];
-    editCopies[k]={how,note:keep?cur.note:COPY_GUESS[k][how]};
+    // Keep what the reader typed; a quick-pick from the other answer no longer fits.
+    const typed=cur&&cur.note&&!(COPY_NOTES[k][cur.how]||[]).includes(cur.note);
+    editCopies[k]={how,note:typed?cur.note:''};
+    if(!typed)copyOther.delete(k);
   }
+  updateFmtChips();
+}
+function setCopyNote(k,note){
+  const c=editCopies[k];if(!c)return;
+  copyOther.delete(k);
+  c.note=c.note===note?'':note;
   updateFmtChips();
 }
 function updateFmtChips(){
   const box=document.getElementById('copyRows');if(!box)return;
-  box.replaceChildren(...COPY_FORMATS.map(([k,ico,label,ph])=>{
-    const c=editCopies[k],row=vEl('div','copy-row'+(c?' on':''));row.dataset.fmt=k;
-    const name=vEl('span','copy-name');name.append(vEl('span','copy-ico',ico),document.createTextNode(label));
+  const pick=document.getElementById('copyPick');
+  pick.replaceChildren(...COPY_FORMATS.map(([k,ico,label])=>{
+    const on=!!editCopies[k],bt=vEl('button','copy-fmt'+(on?' on':''));bt.type='button';bt.dataset.fmt=k;
+    bt.setAttribute('aria-pressed',String(on));
+    bt.append(vEl('span','copy-ico',ico),document.createTextNode(label));
+    bt.addEventListener('click',()=>toggleCopyFormat(k));
+    return bt;
+  }));
+  box.replaceChildren(...COPY_FORMATS.filter(([k])=>editCopies[k]).map(([k,ico,label])=>{
+    const c=editCopies[k],row=vEl('div','copy-row'+(c.how?' on':''));row.dataset.fmt=k;
+    const q=vEl('p','copy-q');q.append(vEl('span','copy-ico',ico),document.createTextNode(' '+label+' — '),vEl('span','copy-q-ask','own or borrowed?'));
     const seg=vEl('div','copy-seg');seg.setAttribute('role','group');seg.setAttribute('aria-label',label);
-    for(const [how,txt] of [['','—'],['own','Own'],['borrowed','Borrowed']]){
-      const on=(c?c.how:'')===how;
+    for(const [how,txt] of [['own','I own it'],['borrowed','Borrowed']]){
+      const on=c.how===how;
       const bt=vEl('button','copy-opt'+(on?' on':''),txt);bt.type='button';bt.dataset.how=how;bt.setAttribute('aria-pressed',String(on));
       bt.addEventListener('click',()=>setCopy(k,how));
       seg.append(bt);
     }
-    row.append(name,seg);
-    if(c){
-      const inp=document.createElement('input');inp.type='text';inp.className='copy-note';inp.id='copyNote-'+k;
-      inp.placeholder=c.how==='borrowed'?'e.g. Libby, Chandler Library, a friend':ph;inp.value=c.note||'';
-      inp.setAttribute('aria-label',`${label} — ${c.how==='own'?'edition or platform':'borrowed from'}`);
-      inp.addEventListener('input',()=>{if(editCopies[k])editCopies[k].note=inp.value;});
-      row.append(inp);
+    row.append(q,seg);
+    if(c.how){
+      const opts=COPY_NOTES[k][c.how];
+      const other=copyOther.has(k)||(!!c.note&&!opts.includes(c.note));
+      row.append(vEl('p','copy-q copy-q-sub',c.how==='own'?(k==='physical'?'Which edition?':'Where is it?'):'Borrowed from?'));
+      const chips=vEl('div','copy-notes');
+      for(const o of opts){
+        const on=!other&&c.note===o,bt=vEl('button','copy-note-chip'+(on?' on':''),o);bt.type='button';bt.setAttribute('aria-pressed',String(on));
+        bt.addEventListener('click',()=>setCopyNote(k,o));chips.append(bt);
+      }
+      const ob=vEl('button','copy-note-chip'+(other?' on':''),'Other…');ob.type='button';ob.dataset.other='1';
+      ob.addEventListener('click',()=>{copyOther.add(k);if(opts.includes(c.note))c.note='';updateFmtChips();const i=document.getElementById('copyNote-'+k);if(i)i.focus();});
+      chips.append(ob);row.append(chips);
+      if(other){
+        const inp=document.createElement('input');inp.type='text';inp.className='copy-note';inp.id='copyNote-'+k;
+        inp.placeholder=c.how==='borrowed'?'e.g. Chandler Library, Mom':(k==='physical'?'e.g. First edition':'e.g. Google Play');inp.value=c.note||'';
+        inp.setAttribute('aria-label',`${label}: ${c.how==='own'?'edition or platform':'borrowed from'}`);
+        inp.addEventListener('input',()=>{if(editCopies[k])editCopies[k].note=inp.value;});
+        row.append(inp);
+      }
     }
     return row;
   }));
   // Shelf location and lending out are about a print copy you own.
-  const printOwned=!!(editCopies.physical&&editCopies.physical.how==='own');
+  const printOwned=!!(editCopies.physical&&editCopies.physical.how!=='borrowed'); // unanswered saves as owned
   const b=editId&&books.find(x=>x.id===editId);
   const hasLoc=!!(document.getElementById('bLocationRoom').value||document.getElementById('bLocationShelf').value);
   document.getElementById('locationSection').style.display=printOwned||hasLoc?'':'none';
@@ -4785,7 +4829,7 @@ async function saveBook(){
     notes:document.getElementById('bNotes').value.trim(),rating:curRating,
     ...(()=>{
       const copies={};
-      for(const [k] of COPY_FORMATS)if(editCopies[k])copies[k]={how:editCopies[k].how,note:String(editCopies[k].note||'').trim()};
+      for(const [k] of COPY_FORMATS)if(editCopies[k])copies[k]={how:editCopies[k].how||'own',note:String(editCopies[k].note||'').trim()};
       const note=k=>copies[k]?copies[k].note:'';
       return {copies,formats:formatsFromCopies(copies),srcPhysical:note('physical'),srcEbook:note('ebook'),srcAudio:note('audio'),
         srcBorrowed:COPY_FORMATS.filter(([k])=>copies[k]&&copies[k].how==='borrowed').map(([k])=>copies[k].note).filter(Boolean).join('; ')};
