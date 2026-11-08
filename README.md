@@ -112,7 +112,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 - DNF tag and DNF status stay in sync — set one and the other updates automatically
 
 ### How I Have This Book
-- On the editor's **Location** tab it asks in steps: **which formats do you have?** (📗 Print · 📱 eBook · 🎧 Audio), then for each one **own or borrowed?**, then **which edition / where / borrowed from?** with quick picks (*Hardcover* · *Kindle* · *Libby* · *A friend* …) or **Other…** to type your own. So owning the hardcover while borrowing the audiobook from Libby is recorded as exactly that
+- On the editor's **Location** tab it asks in steps: **which formats do you have?** (📗 Print · 📱 eBook · 🎧 Audio), then for each one **own or borrowed?**, then **which edition / where / borrowed from?** with quick picks (*Hardcover* · *Kindle* · *Libby* · *Chandler Library* · *Spotify* …) or **Other…** to type your own. So owning the hardcover while borrowing the audiobook from Libby is recorded as exactly that
 - Library cards show 📗 📱 🎧 for owned copies and 🏛 beside a borrowed one; Stats counts only books you own a copy of
 - The shelf location and lending a book out appear when you own the print copy
 - Books saved before this are read the old way until you next save them. Where an old “Library Loan” didn't say which format was borrowed, the app guesses the eBook or audio, and **Settings → Check how you have these** lists those books to confirm

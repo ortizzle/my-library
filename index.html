@@ -169,24 +169,25 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .bh-stat span{font-size:.76rem;color:var(--ink-light)}
 .bh-note{font-size:.88rem;color:var(--ink-light);line-height:1.5;margin:0 0 .9rem}
 .bh-body .cp-sec{scroll-margin-top:4.5rem}
-.copy-q-text{font-size:.92rem;color:var(--ink);margin:-.1rem 0 .5rem}
-.copy-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:.4rem;margin-bottom:.7rem}
-.copy-fmt{display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:44px;padding:0 .4rem;border:1px solid var(--parchment-dark);border-radius:24px;background:var(--cream);color:var(--ink-light);font:600 .9rem 'Lora',serif;cursor:pointer}
+.copy-q-text{font-size:.84rem;color:var(--ink-light);margin:-.2rem 0 .4rem}
+.copy-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem;margin-bottom:.55rem}
+.copy-fmt{display:flex;align-items:center;justify-content:center;gap:.25rem;min-height:36px;padding:0 .3rem;border:1px solid var(--parchment-dark);border-radius:20px;background:var(--cream);color:var(--ink-light);font:600 .8rem 'Lora',serif;cursor:pointer}
 .copy-fmt.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.copy-rows{display:grid;gap:.55rem}
-.copy-row{padding:.65rem .75rem .75rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--cream)}
+.copy-rows{display:grid;gap:.4rem}
+.copy-row{padding:.45rem .6rem .55rem;border:1px solid var(--parchment-dark);border-radius:12px;background:var(--cream)}
 .copy-row.on{border-color:var(--gold)}
-.copy-q{margin:0 0 .45rem;font:600 .95rem 'Playfair Display',serif;color:var(--ink);line-height:1.4}
-.copy-q-ask{font:italic 400 .86rem 'Lora',serif;color:var(--ink-light)}
-.copy-q-sub{margin:.7rem 0 .4rem;font:400 .84rem 'Lora',serif;color:var(--ink-light)}
-.copy-ico{font-size:1.05rem}
-.copy-seg{display:flex;gap:.45rem}
-.copy-opt{flex:1;min-height:44px;border:1px solid var(--parchment-dark);border-radius:24px;background:#fff;color:var(--ink-light);font:600 .88rem 'Lora',serif;cursor:pointer;padding:0 .6rem}
+.copy-head{display:flex;align-items:center;gap:.5rem}
+.copy-head .copy-q{flex:1;margin:0}
+.copy-q{margin:0 0 .35rem;font:600 .84rem 'Playfair Display',serif;color:var(--ink);line-height:1.4}
+.copy-q-sub{margin:.5rem 0 .3rem;font:400 .76rem 'Lora',serif;color:var(--ink-light)}
+.copy-ico{font-size:.9rem}
+.copy-seg{display:flex;gap:.3rem;flex:0 0 auto}
+.copy-opt{min-width:4.6rem;min-height:34px;border:1px solid var(--parchment-dark);border-radius:18px;background:#fff;color:var(--ink-light);font:600 .78rem 'Lora',serif;cursor:pointer;padding:0 .5rem}
 .copy-opt.on{background:var(--ink);border-color:var(--ink);color:var(--cream)}
-.copy-notes{display:flex;flex-wrap:wrap;gap:.4rem}
-.copy-note-chip{min-height:40px;padding:0 .85rem;border:1px solid var(--parchment-dark);border-radius:20px;background:#fff;color:var(--ink);font:.86rem 'Lora',serif;cursor:pointer}
+.copy-notes{display:flex;flex-wrap:wrap;gap:.3rem}
+.copy-note-chip{min-height:32px;padding:0 .65rem;border:1px solid var(--parchment-dark);border-radius:16px;background:#fff;color:var(--ink);font:.76rem 'Lora',serif;cursor:pointer}
 .copy-note-chip.on{background:var(--gold);border-color:var(--gold);color:var(--ink)}
-.copy-note{margin-top:.5rem;min-height:44px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
+.copy-note{margin-top:.4rem;min-height:40px;padding:0 .75rem;border:1px solid var(--parchment-dark);border-radius:8px;background:#fff;font:1rem 'Lora',serif;color:var(--ink);box-sizing:border-box;width:100%}
 .b-borrowed{letter-spacing:-.15em}
 .copy-review-row{display:flex;align-items:center;gap:.6rem;width:100%;min-height:52px;padding:.45rem 0;border:0;border-top:1px dotted var(--parchment-dark);background:none;text-align:left;cursor:pointer;font-family:'Lora',serif;color:var(--ink)}
 .copy-review-row .next-text{flex:1;min-width:0}
@@ -2856,9 +2857,9 @@ function toggleYearOnly(){
 }
 
 // The editor asks in steps: which formats → own or borrowed → which edition / from where.
-const COPY_NOTES={physical:{own:['Hardcover','Paperback','Signed'],borrowed:['Library','A friend']},
-  ebook:{own:['Kindle','Apple Books','Kobo'],borrowed:['Libby','Hoopla','Kindle Unlimited']},
-  audio:{own:['Audible','Libro.fm','Spotify'],borrowed:['Libby','Hoopla','A friend']}};
+const COPY_NOTES={physical:{own:['Hardcover','Paperback','Signed'],borrowed:['Chandler Library','A friend']},
+  ebook:{own:['Kindle','Apple Books','Kobo'],borrowed:['Libby','Chandler Library','Hoopla','Kindle Unlimited']},
+  audio:{own:['Audible','Libro.fm','Spotify'],borrowed:['Libby','Spotify','Chandler Library','Hoopla','A friend']}};
 let copyOther=new Set();
 function toggleCopyFormat(k){
   if(editCopies[k]){delete editCopies[k];copyOther.delete(k);}
@@ -2894,15 +2895,15 @@ function updateFmtChips(){
   }));
   box.replaceChildren(...COPY_FORMATS.filter(([k])=>editCopies[k]).map(([k,ico,label])=>{
     const c=editCopies[k],row=vEl('div','copy-row'+(c.how?' on':''));row.dataset.fmt=k;
-    const q=vEl('p','copy-q');q.append(vEl('span','copy-ico',ico),document.createTextNode(' '+label+' — '),vEl('span','copy-q-ask','own or borrowed?'));
+    const q=vEl('p','copy-q');q.append(vEl('span','copy-ico',ico),document.createTextNode(' '+label));
     const seg=vEl('div','copy-seg');seg.setAttribute('role','group');seg.setAttribute('aria-label',label);
-    for(const [how,txt] of [['own','I own it'],['borrowed','Borrowed']]){
+    for(const [how,txt] of [['own','Own'],['borrowed','Borrowed']]){
       const on=c.how===how;
       const bt=vEl('button','copy-opt'+(on?' on':''),txt);bt.type='button';bt.dataset.how=how;bt.setAttribute('aria-pressed',String(on));
       bt.addEventListener('click',()=>setCopy(k,how));
       seg.append(bt);
     }
-    row.append(q,seg);
+    const head=vEl('div','copy-head');head.append(q,seg);row.append(head);
     if(c.how){
       const opts=COPY_NOTES[k][c.how];
       const other=copyOther.has(k)||(!!c.note&&!opts.includes(c.note));
