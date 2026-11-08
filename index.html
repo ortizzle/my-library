@@ -134,7 +134,7 @@ main{max-width:1060px;margin:0 auto;padding:1.75rem;position:relative;z-index:2}
 .prog-label span{font-size:.76rem;color:var(--ink-faint);font-family:'IM Fell English SC',serif;letter-spacing:.04em}
 .prog-label strong{font-size:.76rem;color:var(--amber)}
 .prog-bar{height:4px;background:var(--parchment-dark);border-radius:3px;overflow:hidden}
-.ph-src{font-size:.74rem;color:var(--gold);font-family:'Playfair Display',serif}
+.ph-src{font-size:.85rem;color:var(--gold);font-family:'Playfair Display',serif;white-space:nowrap;min-width:1.1rem;text-align:center}
 .log-pace{font-size:.8rem;color:var(--ink-light);font-style:italic;margin-top:.15rem;line-height:1.35}
 .log-apos{display:block;width:100%;min-height:48px;margin:0 0 .6rem;border:1px dashed var(--parchment-dark);border-radius:10px;background:none;color:var(--burgundy);font-family:'Lora',serif;font-size:.92rem;cursor:pointer}
 .ap-row{display:flex;gap:.6rem}.ap-row .fg{flex:1;min-width:0}
@@ -5469,14 +5469,13 @@ function renderProgHistoryEdit(bookId, showAll=false){
     return `<div style="display:flex;align-items:center;gap:.4rem;padding:.28rem 0;border-bottom:1px dotted var(--parchment-dark);font-size:.84rem">
       <input type="date" value="${e.date}" onchange="editProgEntry('${bookId}',${idx},'date',this.value)"
         style="padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.80rem;background:var(--parchment);outline:none;width:112px">
-      <span style="color:var(--ink-faint);font-size:.77rem;white-space:nowrap">${e.type==='audio'?'🎧':'📄'}</span>
+      ${e.src?`<span class="ph-src" title="Logged from a ${e.src==='word'?'vocabulary word':'highlight'}">${e.src==='word'?'Aa':'✦'}</span>`:`<span style="color:var(--ink-faint);font-size:.77rem;white-space:nowrap">${e.type==='audio'?'🎧':'📄'}</span>`}
       <input type="number" value="${e.cur}" onchange="editProgEntry('${bookId}',${idx},'cur',+this.value)"
         style="width:56px;padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.83rem;background:var(--parchment);outline:none" placeholder="cur">
       <span style="color:var(--ink-faint);font-size:.79rem">/</span>
       <input type="number" value="${e.total||''}" onchange="editProgEntry('${bookId}',${idx},'total',+this.value)"
         style="width:56px;padding:.2rem .38rem;border:1px solid var(--parchment-dark);border-radius:4px;font-family:'Lora',serif;font-size:.83rem;background:var(--parchment);outline:none" placeholder="total">
       <span style="color:var(--ink-faint);font-size:.77rem">${typeLabel}</span>
-      ${e.src?`<span class="ph-src" title="Logged from a ${e.src==='word'?'vocabulary word':'highlight'}">${e.src==='word'?'Aa':'✦'}</span>`:''}
       <button onclick="delProgEntryEdit('${bookId}',${idx})" style="background:none;border:none;cursor:pointer;color:var(--parchment-dark);font-size:.81rem;margin-left:auto" onmouseover="this.style.color='var(--burgundy)'" onmouseout="this.style.color='var(--parchment-dark)'">✕</button>
     </div>`;
   }).join('');
