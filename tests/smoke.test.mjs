@@ -3392,9 +3392,11 @@ test('a highlight past the last logged page moves progress up to it — never ba
   assert.deepEqual({ ...added, date: 'x' }, { date: 'x', type: 'pages', cur: 142, total: 384, note: '', src: 'highlight' });
   assert.equal(r.prog[1].date, await page.evaluate(() => localDateStr()));
   assert.match(r.toast, /Highlight saved ✦ · progress now p\. 142/);
-  assert.equal((await run('reading', '98')).prog.length, 1, 'an earlier page leaves progress alone');
+  r = await run('reading', '98');
+  assert.deepEqual(r.prog.map(e => e.type), ['pages', 'nocount'], 'an earlier page leaves progress alone, but the day counts as read');
+  assert.equal(r.prog[1].src, 'highlight');
   assert.equal((await run('read', '200')).prog.length, 1, 'a finished book is left alone');
-  assert.equal((await run('reading', '999')).prog.length, 1, 'past the last page is taken as a typo');
+  assert.deepEqual((await run('reading', '999')).prog.map(e => e.type), ['pages', 'nocount'], 'past the last page is taken as a typo');
   assert.equal((await run('reading', 'p. 150')).prog[1].cur, 150, '"p. 150" reads as 150');
   // The progress history marks where it came from.
   await page.evaluate(() => { openEditModal('f'); renderProgHistoryEdit('f', true); });
@@ -3419,5 +3421,40 @@ test('a new word saved with its page moves progress too', async () => {
   assert.equal(last.cur, 131);
   assert.equal(last.src, 'word');
   assert.match(await page.textContent('.toast:last-child'), /progress now p\. 131/);
+  await ctx.close();
+});
+
+test('after a highlight, Today shows the book read today with its new page', async () => {
+  const { ctx, page } = await openApp(browser, base);
+  const card = await page.evaluate(() => {
+    books = [{ id: 'f', title: 'John of John', status: 'reading', addedAt: 1, updatedAt: 1 }];
+    progressDB = { f: [{ date: '2026-11-01', type: 'pages', cur: 18, total: 416, note: '' }] };
+    save(SK.books, books); save(SK.prog, progressDB); showView('log'); renderLogSession();
+    openHighlight('f', 'page');
+    document.getElementById('hlText').value = 'A passage.';
+    document.getElementById('hlPage').value = '57';
+    highlightStep('confirm'); savePageCapture();
+    const c = document.getElementById('logcard-f');
+    return { text: c.textContent, page: document.getElementById('ls-page-f').value };
+  });
+  assert.match(card.text, /Read today/);
+  assert.match(card.text, /14% complete/);
+  assert.equal(card.page, '57', 'Current page is the highlight’s page');
+  // A word from an earlier page still marks the day on a book not yet logged today.
+  const day = await page.evaluate(() => {
+    books.push({ id: 'g', title: 'The One Thing', status: 'reading', addedAt: 2, updatedAt: 2 });
+    progressDB.g = [{ date: '2026-11-01', type: 'pages', cur: 40, total: 240, note: '' }];
+    save(SK.books, books); save(SK.prog, progressDB);
+    openVocabWord(null, 'g');
+    document.getElementById('vocabWord').value = 'focus';
+    document.getElementById('vocabPage').value = '12';
+    document.getElementById('vocabDef').value = 'Concentration.';
+    saveVocabWord();
+    return { last: progressDB.g.at(-1), text: document.getElementById('logcard-g').textContent, streak: !!streakDB[localDateStr()] };
+  });
+  assert.equal(day.last.type, 'nocount');
+  assert.equal(day.last.src, 'word');
+  assert.match(day.text, /Read today/);
+  assert.ok(day.streak, 'and it counts toward the streak');
   await ctx.close();
 });

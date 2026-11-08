@@ -34,7 +34,7 @@ Install it as an app on your phone or desktop (Chrome / Android) and it works fu
 ### Reading Tracker
 - Log today's reading by page number, audiobook % finished, or a one-tap "listened today"
 - **Today, furthest along first**, and each card says what's left — time for audiobooks, pages otherwise — and, when the last three weeks show progress, the day you'd finish at that pace
-- **Highlights and words move your progress**: save one with a page past the furthest page logged for a book you're reading, and progress moves up to that page that day (never back, and not past the book's last page). The history marks those entries ✦ (highlight) or Aa (word)
+- **Highlights and words move your progress**: save one with a page past the furthest page logged for a book you're reading, and progress moves up to that page that day (never back, and not past the book's last page). The history marks those entries ✦ (highlight) or Aa (word). Either way, saving a highlight or word for a book you're reading counts as reading it today — Today shows it read and the streak counts it
 - **⏱ Enter the time from your player** for audiobooks: type the position and length (or the time left, with a −), or let Claude read a screenshot of the player. It fills Audio % and the page, remembers the book's length, and logs the session in minutes
 - **Reading streaks** tracked daily — shown in the header, with a last-7-days
   strip and a browsable month calendar on the Stats page

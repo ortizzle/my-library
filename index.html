@@ -3272,6 +3272,18 @@ function advancePageFrom(bookId,page,src,date){
   save(SK.prog,progressDB);
   return p;
 }
+// Saving a highlight or word for a book being read means it was read today:
+// when nothing for today is logged yet (progress didn't move), the day is
+// marked the way "Listened / Read Today" marks it, so Today shows it.
+function markReadToday(bookId,src,date){
+  const b=books.find(x=>x.id===bookId);
+  if(!b||b.status!=='reading')return false;
+  const prog=progressDB[bookId]||(progressDB[bookId]=[]);
+  if(prog.some(e=>e.date===date))return false;
+  prog.push({date,type:'nocount',cur:0,total:0,note:src==='word'?'Saved a word':'Saved a highlight',src});
+  save(SK.prog,progressDB);
+  return true;
+}
 let _hlMoved=0; // the page the last saved highlight moved progress to
 const hlSavedMsg=()=>`Highlight saved ✦${_hlMoved?` · progress now p. ${_hlMoved}`:''}`;
 
@@ -3289,9 +3301,10 @@ function storeHighlight(){
   journalDB[id].push(entry);
   save(SK.journal,journalDB);
   _hlMoved=advancePageFrom(id,page,'highlight',entry.date);
+  const marked=!_hlMoved&&markReadToday(id,'highlight',entry.date);
   logDay(entry.date);updateHdrStreak();
   if(editId===id)renderJournalEntries(id);
-  if(_hlMoved){renderLogSession();if(editId===id)renderProgHistoryEdit(id);}
+  if(_hlMoved||marked){renderLogSession();if(editId===id)renderProgHistoryEdit(id);}
   renderLibrary(); // the cards bake in recent entries; the Library tab doesn't redraw them
   return true;
 }
@@ -3991,8 +4004,10 @@ function saveVocabWord(){
   closeVocabWord();
   vocabChanged();
   if(back)openVocabDetail(back);
-  const moved=isNew?advancePageFrom(w.bookId,w.page,'word',localDateStr()):0;
-  if(moved){renderLogSession();renderLibrary();}
+  const today=localDateStr();
+  const moved=isNew?advancePageFrom(w.bookId,w.page,'word',today):0;
+  const marked=isNew&&!moved&&markReadToday(w.bookId,'word',today);
+  if(moved||marked){logDay(today);updateHdrStreak();renderLogSession();renderLibrary();}
   toast(isNew?`“${w.word}” added to your vocabulary${moved?` · progress now p. ${moved}`:''}`:'Word saved','ok');
 }
 
