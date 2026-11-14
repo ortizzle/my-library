@@ -10,6 +10,8 @@ const SHELL = [
   './icon-maskable.svg',
   './manifest.json',
   './ortiz-drive.js',
+  // Breakdowns written outside the app, taken in for the matching finished book
+  './breakdowns.json',
   // PNG icons: Android builds the installed app from these; it may refuse
   // to install from SVG icons alone.
   './icon-192.png',
@@ -94,7 +96,10 @@ self.addEventListener('fetch', e => {
 
   // Network-first for the page itself so new deploys reach installed clients
   // without a cache-version bump; fall back to the cached copy when offline.
-  const isShellPage = e.request.mode === 'navigate' || url.pathname.endsWith('/index.html');
+  // breakdowns.json too: it changes between deploys, and cache-first would
+  // pin whichever copy was installed first.
+  const isShellPage = e.request.mode === 'navigate' || url.pathname.endsWith('/index.html') ||
+                      url.pathname.endsWith('/breakdowns.json');
   if (isShellPage) {
     e.respondWith(
       fetch(e.request).then(res => {

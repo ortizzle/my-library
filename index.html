@@ -759,6 +759,50 @@ svg.chart{width:100%;overflow:visible;font-family:'Lora',Georgia,serif}
 .sheet{width:100%;max-width:520px;max-height:85vh;overflow-y:auto;background:var(--cream);border-radius:18px 18px 0 0;padding:.5rem 1rem calc(1rem + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(0,0,0,.3);animation:su .2s ease}
 .next-btn{min-height:48px}
 .lists-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.bd-hook{font-family:'Playfair Display',serif;font-size:1.2rem;line-height:1.45;margin:.4rem 0 .7rem;color:var(--ink)}
+.bd-p{margin:0 0 .8rem;font-size:1rem;line-height:1.7;color:var(--ink)}
+.bd-by{font-size:.8rem;font-style:italic;color:var(--ink-faint);margin:0}
+.bd-turns{list-style:none;margin:0;padding:0;counter-reset:t}
+.bd-turns li{counter-increment:t;position:relative;padding:0 0 1rem 2.4rem}
+.bd-turns li::before{content:counter(t);position:absolute;left:0;top:.05rem;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--burgundy);color:#fff;font:600 .82rem/1.7rem 'Playfair Display',serif;text-align:center}
+.bd-turns li::after{content:'';position:absolute;left:.8rem;top:1.9rem;bottom:.15rem;width:2px;background:var(--line)}
+.bd-turns li:last-child{padding-bottom:0}.bd-turns li:last-child::after{display:none}
+.bd-turns b{display:block;font-family:'Playfair Display',serif;font-size:1.04rem;line-height:1.3}
+.bd-turns span{display:block;color:var(--ink-light);font-size:.95rem;line-height:1.6;margin-top:.1rem}
+.bd-layers{display:grid;gap:.55rem;margin:.2rem 0 .8rem}
+.bd-layers div{border-left:3px solid var(--gold-lt);padding:.1rem 0 .1rem .75rem;line-height:1.6;font-size:.98rem}
+.bd-layers b{font-family:'Playfair Display',serif}
+.bd-pull{font-family:'Playfair Display',serif;font-style:italic;font-size:1.08rem;line-height:1.5;border-left:3px solid var(--burgundy);padding:.2rem 0 .2rem .9rem;margin:.9rem 0 0}
+.bd-map{display:block;width:100%;height:auto;margin:0 0 .3rem}
+.bd-line{stroke:var(--parchment-dark);stroke-width:1.5}
+.bd-line.on{stroke:var(--gold);stroke-width:2.5}.bd-line.off{opacity:.25}
+.bd-node{cursor:pointer}.bd-node:focus{outline:none}
+.bd-node rect{fill:var(--cream);stroke:var(--ink-faint);stroke-width:1.2}
+.bd-node text{font:600 12px 'Lora',Georgia,serif;fill:var(--ink)}
+.bd-node.hub rect{fill:var(--burgundy);stroke:var(--burgundy)}.bd-node.hub text{fill:#fff}
+.bd-node.sel rect{fill:var(--gold-lt);stroke:var(--gold)}.bd-node.sel text{fill:var(--ink)}
+.bd-node:focus-visible rect{stroke:var(--gold);stroke-width:2.5}
+.bd-node.off{opacity:.3}
+.bd-who{font-size:.86rem;font-style:italic;color:var(--ink-light);margin:0 0 .6rem;min-height:1.3em}
+.bd-rels{display:grid;gap:.45rem}
+.bd-rel{background:var(--cream);border:1px solid var(--line);border-radius:var(--r-sm);padding:.55rem .8rem}
+.bd-rel-who{font-family:'Playfair Display',serif;font-weight:600;font-size:.95rem}
+.bd-rel-who i{font-style:normal;color:var(--gold)}
+.bd-rel-what{font-size:.9rem;color:var(--ink-light);line-height:1.5}
+.bd-qs{display:grid;gap:.9rem}
+.bd-q{background:#16243f;color:var(--parchment);border-radius:var(--r);padding:1rem}
+.bd-qn{font-family:'IM Fell English SC',serif;letter-spacing:.12em;font-size:.74rem;color:var(--gold-lt)}
+.bd-qt{font-family:'Playfair Display',serif;font-size:1.1rem;font-weight:700;line-height:1.3;margin:.25rem 0 .7rem;color:#fff}
+.bd-opt{display:block;width:100%;text-align:left;min-height:48px;padding:.6rem .85rem;margin:0 0 .45rem;border-radius:var(--r-sm);border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:var(--parchment);font:.95rem/1.4 'Lora',Georgia,serif;cursor:pointer}
+.bd-opt.on{background:var(--gold-lt);border-color:var(--gold-lt);color:var(--ink);font-weight:500}
+.bd-deeper{margin-top:.5rem;padding-top:.2rem;border-top:1px solid rgba(255,255,255,.15)}
+.bd-lbl{font-family:'IM Fell English SC',serif;letter-spacing:.12em;font-size:.72rem;color:var(--gold-lt);margin-top:.75rem}
+.bd-deeper p{margin:.3rem 0 0;font-size:.95rem;line-height:1.6;color:rgba(243,241,236,.9)}
+.bd-deeper p.bd-mine{background:rgba(214,174,76,.14);border-radius:var(--r-sm);padding:.55rem .75rem}
+.bd-talk{display:block;width:100%;min-height:48px;margin-top:.9rem;border-radius:24px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font:600 .92rem 'Lora',Georgia,serif;cursor:pointer}
+.bd-final{background:var(--cream);border:1px solid var(--line);border-top:3px solid var(--gold-lt);border-radius:var(--r);padding:1rem 1.1rem}
+.bd-final p{margin:0 0 .7rem;line-height:1.65}.bd-final p:last-child{margin-bottom:0}
+.bd-final p:first-child{font-family:'Playfair Display',serif;font-size:1.06rem;line-height:1.5}
 .cp-talk{width:100%;min-height:48px;justify-content:center;margin-bottom:.3rem}
 .deck-front{font-size:1.15rem}
 .club-sheet{display:flex;flex-direction:column;max-height:92vh}
@@ -1751,6 +1795,7 @@ const SK={
   streakAt:'trr_v1_streakat',// {date: lastLoggedMs} — lets a re-logged day beat an undo
   vocab:  'trr_v1_vocab',    // [{id,word,bookId,definition,…,box,due}] — vocabulary list
   maps:   'trr_v1_maps',     // {bookId: {map, createdAt, updatedAt, seen:[nodeId]}} — mind maps
+  bd:     'trr_v1_breakdowns',// {bookId: {bd, madeAt, updatedAt, takes}} — Breakdowns, and the take picked on each question
   mmAuto: 'trr_v1_mm_auto',  // 'off' stops maps being made automatically for finished books
   mmSince:'trr_v1_mm_since', // 'YYYY-MM-DD' — automatic maps are only for books finished on or after this (set when turned on)
   mmFailed:'trr_v1_mm_failed',// {bookId:{at,why}} — automatic maps that failed; not retried on their own (this device)
@@ -2010,6 +2055,7 @@ function mergeState(local,remote){
     // id, and deleting one leaves a tombstone in the same `deleted` map.
     vocab:  mergeBooks(local.vocab,remote.vocab,deleted),
     maps:   mergeMindmaps(local.maps,remote.maps,deleted),
+    bd:     mergeBreakdowns(local.bd,remote.bd,deleted),
     streak,
     streakAt,
     rooms:  [...new Set([...(remote.rooms||[]),...(local.rooms||[])])].sort(),
@@ -2021,7 +2067,7 @@ function mergeState(local,remote){
 
 function currentState(){
   return {books,prog:progressDB,journal:journalDB,covers:coversDB,cacheQ,favQ,
-          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,vocab:vocabDB,maps:mindmapDB};
+          streak:streakDB,streakAt:streakAtDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,vocab:vocabDB,maps:mindmapDB,bd:breakdownDB};
 }
 
 // Coerce anything off the wire into the shape the merge expects. A hand-edited
@@ -2033,7 +2079,7 @@ function remoteState(d){
   return {books:arr(d.books),prog:obj(d.prog),journal:obj(d.journal),covers:obj(d.covers),
           cacheQ:obj(d.cacheQ),favQ:obj(d.favQ),streak:obj(d.streak),rooms:arr(d.rooms),
           goals:obj(d.goals),deleted:obj(d.deleted),entryDel:obj(d.entryDel),streakAt:obj(d.streakAt),
-          vocab:arr(d.vocab),maps:obj(d.maps)};
+          vocab:arr(d.vocab),maps:obj(d.maps),bd:obj(d.bd)};
 }
 
 // Assign merged state and persist it. Deliberately does not call save(): that
@@ -2041,11 +2087,11 @@ function remoteState(d){
 function applyState(s){
   books=s.books;progressDB=s.prog;journalDB=s.journal;coversDB=s.covers;
   cacheQ=s.cacheQ;favQ=s.favQ;streakDB=s.streak;rooms=s.rooms;goals=s.goals;deletedDB=s.deleted;
-  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};vocabDB=s.vocab||[];mindmapDB=s.maps||{};
+  entryDeletedDB=s.entryDel||{};streakAtDB=s.streakAt||{};vocabDB=s.vocab||[];mindmapDB=s.maps||{};breakdownDB=s.bd||{};
   const pairs=[[SK.books,books],[SK.prog,progressDB],[SK.journal,journalDB],[SK.covers,coversDB],
                [SK.cacheQ,cacheQ],[SK.favQ,favQ],[SK.streak,streakDB],[SK.rooms,rooms],
                [SK.goals,goals],[SK.deleted,deletedDB],[SK.entryDel,entryDeletedDB],[SK.streakAt,streakAtDB],
-               [SK.vocab,vocabDB],[SK.maps,mindmapDB]];
+               [SK.vocab,vocabDB],[SK.maps,mindmapDB],[SK.bd,breakdownDB]];
   try{
     for(const[k,v]of pairs)localStorage.setItem(k,JSON.stringify(v));
     scheduleMindmaps(); // a book finished on another device gets its map too
@@ -2062,7 +2108,7 @@ function gistPayload(state){
   const updatedAt=localStorage.getItem(SK.updated)||new Date().toISOString();
   return JSON.stringify({v:2,updatedAt,books:s.books,prog:s.prog,covers:s.covers,
     journal:s.journal,streak:s.streak,favQ:s.favQ,cacheQ:s.cacheQ,rooms:s.rooms,
-    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{},vocab:s.vocab||[],maps:s.maps||{}},null,2);
+    goals:s.goals,deleted:s.deleted,entryDel:s.entryDel||{},streakAt:s.streakAt||{},vocab:s.vocab||[],maps:s.maps||{},bd:s.bd||{}},null,2);
 }
 
 // Gists over ~1MB come back truncated; the full text lives at raw_url.
@@ -2330,6 +2376,7 @@ function reloadStateFromStorage(){
   streakAtDB = load(SK.streakAt,'object') || {};
   vocabDB    = load(SK.vocab,'array')    || [];
   mindmapDB  = load(SK.maps,'object')    || {};
+  breakdownDB= load(SK.bd,'object')      || {};
 }
 
 // ══════════════════════════════════════════
@@ -2348,6 +2395,7 @@ let deletedDB  = load(SK.deleted,'object') || {};   // {bookId: deletedAtMs} tom
 let entryDeletedDB = load(SK.entryDel,'object') || {}; // journal/progress entry tombstones
 let streakAtDB = load(SK.streakAt,'object') || {};     // {date: lastLoggedMs}
 let vocabDB    = load(SK.vocab,'array')    || [];       // vocabulary words, newest first
+let breakdownDB= load(SK.bd,'object')      || {};       // {bookId: {bd, madeAt, updatedAt, takes}}
 let mindmapDB  = load(SK.maps,'object')    || {};       // {bookId: {map, createdAt, updatedAt, seen}}
 // Automatic map-making (see "Making maps on their own")
 const _mmBusy=new Set();   // books being mapped right now, by hand or automatically
@@ -4962,6 +5010,7 @@ async function deleteBook(id){
   delete journalDB[id];save(SK.journal,journalDB);
   delete favQ[id];save(SK.favQ,favQ);   // was leaked, growing every export and push
   if(mindmapDB[id]){delete mindmapDB[id];save(SK.maps,mindmapDB);}
+  if(breakdownDB[id]){delete breakdownDB[id];save(SK.bd,breakdownDB);}
   renderLibrary();toast('Removed.','ok');
 }
 
@@ -5250,7 +5299,7 @@ const CLAUDE_MODEL='claude-sonnet-5';
 // The feature is read off the call stack: each request starts from a named function.
 const USAGE_FEATURES=[
   ['autoCompanion','Companions (automatic)'],['runMindmapQueue','Mind maps (automatic)'],
-  ['requestMindmap','Mind maps'],['requestCompanion','Companions'],['generateSummary','Book summaries'],
+  ['requestBreakdown','Breakdowns'],['requestMindmap','Mind maps'],['requestCompanion','Companions'],['generateSummary','Book summaries'],
   ['claudeByIsbn','ISBN lookup'],['clubReply','Book club'],['defineWithClaude','Word definitions'],
   ['pronounceWithClaude','Pronunciation'],['transcribePassage','Passage photos'],['readPlayerShot','Audio player photos'],
   ['generateQs','Discussion questions'],['openNextReads','What to read next'],['openConnections','Connections']];
@@ -7084,7 +7133,7 @@ async function testGbKey(){
 // Drive file restores through Import. No API keys or Gist credentials — those
 // are deliberately outside SK's exported set.
 function backupData(){
-  return JSON.parse(JSON.stringify({version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB,maps:mindmapDB}));
+  return JSON.parse(JSON.stringify({version:2,books,favQ,cacheQ,streak:streakDB,progress:progressDB,covers:coversDB,journal:journalDB,rooms,goals,deleted:deletedDB,entryDel:entryDeletedDB,streakAt:streakAtDB,vocab:vocabDB,maps:mindmapDB,bd:breakdownDB}));
 }
 
 async function exportJSON(){
@@ -7174,7 +7223,7 @@ function handleImport(e){
       // to recover one book destroyed every newer entry on every other book.
       const incoming=remoteState({books:d.books,prog:d.progress||d.prog,journal:d.journal,
         covers:d.covers,cacheQ:d.cacheQ,favQ:d.favQ,streak:d.streak,rooms:d.rooms,
-        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt,vocab:d.vocab,maps:d.maps});
+        goals:d.goals,deleted:d.deleted,entryDel:d.entryDel,streakAt:d.streakAt,vocab:d.vocab,maps:d.maps,bd:d.bd});
       const merged=mergeState(currentState(),incoming);
       applyState(merged);
       localStorage.setItem(SK.updated,new Date().toISOString());
@@ -7245,7 +7294,7 @@ async function clearAll(){
   if(connected&&!wipeRemote){
     [GIST_TOKEN_KEY,GIST_ID_KEY,GIST_SYNC_KEY].forEach(k=>localStorage.removeItem(k));
   }
-  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];mindmapDB={};deepDiveDB={};
+  books=[];favQ={};cacheQ={};streakDB={};progressDB={};coversDB={};journalDB={};rooms=[];goals={};deletedDB={};entryDeletedDB={};streakAtDB={};vocabDB=[];mindmapDB={};breakdownDB={};deepDiveDB={};
   updateGistStatus();setGistDot(connected&&wipeRemote?'synced':'off');
   renderLibrary();renderLists();renderLogSession();updateHdrStreak();refreshVocabViews();
   toast(connected&&!wipeRemote?'Cleared — and disconnected from your Gist.':'Cleared.','ok');
@@ -8057,7 +8106,7 @@ function bookNotesKids(b,withReview){
 // BOOK HOME
 // ══════════════════════════════════════════
 // A finished book's own page: cover, rating and review at the top, then its
-// map, Companion, your notes and review practice as tabs. Tapping a finished
+// Breakdown, map, your notes and review practice as tabs. Tapping a finished
 // book anywhere opens this; the editor is a tap away (✏️ Edit).
 
 function openBook(id){
@@ -8066,10 +8115,10 @@ function openBook(id){
   else openEditModal(id);
 }
 let _bh=null; // {bookId, tab}
-const BH_TABS=[['map','Map'],['companion','Companion'],['notes','Your notes'],['review','Review']];
+const BH_TABS=[['breakdown','Breakdown'],['map','Map'],['notes','Your notes'],['review','Review']];
 function openBookHome(id,tab){
   if(!books.some(b=>b.id===id))return;
-  _bh={bookId:id,tab:tab||(_bh&&_bh.bookId===id?_bh.tab:'map')};
+  _bh={bookId:id,tab:tab||(_bh&&_bh.bookId===id?_bh.tab:breakdownDB[id]?'breakdown':'map')};
   let v=document.getElementById('bookHome');
   if(!v){v=vEl('div');v.id='bookHome';v.setAttribute('role','dialog');v.setAttribute('aria-modal','true');v.setAttribute('aria-labelledby','bhTitle');document.body.append(v);}
   v.style.display='block';document.body.style.overflow='hidden';
@@ -8145,11 +8194,11 @@ function bookHomeTab(b,map,tab){
     row.append(bhButton('📜 Summary','bhSummary',openMap(()=>showMindmapSummary())),bhButton('🕰 Chronology','bhChron',openMap(()=>showMindmapTimeline())));
     return [tile,bhButton('🧠 Open the mind map','bhOpenMap',openMap(),true),row];
   }
-  if(tab==='companion'){
+  if(tab==='breakdown'){
     const c=map&&map.companion;
-    if(!c)return [vEl('p','bh-empty',map?'No Companion yet: a close, critical reading of the book — its moments or argument, themes, craft and how it’s been read.':'The Companion comes after the mind map.'),
-      map?bhButton('📖 Write the Companion','bhCpOpen',openMap(()=>showMindmapCompanion()),true):bhButton('🧠 Make the mind map first','bhOpenMap',openMap(),true)];
-    const out=[vEl('div','cp-kicker',`COMPANION · ${CP_FORM_LABEL[c.form].toUpperCase()}`)];
+    if(breakdownDB[b.id]||!c)return breakdownKids(b);
+    // A book from before the Breakdown keeps its Companion until one is written.
+    const out=[...breakdownKids(b),vEl('div','bh-gap'),vEl('div','cp-kicker',`THE EARLIER COMPANION · ${CP_FORM_LABEL[c.form].toUpperCase()}`)];
     companionSections(c.form).filter(([f])=>Array.isArray(c[f])?c[f].length:c[f]).forEach(([f,label],i)=>{
       const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num',String(i+1).padStart(2,'0')),vEl('h3','cp-sec-t',label));
       out.push(hd,companionBlock(f,c));
@@ -8434,6 +8483,383 @@ async function generateCompanion(bookId){
     if(st2)st2.textContent=`Couldn’t write it (${e.message}). Try again.`;if(b2)b2.disabled=false;
     const r2=document.getElementById('mmCpRedo');if(r2){r2.disabled=false;r2.textContent='↻ Rewrite this Companion';}
   }finally{clearInterval(timer);}
+}
+
+// ══════════════════════════════════════════
+// THE BREAKDOWN
+// ══════════════════════════════════════════
+// One read for a finished book, in Claude's own voice: what happened, what it
+// meant, how everyone connects, and three questions to take a side on. It
+// explains rather than surveys — the reader has finished the book and wants
+// it made sense of. Kept apart from the mind map (a book needs no map to have
+// one) and synced like it: the newest copy of a book's record wins.
+// breakdownDB: {bookId: {bd, madeAt, updatedAt, takes:{questionIndex: optionIndex}, from?}}
+
+function mergeBreakdowns(local,remote,deleted){
+  const out={};
+  for(const src of [remote||{},local||{}])
+    for(const [id,r] of Object.entries(src)){
+      if(!r||typeof r!=='object'||!r.bd)continue;
+      if(!out[id]||(r.updatedAt||0)>=(out[id].updatedAt||0))out[id]=r;
+    }
+  // A take picked on the other device is kept, as long as both copies are the
+  // same writing of the Breakdown (a rewrite has different questions).
+  for(const id of Object.keys(out)){
+    const other=out[id]===(local||{})[id]?(remote||{})[id]:(local||{})[id];
+    if(other&&other.takes&&other.madeAt===out[id].madeAt)out[id]={...out[id],takes:{...other.takes,...(out[id].takes||{})}};
+  }
+  for(const id of Object.keys(out))if((deleted||{})[id])delete out[id];
+  return out;
+}
+
+// Model output → a Breakdown the page can trust. null if there's nothing usable.
+function normalizeBreakdown(raw){
+  if(!raw||typeof raw!=='object')return null;
+  const list=v=>Array.isArray(v)?v:[];
+  const strs=(v,n,max)=>list(v).map(t=>mmStr(t,max)).filter(Boolean).slice(0,n);
+  const objs=(v,n,f)=>list(v).map(x=>x&&typeof x==='object'?f(x):null).filter(Boolean).slice(0,n);
+  const pair=(x,a,b,ma,mb)=>{const t=mmStr(x[a],ma),s=mmStr(x[b],mb);return t&&s?{[a]:t,[b]:s}:null;};
+  const people=objs(raw.people,10,x=>{const name=mmStr(x.name,40);return name?{name,role:mmStr(x.role,120)}:null;})
+    .filter((p,i,a)=>a.findIndex(o=>o.name.toLowerCase()===p.name.toLowerCase())===i);
+  const names=new Map(people.map(p=>[p.name.toLowerCase(),p.name]));
+  const who=v=>names.get(mmStr(v,40).toLowerCase());
+  const bd={
+    kind:raw.kind==='nonfiction'?'nonfiction':'fiction',
+    hook:mmStr(raw.hook,400),
+    intro:strs(raw.intro,3,900),
+    turns:objs(raw.turns,8,x=>pair(x,'title','text',90,700)),
+    sections:objs(raw.sections,5,x=>{
+      const title=mmStr(x.title,90),paras=strs(x.paras,4,1200),points=objs(x.points,5,p=>pair(p,'label','text',60,500));
+      return title&&(paras.length||points.length)?{title,paras,points,pull:mmStr(x.pull,400)}:null;}),
+    people,
+    links:objs(raw.links,12,x=>{const a=who(x.a),b=who(x.b),text=mmStr(x.text,200);return a&&b&&a!==b&&text?{a,b,text}:null;}),
+    themes:objs(raw.themes,5,x=>pair(x,'title','text',80,900)),
+    praised:strs(raw.praised,3,400),
+    criticized:strs(raw.criticized,3,400),
+    questions:objs(raw.questions,3,x=>{
+      const q=mmStr(x.q,300);
+      const options=objs(x.options,3,o=>{const label=mmStr(o.label,160);return label?{label,holds:mmStr(o.holds,700),hard:mmStr(o.hard,700)}:null;});
+      return q&&options.length>=2?{q,options,deeper:mmStr(x.deeper,1200)}:null;}),
+    final:strs(raw.final,4,900),
+    sources:mmSources(raw.sources)
+  };
+  return bd.hook&&(bd.turns.length||bd.sections.length)?bd:null;
+}
+
+const BREAKDOWN_SHAPE=`{"kind":"fiction" or "nonfiction",
+ "hook":"one sentence: your central claim about what this book is really about, beneath its surface",
+ "intro":["1–2 short paragraphs that open the breakdown in your own voice"],
+ "turns":[{"title":"at most 6 words","text":"1–2 sentences"}],
+ "sections":[{"title":"a heading written for this book","paras":["short paragraphs"],"points":[{"label":"1–3 words","text":"one or two sentences"}],"pull":"optional: the one line from this section worth remembering"}],
+ "people":[{"name":"the short name the book uses","role":"a few words"}],
+ "links":[{"a":"a name from people","b":"another name from people","text":"what this relationship reveals, under 12 words"}],
+ "themes":[{"title":"2–4 words","text":"2–3 sentences"}],
+ "praised":["one sentence each"],
+ "criticized":["one sentence each"],
+ "questions":[{"q":"a question worth debating","options":[{"label":"one answer a thoughtful reader could give, under 14 words","holds":"2–3 sentences: the best case for this answer, from the book","hard":"1–2 sentences: where this answer is hardest to defend"}],"deeper":"3–4 sentences: the evidence on each side, and which way you lean"}],
+ "final":["2–3 short paragraphs: your final interpretation"]}`;
+
+function breakdownPrompt(b){
+  return `Write a Breakdown of this book for a reader who has just finished it and wants it explained, not summarised: what happened, what it meant, and what is worth arguing about. Write like the best-read person in their book club — first person ("I think…"), warm, direct, with a point of view. Commit to an interpretation rather than listing possibilities. Where the book really does leave something open, say so plainly, then say which reading you find most convincing and why. All spoilers are welcome.
+
+Book: "${b.title}"${b.author?` by ${b.author}`:''}${b.genre?` (${b.genre})`:''}.
+
+What goes in:
+- hook and intro: your central claim, then a paragraph or two that sets it up.
+- turns: for fiction, the story in 5–8 turning points, in order, ending included. For nonfiction, the argument in 5–8 steps.
+- sections: 3–5 sections shaped by this book, not by a template. Ask what a reader most wants explained and give each its own heading — the biggest twist and how it changes what came before; why the ending lands the way it does; what the title means; whether the protagonist is redeemed; how the way it is told shapes it; for nonfiction, where the argument is strongest and where it leaps. Use "points" when an idea has distinct layers or readings.
+- people and links: the 5–9 people who matter (for nonfiction, the people or key ideas), and the 5–10 relationships between them that carry the book. Each link names two entries from people exactly.
+- themes: 3–5, each tied to something that happens.
+- praised and criticized: 2–3 each, from the book's actual reception. Leave both empty if you don't know it.
+- questions: exactly 3, each one a real disagreement between good readers, each with exactly 3 answers (the third may be "both"). No answer is marked correct.
+- final: your final interpretation — what stays with you.
+
+If you aren't confident you know this book well — especially anything published after 2023 — use web search before writing: a detailed plot or chapter summary first, then reviews in major outlets. If you know it well, don't search. Never invent scenes, quotes, names or critics. If a detail isn't established by what you know or found, say that it isn't rather than guessing.
+
+Reply with JSON only, no code fence, in exactly this shape:
+${BREAKDOWN_SHAPE}`;
+}
+
+// One request to Claude for a book's Breakdown. Throws with .status on an API error.
+async function requestBreakdown(b){
+  const {text,stop,sources}=await askClaude(breakdownPrompt(b),12000);
+  const bd=normalizeBreakdown(parseMindmapReply(text));
+  if(!bd)throw Object.assign(new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Breakdown'),{status:0});
+  if(sources.length)bd.sources=sources;
+  return bd;
+}
+function storeBreakdown(bookId,bd,at,from){
+  const now=at||Date.now();
+  breakdownDB[bookId]={bd,madeAt:now,updatedAt:now,takes:{},...(from?{from}:{})};
+  save(SK.bd,breakdownDB);
+}
+
+const _bdBusy=new Map(); // bookId → {started, error}
+async function generateBreakdown(bookId){
+  const b=mmBook(bookId);if(!b)return;
+  if(!localStorage.getItem(SK.api)){toast('Add your Anthropic API key in Settings first.','err');return;}
+  if(_bdBusy.get(bookId)?.started)return;
+  _bdBusy.set(bookId,{started:Date.now()});
+  const repaint=()=>{if(bookHomeOpen()&&_bh.bookId===bookId&&_bh.tab==='breakdown')renderBookHome();};
+  const tick=()=>{const s=document.getElementById('bdStatus'),st=_bdBusy.get(bookId);if(s&&st&&st.started)s.textContent=bdBusyText(st.started);};
+  repaint();
+  const timer=setInterval(tick,1000);
+  // A request this long dies if the phone sleeps mid-way; keep the screen on for it.
+  let lock=null;
+  try{lock=await navigator.wakeLock?.request('screen');}catch{}
+  try{
+    const bd=await requestBreakdown(b);
+    storeBreakdown(bookId,bd);
+    _bdBusy.delete(bookId);
+    toast(`Breakdown ready for ${ddShort(b.title)} 📖`,'ok');
+  }catch(e){
+    console.warn('Breakdown failed',e);
+    _bdBusy.set(bookId,{error:e.message||'something went wrong'});
+  }finally{
+    clearInterval(timer);
+    try{lock&&lock.release();}catch{}
+    repaint();
+  }
+}
+function bdBusyText(started){
+  return `Writing the Breakdown… ${Math.round((Date.now()-started)/1000)}s — usually one to two minutes. Keep this screen open.`;
+}
+function bdSetTake(bookId,qi,oi){
+  const rec=breakdownDB[bookId];if(!rec)return;
+  rec.takes={...(rec.takes||{}),[qi]:oi};rec.updatedAt=Date.now();
+  save(SK.bd,breakdownDB);
+}
+
+// Where the people go in the connections map. The one with the most links
+// sits in the middle; the rest ring it. Pure, so it's testable.
+function bdMapLayout(people,links){
+  const W=340,H=250;
+  const n=people.length;
+  if(n<3)return null;
+  const count=name=>links.filter(l=>l.a===name||l.b===name).length;
+  let hub=0;
+  people.forEach((p,i)=>{if(count(p.name)>count(people[hub].name))hub=i;});
+  const pos={},ring=people.filter((_,i)=>i!==hub);
+  pos[people[hub].name]={x:W/2,y:H/2,hub:true};
+  ring.forEach((p,i)=>{
+    const a=-Math.PI/2+i*2*Math.PI/ring.length;
+    pos[p.name]={x:Math.round(W/2+(W/2-58)*Math.cos(a)),y:Math.round(H/2+(H/2-26)*Math.sin(a)),hub:false};
+  });
+  return {W,H,pos,hub:people[hub].name};
+}
+
+function bdSvg(tag,attrs){
+  const e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(const [k,v] of Object.entries(attrs||{}))e.setAttribute(k,String(v));
+  return e;
+}
+// The connections map: tap a name to see just that person's ties.
+function bdConnections(bd){
+  const wrap=vEl('div','bd-conn');
+  const L=bdMapLayout(bd.people,bd.links);
+  let sel=null;
+  const listEl=vEl('div','bd-rels'),who=vEl('p','bd-who');
+  const svg=L?bdSvg('svg',{viewBox:`0 0 ${L.W} ${L.H}`,class:'bd-map',role:'img','aria-label':'How everyone connects'}):null;
+  const paint=()=>{
+    const on=l=>!sel||l.a===sel||l.b===sel;
+    if(svg){
+      svg.replaceChildren();
+      for(const l of bd.links){
+        const a=L.pos[l.a],b=L.pos[l.b];
+        svg.append(bdSvg('line',{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:'bd-line'+(on(l)?(sel?' on':''):' off')}));
+      }
+      for(const p of bd.people){
+        const at=L.pos[p.name],w=Math.max(44,p.name.length*7.4+18);
+        const linked=!sel||p.name===sel||bd.links.some(l=>(l.a===sel&&l.b===p.name)||(l.b===sel&&l.a===p.name));
+        const g=bdSvg('g',{class:'bd-node'+(at.hub?' hub':'')+(p.name===sel?' sel':'')+(linked?'':' off'),tabindex:0,role:'button','aria-label':p.name});
+        g.append(bdSvg('rect',{x:at.x-w/2,y:at.y-15,width:w,height:30,rx:15}));
+        const t=bdSvg('text',{x:at.x,y:at.y+4.5,'text-anchor':'middle'});t.textContent=p.name;
+        g.append(t);
+        const pick=()=>{sel=sel===p.name?null:p.name;paint();};
+        g.addEventListener('click',pick);
+        g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick();}});
+        svg.append(g);
+      }
+    }
+    const p=sel&&bd.people.find(x=>x.name===sel);
+    who.textContent=p?`${p.name}${p.role?' — '+p.role:''}`:(svg?'Tap a name to see just their ties.':'');
+    listEl.replaceChildren(...bd.links.filter(on).map(l=>{
+      const r=vEl('div','bd-rel'),w=vEl('div','bd-rel-who');
+      w.append(l.a,vEl('i',null,' ↔ '),l.b);
+      r.append(w,vEl('div','bd-rel-what',l.text));return r;
+    }));
+  };
+  paint();
+  if(svg)wrap.append(svg);
+  wrap.append(who,listEl);
+  return wrap;
+}
+
+// One debate question: pick a take, then it opens up.
+function bdQuestionEl(bookId,qi,onPick){
+  const rec=breakdownDB[bookId],q=rec.bd.questions[qi];
+  const box=vEl('div','bd-q');box.dataset.q=String(qi);
+  const paint=()=>{
+    const take=(breakdownDB[bookId].takes||{})[qi];
+    const kids=[vEl('div','bd-qn',`QUESTION ${qi+1} · YOUR TAKE`),vEl('h4','bd-qt',q.q)];
+    q.options.forEach((o,oi)=>{
+      const btn=vEl('button','bd-opt'+(take===oi?' on':''),o.label);btn.type='button';
+      btn.setAttribute('aria-pressed',String(take===oi));
+      btn.addEventListener('click',()=>{bdSetTake(bookId,qi,oi);paint();if(onPick)onPick(oi);});
+      kids.push(btn);
+    });
+    const o=q.options[take];
+    if(o){
+      const d=vEl('div','bd-deeper');
+      const part=(label,text,cls)=>{if(text)d.append(vEl('div','bd-lbl',label),vEl('p',cls||null,text));};
+      part('GOING DEEPER',q.deeper);
+      part('WHY YOUR ANSWER HOLDS UP',o.holds,'bd-mine');
+      part('WHERE IT’S HARDEST TO DEFEND',o.hard);
+      if(localStorage.getItem(SK.api)){
+        const talk=vEl('button','bd-talk','💬 Argue it out with Claude');talk.type='button';
+        talk.addEventListener('click',()=>openBreakdownClub(bookId,qi));
+        d.append(talk);
+      }
+      kids.push(d);
+    }
+    box.replaceChildren(...kids);
+  };
+  paint();
+  return box;
+}
+
+// The Breakdown tab of a finished book's page.
+function breakdownKids(b){
+  const rec=breakdownDB[b.id],busy=_bdBusy.get(b.id),has=!!localStorage.getItem(SK.api);
+  const writer=(label,primary)=>{
+    const out=[];
+    const go=bhButton(label,'bdCreate',()=>generateBreakdown(b.id),primary);
+    go.disabled=!!(busy&&busy.started);
+    const st=vEl('p','mm-status',busy&&busy.started?bdBusyText(busy.started):busy&&busy.error?`Couldn’t write it (${busy.error}). Try again.`:'');st.id='bdStatus';
+    out.push(go,st);return out;
+  };
+  if(!rec){
+    const out=[vEl('p','bh-empty',has
+      ?'No Breakdown yet. Claude can write one: the story in its turning points, what it all meant, how everyone connects, and three questions to take a side on.'
+      :'No Breakdown yet. Add an Anthropic key in Settings and Claude can write one.')];
+    if(has)out.push(...writer('✍️ Write the Breakdown',true));
+    return out;
+  }
+  const bd=rec.bd,F=bd.kind!=='nonfiction',out=[];
+  out.push(vEl('div','cp-kicker','THE BREAKDOWN · SPOILERS'),vEl('p','bd-hook',bd.hook));
+  for(const t of bd.intro)out.push(vEl('p','bd-p',t));
+  out.push(vEl('p','bd-by','Claude’s reading'+(bd.sources.length?` · drawing on ${plural(bd.sources.length,'source')}`:'')));
+  let n=0;
+  const sec=(title,...els)=>{
+    const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num',String(++n).padStart(2,'0')),vEl('h3','cp-sec-t',title));
+    out.push(hd,...els.filter(Boolean));
+  };
+  if(bd.turns.length){
+    const ol=vEl('ol','bd-turns');
+    for(const t of bd.turns){const li=vEl('li');li.append(vEl('b',null,t.title),vEl('span',null,t.text));ol.append(li);}
+    sec(F?`The story in ${bd.turns.length} turning points`:`The argument in ${bd.turns.length} steps`,ol);
+  }
+  for(const s of bd.sections){
+    const els=s.paras.map(t=>vEl('p','bd-p',t));
+    if(s.points.length){
+      const d=vEl('div','bd-layers');
+      for(const p of s.points){const x=vEl('div');x.append(vEl('b',null,p.label+'. '),p.text);d.append(x);}
+      els.push(d);
+    }
+    if(s.pull)els.push(vEl('p','bd-pull',s.pull));
+    sec(s.title,...els);
+  }
+  if(bd.links.length)sec(F?'How everyone connects':'How it all connects',bdConnections(bd));
+  if(bd.themes.length){
+    const d=vEl('div','cp-entries');
+    for(const t of bd.themes){const x=vEl('div');x.append(vEl('b','cp-et',t.title),vEl('p',null,t.text));d.append(x);}
+    sec('The deeper themes',d);
+  }
+  if(bd.praised.length||bd.criticized.length){
+    const ul=(items,cls)=>{if(!items.length)return null;const u=vEl('ul','cp-pm '+cls);for(const t of items)u.append(vEl('li',null,t));return u;};
+    sec('How it’s been received',ul(bd.praised,'up'),ul(bd.criticized,'down'));
+  }
+  if(bd.questions.length){
+    const d=vEl('div','bd-qs');
+    bd.questions.forEach((_,qi)=>d.append(bdQuestionEl(b.id,qi)));
+    sec(`${['','One question','Two questions','Three questions'][bd.questions.length]} worth debating`,d);
+  }
+  if(bd.final.length){
+    const d=vEl('div','bd-final');
+    for(const t of bd.final)d.append(vEl('p',null,t));
+    const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num','·'),vEl('h3','cp-sec-t','My final interpretation'));
+    out.push(hd,d);
+  }
+  if(bd.sources.length){const hd=vEl('div','cp-sec');hd.append(vEl('span','cp-num','·'),vEl('h3','cp-sec-t','Further reading'));out.push(hd,mmSourceList(bd.sources));}
+  if(has){
+    // Rewriting replaces it (and its takes), so it takes two taps.
+    const foot=vEl('div','cp-foot');
+    const redo=vEl('button','cp-redo','↻ Rewrite this Breakdown');redo.type='button';redo.id='bdRedo';
+    redo.disabled=!!(busy&&busy.started);
+    redo.addEventListener('click',()=>{
+      if(!redo.classList.contains('armed')){redo.classList.add('armed');redo.textContent='Tap again to rewrite — this one is replaced';return;}
+      generateBreakdown(b.id);
+    });
+    const st=vEl('p',null,busy&&busy.started?bdBusyText(busy.started):busy&&busy.error?`Couldn’t rewrite it (${busy.error}). This one is still here.`:'');st.id='bdStatus';
+    foot.append(redo,st);out.push(foot);
+  }
+  return out;
+}
+
+// "Argue it out": the book-club chat, opened on one question and the take picked.
+function bdClubSystem(b,bd){
+  const brief=JSON.stringify({hook:bd.hook,turns:bd.turns,sections:bd.sections.map(s=>({title:s.title,paras:s.paras,points:s.points})),
+    people:bd.people,links:bd.links,themes:bd.themes,questions:bd.questions,final:bd.final});
+  return `You are in a one-on-one book club debate about "${b.title}"${b.author?` by ${b.author}`:''} with a reader who has finished it. What you know about the book is in this Breakdown, which you wrote; rely on it and don't invent scenes, quotes or critics:
+${brief}
+
+How to talk: first person, like a well-read friend. Answer the reader's point first — agree where it's right, push back where the book suggests otherwise, and bring in a specific moment. Say what you think. Then ask one follow-up. Two to five sentences, conversational, no headings or lists, no flattery.`;
+}
+function openBreakdownClub(bookId,qi){
+  const b=mmBook(bookId),rec=breakdownDB[bookId];
+  if(!b||!rec||!rec.bd.questions[qi])return;
+  const q=rec.bd.questions[qi],o=q.options[(rec.takes||{})[qi]];
+  if(deepDiveOpen())closeDeepDive();
+  const open=o?`You went with “${o.label}”. ${o.hard||''} So what makes you hold it anyway?`.replace(/\s+/g,' '):q.q;
+  _club={bookId,system:bdClubSystem(b,rec.bd),messages:[{role:'user',content:`Let’s debate this question: ${q.q}${o?`\nMy take: ${o.label}`:''}`},{role:'assistant',content:open}],busy:false};
+  showBookClub();
+}
+
+// Breakdowns written outside the app ship with it in breakdowns.json and are
+// taken in for the matching finished book — once, unless the shipped copy is
+// newer than a shipped copy already here. One written in the app is never replaced.
+function bdKey(title,author){
+  const k=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,'');
+  return k(ddShort(title))+'|'+k(String(author||'').split(/[,&]| and /)[0].trim().split(/\s+/).pop());
+}
+function takeShippedBreakdowns(items,list,db){
+  const added=[];
+  for(const it of Array.isArray(items)?items:[]){
+    if(!it||typeof it!=='object'||!it.title)continue;
+    const at=+it.at||0,bd=normalizeBreakdown(it.bd);
+    if(!bd||!at)continue;
+    for(const b of list){
+      if(!b||b.status!=='read'||bdKey(b.title,b.author)!==bdKey(it.title,it.author))continue;
+      const cur=db[b.id];
+      if(cur&&!(cur.from==='shipped'&&(cur.madeAt||0)<at))continue;
+      db[b.id]={bd,madeAt:at,updatedAt:at,takes:{},from:'shipped'};
+      added.push(b.id);
+    }
+  }
+  return added;
+}
+async function loadShippedBreakdowns(){
+  try{
+    const res=await fetch('breakdowns.json',{cache:'no-cache'});
+    if(!res.ok)return;
+    const data=await res.json();
+    const added=takeShippedBreakdowns(data&&data.items,books,breakdownDB);
+    if(!added.length)return;
+    save(SK.bd,breakdownDB);
+    const b=mmBook(added[0]);
+    toast(added.length===1?`Breakdown ready for ${ddShort(b.title)} 📖`:`${added.length} Breakdowns ready 📖`,'ok');
+    if(bookHomeOpen())renderBookHome();
+  }catch(e){console.warn('Shipped Breakdowns not loaded',e);}
 }
 
 function summaryPrompt(b,map){
@@ -8739,7 +9165,7 @@ function ddAddDays(d,n){const t=new Date(d+'T12:00:00');t.setDate(t.getDate()+n)
 function ddTypeFor(date){
   const t=new Date(date+'T12:00:00');
   if(t.getDay()===0)return 'think';
-  return Math.floor(t.getTime()/864e5)%2?'order':'who';
+  return Math.floor(t.getTime()/864e5)%2?'debate':'who';
 }
 
 // Hide the answer in a clue ("Ramy, Robin's friend" → "___, Robin's friend").
@@ -8755,29 +9181,37 @@ function ddMask(text,title){
 }
 
 // What can each type be made from, for one map?
-function ddCan(type,map){
+function ddCan(type,map,bd){
+  if(type==='debate')return !!(bd&&bd.questions.length);
+  if(!map)return false;
   const nodes=map.branches.flatMap(b=>b.nodes);
   if(type==='who')return nodes.filter(n=>n.remind).length>=3;
-  if(type==='order')return (map.timeline||[]).length>=3;
   if(type==='think')return nodes.some(n=>n.q);
   if(type==='moment')return !!(map.companion&&map.companion.moments&&map.companion.moments.length);
   return false;
 }
 
 // Build the question for a day. Pure: everything comes in as arguments.
-// books: the library; maps: mindmapDB; seenOn: {bookId: lastDate shown}.
-function deepDivePick(date,books,maps,seenOn){
-  const pool=books.filter(b=>b&&b.status==='read'&&maps[b.id]&&maps[b.id].map);
+// books: the library; maps: mindmapDB; seenOn: {bookId: lastDate shown};
+// bds: breakdownDB.
+function deepDivePick(date,books,maps,seenOn,bds){
+  bds=bds||{};
+  const pool=books.filter(b=>b&&b.status==='read'&&((maps[b.id]&&maps[b.id].map)||(bds[b.id]&&bds[b.id].bd)));
   if(!pool.length)return null;
   const order=pool.slice().sort((a,b)=>String(seenOn[a.id]||'').localeCompare(String(seenOn[b.id]||''))||ddHash(date+a.id)-ddHash(date+b.id));
   const first=ddTypeFor(date);
   // Books with a Companion also get "Remember this moment?" — on about half the
   // "who" days, so the map's own questions still come round.
-  const types=[first,...['who','order','think'].filter(t=>t!==first),'moment'];
+  const types=[first,...['debate','who','think'].filter(t=>t!==first),'moment'];
   if(first==='who'&&ddHash(date+'m')%2)types.unshift('moment');
   for(const type of types){
-    const b=order.find(x=>ddCan(type,maps[x.id].map));
+    const b=order.find(x=>ddCan(type,maps[x.id]&&maps[x.id].map,bds[x.id]&&bds[x.id].bd));
     if(!b)continue;
+    if(type==='debate'){
+      // A question not yet answered first; once all are, they come round again.
+      const r=bds[b.id],all=r.bd.questions.map((_,i)=>i),open=all.filter(i=>(r.takes||{})[i]==null),from=open.length?open:all;
+      return {date,type,bookId:b.id,qi:from[ddHash(date+b.id+'d')%from.length]};
+    }
     const rec=maps[b.id],map=rec.map,seen=new Set(rec.seen||[]),seed=date+b.id;
     const nodes=map.branches.flatMap(br=>br.nodes.map(n=>({...n,branch:br.label})));
     const prefer=list=>{const fresh=list.filter(n=>!seen.has(n.id));const from=fresh.length?fresh:list;return from[ddHash(seed+type)%from.length];};
@@ -8792,10 +9226,6 @@ function deepDivePick(date,books,maps,seenOn){
     if(type==='moment'){
       const ms=map.companion.moments;
       return {date,type,bookId:b.id,moment:ddHash(seed+'mo')%ms.length};
-    }
-    if(type==='order'){
-      const idx=ddShuffle(map.timeline.map((_,i)=>i),seed+'t').slice(0,3).sort((x,y)=>x-y);
-      return {date,type,bookId:b.id,beats:idx,shown:ddShuffle(idx,seed+'s')};
     }
     const target=prefer(nodes.filter(n=>n.q));
     return {date,type,bookId:b.id,nodeId:target.id};
@@ -8826,13 +9256,11 @@ function ddSave(){
 function deepDiveToday(){
   const s=ddState(),today=localDateStr();
   let q=s.days[today];
-  const ok=q&&books.some(b=>b.id===q.bookId)&&mindmapDB[q.bookId]&&(q.type==='moment'
+  const ok=q&&q.type!=='order'&&books.some(b=>b.id===q.bookId)&&(q.type==='debate'?!!breakdownDB[q.bookId]?.bd.questions[q.qi]:mindmapDB[q.bookId]&&(q.type==='moment'
     ?!!mindmapDB[q.bookId].map.companion?.moments?.[q.moment]
-    :q.type==='order'
-    ?q.beats.every(i=>mindmapDB[q.bookId].map.timeline[i])
-    :mmNodeIn(mindmapDB[q.bookId].map,q.nodeId)&&(!q.options||q.options.every(id=>mmNodeIn(mindmapDB[q.bookId].map,id))));
+    :mmNodeIn(mindmapDB[q.bookId].map,q.nodeId)&&(!q.options||q.options.every(id=>mmNodeIn(mindmapDB[q.bookId].map,id)))));
   if(!ok){
-    q=deepDivePick(today,books,mindmapDB,s.seenOn);
+    q=deepDivePick(today,books,mindmapDB,s.seenOn,breakdownDB);
     if(!q)return null;
     s.days[today]=q;s.seenOn[q.bookId]=today;ddSave();
   }
@@ -8843,18 +9271,18 @@ function mmNodeIn(map,id){for(const b of map.branches)for(const n of b.nodes)if(
 // The card on Today.
 function deepDiveCard(){
   const q=deepDiveToday();if(!q||q.skipped)return null;
-  const rec=mindmapDB[q.bookId],book=books.find(b=>b.id===q.bookId);
+  const emblem=mindmapDB[q.bookId]?.map.emblem||'📖',book=books.find(b=>b.id===q.bookId);
   const streak=deepDiveStreak(ddState().days,localDateStr());
   const card=vEl('button','vn vn-due dd-card'+(q.done?' dd-done':''));card.type='button';card.id='deepDiveCard';
-  const badge=ddCoverBadge(vEl('span','vn-badge dd-badge',rec.map.emblem),q.bookId,rec.map.emblem);
+  const badge=ddCoverBadge(vEl('span','vn-badge dd-badge',emblem),q.bookId,emblem);
   const text=vEl('span','vn-text');
   const head=vEl('span','vn-kicker');
   head.append(vEl('span',null,q.done?'DAILY DEEP DIVE ✓':'DAILY DEEP DIVE'));
   if(streak)head.append(vEl('span',null,`🧠 ${plural(streak,'day')}`));
   const title=q.done?'Done — back tomorrow'
-    :q.type==='who'?'Who or what is this?':q.type==='order'?'What came first?':q.type==='moment'?'Remember this moment?':'Something to think about';
+    :q.type==='who'?'Who or what is this?':q.type==='debate'?'Where do you stand?':q.type==='moment'?'Remember this moment?':'Something to think about';
   const chips=vEl('span','vn-chips');
-  chips.append(vEl('span','vn-chip',ddShort(book.title)),vEl('span','vn-chip',q.type==='who'?'Who or what?':q.type==='order'?'Chronology':q.type==='moment'?'Key moment':'Think about it'));
+  chips.append(vEl('span','vn-chip',ddShort(book.title)),vEl('span','vn-chip',q.type==='who'?'Who or what?':q.type==='debate'?'Debate':q.type==='moment'?'Key moment':'Think about it'));
   text.append(head,vEl('b','vn-title',title),chips);
   card.append(badge,text,vEl('span','vn-go',q.done?'See ›':'Play ›'));
   card.addEventListener('click',()=>openDeepDive());
@@ -8905,12 +9333,12 @@ function ddFinish(q,patch){
 
 function renderDeepDive(q){
   const sheet=document.getElementById('ddSheet');
-  const rec=mindmapDB[q.bookId],map=rec.map,book=books.find(b=>b.id===q.bookId);
+  const map=mindmapDB[q.bookId]?.map||{palette:['#16243f','#0f1a2e'],emblem:'📖'},book=books.find(b=>b.id===q.bookId);
   const pal=map.palette;
   const head=vEl('div','dd-head');
   head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
   const titles=vEl('div','dd-titles');
-  titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='order'?'WHAT CAME FIRST?':q.type==='moment'?'KEY MOMENT':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
+  titles.append(vEl('div','dd-k',`DAILY DEEP DIVE · ${q.type==='who'?'WHO OR WHAT?':q.type==='debate'?'WHERE DO YOU STAND?':q.type==='moment'?'KEY MOMENT':'THINK ABOUT IT'}`),vEl('div','dd-bk',ddShort(book.title)));
   const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeDeepDive);
   head.append(ddCoverBadge(vEl('div','dd-emb',map.emblem),q.bookId,map.emblem),titles,x);
   const body=vEl('div','dd-body');
@@ -8919,7 +9347,16 @@ function renderDeepDive(q){
   const reveal=(label,text,cls)=>{const d=vEl('div','dd-reveal'+(cls?' '+cls:''));d.append(vEl('b',null,label),document.createTextNode(text));return d;};
   const skip=()=>{const b=vEl('button','dd-btn ghost','Not today');b.type='button';b.addEventListener('click',()=>{q.skipped=true;const s=ddState();s.days[q.date]=q;ddSave();closeDeepDive();});return b;};
 
-  if(q.type==='moment'){
+  if(q.type==='debate'){
+    // From the book's Breakdown: take a side, then see the case for and against it.
+    const after=vEl('div');
+    if(q.done){
+      const open=vEl('button','dd-btn ghost','📖 Open the Breakdown');open.type='button';
+      open.addEventListener('click',()=>{closeDeepDive();openBookHome(q.bookId,'breakdown');});
+      after.append(row(open));
+    }else after.append(vEl('p','dd-foot','There’s no right answer — pick the one closest to what you think.'),row(skip()));
+    body.append(bdQuestionEl(q.bookId,q.qi,oi=>{if(!q.done){ddFinish(q,{take:oi});renderDeepDive(q);}}),after);
+  }else if(q.type==='moment'){
     // Recall, not multiple choice: name the moment, let them remember it,
     // then show it and let them say how well they did.
     const m=map.companion.moments[q.moment];
@@ -8981,36 +9418,6 @@ function renderDeepDive(q){
     };
     paint();
     body.append(opts,after);
-  }else if(q.type==='order'){
-    const tl=map.timeline;
-    body.append(vEl('p','dd-q',map.kind==='nonfiction'?'Put these in the order the book takes them.':'Put these in story order.'));
-    const list=vEl('div','dd-beats'),after=vEl('div');
-    let picks=[];
-    const paint=()=>{
-      list.replaceChildren(...q.shown.map(i=>{
-        const b=vEl('button','dd-beat');b.type='button';
-        const pos=q.done?q.beats.indexOf(i):picks.indexOf(i);
-        const num=vEl('i',null,pos>=0?String(pos+1):'?');
-        b.append(num,vEl('span',null,tl[i].summary||tl[i].title));
-        if(q.done){b.disabled=true;b.classList.add((q.order||[]).indexOf(i)===pos?'right':'wrong');}
-        else{
-          if(pos>=0)b.classList.add('sel');
-          b.addEventListener('click',()=>{
-            if(picks.includes(i))picks=picks.filter(p=>p!==i);else picks.push(i);
-            if(picks.length===q.beats.length)ddFinish(q,{order:picks.slice(),right:picks.every((p,k)=>p===q.beats[k])});
-            paint();
-          });
-        }
-        return b;
-      }));
-      after.replaceChildren();
-      if(q.done){
-        after.append(vEl('p','dd-verdict',q.right?'Right — that’s the order.':'Here’s the real order: the numbers show where each one falls.'));
-        after.append(row(openMap('🕰 See the chronology',()=>showMindmapTimeline())));
-      }else after.append(vEl('p','dd-foot','Tap them in the order they happen. Tap again to undo.'),row(skip()));
-    };
-    paint();
-    body.append(list,after);
   }else{
     const target=mmNodeIn(map,q.nodeId);
     body.append(vEl('p','dd-q',target.q));
@@ -9202,6 +9609,9 @@ function openBookClub(bookId){
   // The opening question needs no call; Claude takes over from the first answer.
   // (The API needs the conversation to start with the reader, so it's framed that way.)
   _club={bookId,system:bookClubSystem(b,c),messages:[{role:'user',content:'Let’s discuss the book. Start with your first question.'},{role:'assistant',content:q}],busy:false};
+  showBookClub();
+}
+function showBookClub(){
   let wrap=document.getElementById('clubView');
   if(!wrap){
     wrap=vEl('div');wrap.id='clubView';
@@ -9215,7 +9625,7 @@ function openBookClub(bookId){
 function closeBookClub(){const w=document.getElementById('clubView');if(w)w.style.display='none';_club=null;if(bookHomeOpen())renderBookHome();}
 function renderBookClub(status){
   const sheet=document.getElementById('clubSheet');if(!sheet||!_club)return;
-  const b=mmBook(_club.bookId),map=mmRecord(_club.bookId).map,pal=map.palette||['#1f3a5f'];
+  const b=mmBook(_club.bookId),map=mmRecord(_club.bookId)?.map||{emblem:'📖'},pal=map.palette||['#16243f'];
   const head=vEl('div','dd-head');head.style.background=`linear-gradient(135deg,${pal[0]},${pal[1]||pal[0]})`;
   const titles=vEl('div','dd-titles');titles.append(vEl('div','dd-k','BOOK CLUB'),vEl('div','dd-bk',ddShort(b.title)));
   const x=vEl('button','dd-x','×');x.type='button';x.setAttribute('aria-label','Close');x.addEventListener('click',closeBookClub);
@@ -9457,6 +9867,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   initDrive();
   scheduleMindmaps(20000); // after the first sync has had time to land
   scheduleCoverFill();
+  loadShippedBreakdowns();
   if(localStorage.getItem(GIST_TOKEN_KEY)&&localStorage.getItem(GIST_ID_KEY)){
     setGistDot('pushing');
     await gistPull();

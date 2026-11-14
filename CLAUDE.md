@@ -36,6 +36,20 @@ declared separately and are deliberately **not** in `SK`, because `SK` is what g
 exported and cleared. Anything that iterates `SK` to reset state must decide
 explicitly whether the Gist keys should go too.
 
+## Breakdowns
+
+A finished book's **Breakdown** tab is Claude's first-person read of the book
+(turning points, book-specific sections, a connections map, three debate
+questions). It lives in `breakdownDB` (`trr_v1_breakdowns`), synced like maps,
+and needs no mind map. The older Companion still shows for books that have one
+until a Breakdown is written.
+
+Chris can write one in the app, or ask for one in a session: add it to
+`breakdowns.json` (`{title, author, at, bd}` — `at` is a ms timestamp; raise it
+to replace a shipped copy). The app takes it in for the matching *finished*
+book and never overwrites one written in the app. `tests/breakdown.test.mjs`
+checks every shipped entry.
+
 ## Deploying
 
 `main` deploys through `.github/workflows/test.yml`: the `deploy` job needs

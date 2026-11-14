@@ -12,7 +12,7 @@ const V = loadFunctions(['vocabInterval', 'addDaysStr', 'vocabStatus', 'vocabGra
                          'parseDictionary', 'vocabEditDistance', 'vocabNearMiss', 'vocabHintPattern', 'vocabSpellDiff', 'wordTokens', 'sentenceAround', 'pickedWord', 'dictionarySound', 'parsePronMap', 'cleanPron', 'pronShown']);
 const M = loadFunctions(
   ['mergeDeleted', 'mergeBooks', 'entryKey', 'entryId', 'mergeEntryMap', 'dropDeletedEntries',
-   'mergeIdMap', 'mergeMindmaps', 'mergeState', 'remoteState'],
+   'mergeIdMap', 'mergeMindmaps', 'mergeBreakdowns', 'mergeState', 'remoteState'],
   `const TOMBSTONE_TTL=${extractConst('TOMBSTONE_TTL')};`
 );
 

@@ -1,0 +1,310 @@
+{
+ "v": 1,
+ "items": [
+  {
+   "title": "All Them Dogs",
+   "author": "Djamel White",
+   "at": 1794657600000,
+   "bd": {
+    "kind": "fiction",
+    "hook": "It's dressed as a gangland revenge story, but I think it's really about a young man who wants to be loved and protected, and keeps mistaking power and violence for both.",
+    "intro": [
+     "Tony Ward comes home to West Dublin wanting his old place back. What he actually wants, I think, is someone to belong to. Every big choice he makes is a reach for that, and every time he reaches, he grabs a man with a gun.",
+     "The cruelty of the book is that he gets close. There is real tenderness here. But almost everyone he trusts is hiding something, using him, or about to be hurt by what he does next."
+    ],
+    "turns": [
+     {
+      "title": "Tony comes home",
+      "text": "After five years lying low in England over the killing of Eddie Glackin, Tony returns to Dublin. His mentor Philly Mooney is dead, and his best friend Kenny has gone straight."
+     },
+     {
+      "title": "He meets Flute",
+      "text": "Kenny connects him to Darren “Flute” Walsh, the feared enforcer for Aengus Lavelle. Tony is intimidated by him, drawn to him and impressed by him all at once."
+     },
+     {
+      "title": "Violence and tenderness entwine",
+      "text": "They collect debts, terrorise people and kill Patsy McDermott. Alongside it they become lovers, and Tony feels cared for in the same weeks he does his worst."
+     },
+     {
+      "title": "The past catches up",
+      "text": "After a gun attack in Phoenix Park, Tony learns that Gerry Keegan is really Robbie Glackin, Eddie's younger brother. Lavelle's family turns on Tony, and Flute refuses an order to shoot him."
+     },
+     {
+      "title": "The truth about Philly",
+      "text": "Tony learns Flute killed Philly on Lavelle's orders, and knew all along what Philly meant to him."
+     },
+     {
+      "title": "The boxing gym",
+      "text": "Tony goes to confront Flute and Lavelle. Fanny, who was Philly's partner, learns the truth and shoots Flute in the neck. Lavelle fires as Tony escapes and hits Kenny's young daughter Lizzie. Tony stabs Lavelle to death."
+     },
+     {
+      "title": "He gives himself up",
+      "text": "Tony goes home, thinks about ending his life, and instead surrenders to the police. The man who takes him in is Eamonn Prendergast, who knew him as a troubled kid."
+     }
+    ],
+    "sections": [
+     {
+      "title": "The twist: Flute killed Philly",
+      "paras": [
+       "This is the one that makes you reread everything. Philly wasn't only a boss. He was recognition, belonging, something close to a father, and Tony had killed partly out of loyalty to him. Then Tony falls for another powerful man who seems to offer the same shelter, and that man turns out to be the reason Philly is gone."
+      ],
+      "points": [
+       {
+        "label": "Personal",
+        "text": "Flute kept it from someone who loved him."
+       },
+       {
+        "label": "Emotional",
+        "text": "Tony's new attachment was built on the wreck of the old one."
+       },
+       {
+        "label": "Structural",
+        "text": "Flute did what Lavelle wanted even when it destroyed people, and that didn't change when he fell for Tony."
+       }
+      ],
+      "pull": "The question isn't whether Flute loved Tony. It's whether he could love him without also controlling or endangering him."
+     },
+     {
+      "title": "Why the ending hurts so much",
+      "paras": [
+       "Nothing in the last stretch works as a victory. Fanny's shot is an act of love for Philly and for Tony, and it sets off the chaos. Lavelle dies, and it restores nothing.",
+       "For me the real blow is Lizzie. She is the one person in the book who stands for a different future, and the violence Tony thought he could steer lands on her. I couldn't establish from what I found whether she survives, and I don't think the book wants us comfortable about it.",
+       "Then Tony stops. After a whole novel of trying to take control by force, he lets someone else decide what happens to him."
+      ]
+     },
+     {
+      "title": "What the title means",
+      "paras": [
+       "I read it four ways at once, and I think the book means all of them."
+      ],
+      "points": [
+       {
+        "label": "Attack dogs",
+        "text": "Tony and Flute are set on people by men who never get their own hands dirty."
+       },
+       {
+        "label": "Property",
+        "text": "The bosses treat them as replaceable. Loyalty goes up; protection doesn't come down."
+       },
+       {
+        "label": "Strays",
+        "text": "Under the aggression Tony is lonely and wants to be wanted."
+       },
+       {
+        "label": "The pack",
+        "text": "One man kills for loyalty, the next for revenge, and nobody gets out without leaving the hierarchy altogether."
+       }
+      ],
+      "pull": "His surrender is the first time he stops trying to be the most dangerous dog in the room."
+     },
+     {
+      "title": "Was Tony redeemed?",
+      "paras": [
+       "I don't think so, and I don't think the book is offering that. He has killed, terrorised people and put a child in the path of a bullet. What the ending gives him is smaller and more honest: accountability, for the first time.",
+       "The contrast that matters is with Eddie Glackin's killing. Then, he ran. Now, he stays and hands himself over. And the man waiting is Prendergast, who once stood for a different kind of authority in his life than the violent men he chose instead. I find that tragic, and a little hopeful."
+      ]
+     }
+    ],
+    "people": [
+     {
+      "name": "Tony",
+      "role": "back from five years away, looking for somewhere to belong"
+     },
+     {
+      "name": "Flute",
+      "role": "Lavelle's enforcer, and Tony's lover"
+     },
+     {
+      "name": "Philly",
+      "role": "Tony's dead mentor, the nearest thing he had to a father"
+     },
+     {
+      "name": "Lavelle",
+      "role": "the boss everyone answers to"
+     },
+     {
+      "name": "Kenny",
+      "role": "Tony's oldest friend, who got out"
+     },
+     {
+      "name": "Lizzie",
+      "role": "Kenny's young daughter"
+     },
+     {
+      "name": "Fanny",
+      "role": "Philly's partner"
+     },
+     {
+      "name": "Robbie",
+      "role": "Eddie Glackin's brother, living as Gerry Keegan"
+     },
+     {
+      "name": "Prendergast",
+      "role": "the detective who knew Tony as a boy"
+     }
+    ],
+    "links": [
+     {
+      "a": "Tony",
+      "b": "Philly",
+      "text": "His need for approval and a father"
+     },
+     {
+      "a": "Tony",
+      "b": "Flute",
+      "text": "Desire, dependence and betrayal in one person"
+     },
+     {
+      "a": "Flute",
+      "b": "Lavelle",
+      "text": "Obedience against conscience"
+     },
+     {
+      "a": "Flute",
+      "b": "Philly",
+      "text": "The killing the whole romance sits on"
+     },
+     {
+      "a": "Fanny",
+      "b": "Philly",
+      "text": "The hidden tie that sets off the climax"
+     },
+     {
+      "a": "Tony",
+      "b": "Kenny",
+      "text": "The friendship Tony spends"
+     },
+     {
+      "a": "Kenny",
+      "b": "Lizzie",
+      "text": "The ordinary life the gang endangers"
+     },
+     {
+      "a": "Tony",
+      "b": "Robbie",
+      "text": "The old killing that won't stay buried"
+     },
+     {
+      "a": "Tony",
+      "b": "Prendergast",
+      "text": "The authority he could have chosen"
+     }
+    ],
+    "themes": [
+     {
+      "title": "Love versus loyalty",
+      "text": "Tony thinks being loyal is how you earn being loved. He kills for Philly and works for Flute, and obedience never buys him the safety he wants."
+     },
+     {
+      "title": "Hardness and vulnerability",
+      "text": "He believes toughness is what makes him worth something. But he is most recognisably a person when he is frightened, grieving or wanting Flute."
+     },
+     {
+      "title": "The illusion of control",
+      "text": "He thinks he is choosing his side and climbing. In practice Lavelle, Flute and the people around them make the decisions that fix his future."
+     },
+     {
+      "title": "Who pays",
+      "text": "The cost keeps landing on people outside the game: Patsy's family, Fanny, Kenny, and finally Lizzie."
+     }
+    ],
+    "praised": [
+     "The voice: critics singled out its vivid, street-level prose and the tenderness it finds in very hard men.",
+     "It was widely admired as a debut, with a starred Kirkus review and a place on the 2026 Booker Prize longlist."
+    ],
+    "criticized": [
+     "Some reviewers found the plot overly convoluted.",
+     "The ending divides readers: some admire that it refuses a grand resolution, others found it rushed."
+    ],
+    "questions": [
+     {
+      "q": "Did Flute genuinely love Tony?",
+      "deeper": "The best evidence that he did is the order he refuses: when Lavelle's family turns, Flute won't shoot Tony, and that costs him. Against it, he sat beside Tony's grief for Philly knowing he had caused it. I lean towards both being true, which is exactly what makes him frightening.",
+      "options": [
+       {
+        "label": "Yes, but his loyalty to Lavelle corrupted it",
+        "holds": "He risks himself by refusing to kill Tony, and his declaration at the end comes when he has nothing left to gain from it. The feeling is real; it just never outranked the job.",
+        "hard": "A love that never once outranks the job is hard to tell apart from one that isn't there."
+       },
+       {
+        "label": "No, Tony was someone he could use",
+        "holds": "He knew what Philly meant to Tony from the start and said nothing, which kept Tony close, useful and uninformed. That is how you handle someone, not how you love them.",
+        "hard": "It doesn't explain why he refused the order to shoot him, when using Tony had stopped paying."
+       },
+       {
+        "label": "Both: the feelings were real, and so was the danger",
+        "holds": "The book keeps putting tenderness and threat in the same scenes, so the two never come apart. That is why his last declaration lands as painful instead of romantic.",
+        "hard": "If love means wanting someone safe, his silence kept Tony inside the world that was trying to kill him."
+       }
+      ]
+     },
+     {
+      "q": "Was Tony mostly a victim, or mostly responsible for his own downfall?",
+      "deeper": "He was shaped young by men like Philly and then worked on by Lavelle's operation, and the book is clear about how little room he had. It is just as clear that he pulls triggers himself, and that he came back when he could have stayed away. I think the novel refuses to let either fact cancel the other.",
+      "options": [
+       {
+        "label": "Mostly a victim of his world and its powerful men",
+        "holds": "Every figure he could have modelled himself on was violent, and the one who wasn't, Prendergast, he met as a policeman. He was recruited before he could really choose.",
+        "hard": "Kenny grew up in the same place and got out."
+       },
+       {
+        "label": "Mostly responsible for the violence he chose",
+        "holds": "He killed Eddie Glackin, he helped kill Patsy McDermott, and he walked back into Dublin wanting his old position. Nobody forced the return.",
+        "hard": "It treats a need for belonging that was exploited as if it were a free preference."
+       },
+       {
+        "label": "Both: exploited, and harming others",
+        "holds": "The book shows him being used and using in the same breath, and its ending asks him to answer for it without pretending he had every option.",
+        "hard": "Saying both can become a way of not deciding how much he owes Lizzie and Kenny."
+       }
+      ]
+     },
+     {
+      "q": "What did Tony's surrender mean?",
+      "deeper": "After Eddie's killing he ran, and five years later he is still paying for that. This time he stays. You can read it as conscience, as collapse, or as the first decision that is fully his, and the book gives you material for all three. I lean towards the last.",
+      "options": [
+       {
+        "label": "The beginning of redemption",
+        "holds": "It is the first time he accepts a consequence instead of escaping it, and he does it in front of the one adult who once tried to steer him elsewhere.",
+        "hard": "Nothing he does at the end repairs anything, and the book never shows him changed, only stopped."
+       },
+       {
+        "label": "Defeat and exhaustion",
+        "holds": "He has lost Philly, Flute, Kenny's trust and his place, and he has just considered ending his life. There is nothing left to fight for.",
+        "hard": "A defeated man could have run again or pulled the trigger. He chose neither."
+       },
+       {
+        "label": "The first truly independent decision he makes",
+        "holds": "Every earlier choice was made for a boss, a lover or a debt. This one serves nobody in the hierarchy, and nobody ordered it.",
+        "hard": "With every other door closed, it is hard to call the last one open a choice."
+       }
+      ]
+     }
+    ],
+    "final": [
+     "To me this is a book about someone who mistakes being needed for being loved, being feared for being respected, and being powerful for being free.",
+     "Tony's tragedy isn't only that people betray him. It's that he keeps looking for belonging in a world built to exploit exactly that need. And the image I can't shake isn't Lavelle's death or even Flute's betrayal. It's Lizzie.",
+     "It opens with him trying to take back his place in the world, and closes with him giving up control of it. That is what stays with me."
+    ],
+    "sources": [
+     {
+      "url": "https://www.kirkusreviews.com/book-reviews/djamel-white/all-them-dogs/",
+      "title": "Kirkus Reviews: All Them Dogs"
+     },
+     {
+      "url": "https://www.publishersweekly.com/9798217046676",
+      "title": "Publishers Weekly: All Them Dogs"
+     },
+     {
+      "url": "https://www.irishtimes.com/culture/books/review/2026/03/28/all-them-dogs-by-djamel-white-magical-writing-which-tenderises-the-most-hardened-characters/",
+      "title": "The Irish Times review"
+     },
+     {
+      "url": "https://www.supersummary.com/all-them-dogs/summary/",
+      "title": "SuperSummary: full plot synopsis"
+     }
+    ]
+   }
+  }
+ ]
+}

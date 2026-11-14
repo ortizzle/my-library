@@ -2595,23 +2595,142 @@ test('a "who or what" question: pick, see the answer and more, and the bubble co
   await ctx.close();
 });
 
-test('a chronology question: tap in order, tap again to undo, then see the chronology', async () => {
+const BREAKDOWN = {
+  kind: 'fiction', hook: 'A gentle fable that is really about choosing your family.',
+  intro: ['I think its sweetness is the argument, not a flaw.'],
+  turns: [{ title: 'Linus is summoned', text: 'Extremely Upper Management send him to Marsyas.' }, { title: 'He stays', text: 'Linus chooses the island.' }],
+  sections: [{ title: 'Why the ending lands', paras: ['He gives up the grey city for a home.'],
+    points: [{ label: 'Personal', text: 'He stops hiding.' }], pull: 'Home is where you are wanted.' }],
+  people: [{ name: 'Linus', role: 'the caseworker' }, { name: 'Arthur', role: 'the master of the orphanage' }, { name: 'Lucy', role: 'a six-year-old Antichrist' }],
+  links: [{ a: 'Linus', b: 'Arthur', text: 'Rules give way to love' }, { a: 'Linus', b: 'Lucy', text: 'Fear turns into trust' }],
+  themes: [{ title: 'Chosen family', text: 'Traced through the island dinners.' }],
+  praised: ['Warm and funny.'], criticized: ['Sugary for some.'],
+  questions: [0, 1, 2].map(i => ({ q: ['Is gentleness a politics?', 'Is Linus brave or just lucky?', 'Does the village really change?'][i],
+    deeper: 'There is evidence on both sides.',
+    options: [{ label: 'Yes — kindness is resistance', holds: 'The dinners change the village.', hard: 'Nothing structural changes.' },
+      { label: 'No — it avoids the hard parts', holds: 'DICOMY survives.', hard: 'Linus does risk his job.' },
+      { label: 'Both', holds: 'It is small and real.', hard: 'It can feel like a dodge.' }] })),
+  final: ['What stays with me is the record player.']
+};
+async function seedBreakdown(page) {
+  await page.evaluate(raw => { storeBreakdown('b1', normalizeBreakdown(raw), 1000); }, BREAKDOWN);
+}
+
+test('a debate deep dive: take a side, see the case for and against it, and open the Breakdown', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
-  const q = await seedDive(page, 'order');
+  await seedFinished(page);
+  await seedBreakdown(page);
+  const q = await page.evaluate(() => {
+    const today = localDateStr(); let d = today, q = null;
+    for (let i = 0; i < 40 && !(q && q.type === 'debate'); i++) { q = deepDivePick(d, books, mindmapDB, {}, breakdownDB); d = ddAddDays(d, 1); }
+    q.date = today; deepDiveDB = { days: { [today]: q }, seenOn: {} }; ddSave();
+    showView('log'); renderLogSession();
+    return q;
+  });
+  assert.match(await page.textContent('#deepDiveCard'), /Where do you stand\?/, 'no mind map is needed');
   await page.click('#deepDiveCard');
-  const beats = page.locator('#ddSheet .dd-beat');
-  assert.equal(await beats.count(), 3);
-  // Tap the beats in true order (with an undo along the way).
-  const pos = i => q.shown.indexOf(q.beats[i]);
-  await beats.nth(pos(0)).click();
-  await beats.nth(pos(1)).click(); await beats.nth(pos(1)).click(); // undo
-  assert.equal(await page.locator('#ddSheet .dd-beat.sel').count(), 1);
-  await beats.nth(pos(1)).click();
-  await beats.nth(pos(2)).click();
-  await page.locator('#ddSheet .dd-verdict', { hasText: 'Right' }).waitFor();
-  assert.equal(await page.locator('#ddSheet .dd-beat.right').count(), 3);
-  await page.locator('#ddSheet', { hasText: 'See the chronology' }).locator('text=See the chronology').click();
-  await page.locator('#mmSheet .mm-tl').waitFor();
+  const sheet = page.locator('#ddSheet');
+  assert.equal(await sheet.locator('.bd-opt').count(), 3);
+  assert.equal(await sheet.locator('.bd-deeper').count(), 0, 'nothing is given away before a take is picked');
+  await sheet.locator('.bd-opt').nth(1).click();
+  assert.match(await sheet.locator('.bd-deeper').textContent(), /GOING DEEPER[\s\S]*DICOMY survives\.[\s\S]*Linus does risk his job\./);
+  assert.equal(await page.evaluate(qi => breakdownDB.b1.takes[qi], q.qi), 1, 'the take is saved on the Breakdown');
+  assert.equal(await page.evaluate(() => deepDiveDB.days[localDateStr()].done), true);
+  await sheet.locator('text=Open the Breakdown').click();
+  assert.equal(await page.isVisible('#bookHome'), true);
+  assert.equal(await page.locator('#bookHome .bd-opt.on').count(), 1, 'and shows on the book’s page');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a "what came first" question left over from before is replaced', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedDive(page, 'who');
+  const type = await page.evaluate(() => {
+    const today = localDateStr();
+    deepDiveDB.days[today] = { date: today, type: 'order', bookId: 'b1', beats: [0, 1, 2], shown: [2, 0, 1] };
+    return deepDiveToday().type;
+  });
+  assert.notEqual(type, 'order');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('the Breakdown is written on request from the book’s page, with no mind map', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeScript(page, [textReply('```json\n' + JSON.stringify(BREAKDOWN) + '\n```'), { status: 529, body: { error: { message: 'Overloaded' } } }]);
+  await page.evaluate(() => openBook('b1'));
+  assert.deepEqual(await page.locator('#bookHome .bh-tab').allTextContents(), ['Breakdown', 'Map', 'Your notes', 'Review']);
+  await page.click('#bookHome .bh-tab:text-is("Breakdown")');
+  await page.click('#bdCreate');
+  await page.locator('#bookHome .bd-hook').waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.match(req.messages[0].content, /Cerulean Sea/);
+  assert.match(req.messages[0].content, /first person/);
+  assert.doesNotMatch(req.messages[0].content, /Lucy danced|Lovely and kind/, 'the reader’s own notes are not sent');
+  const labels = await page.locator('#bookHome .cp-sec-t').allTextContents();
+  assert.deepEqual(labels, ['The story in 2 turning points', 'Why the ending lands', 'How everyone connects', 'The deeper themes',
+    'How it’s been received', 'Three questions worth debating', 'My final interpretation']);
+  assert.equal(await page.locator('#bookHome .bd-turns li').count(), 2);
+  assert.match(await page.textContent('#bookHome .bd-pull'), /Home is where you are wanted/);
+  // The connections map: tap a name to see only that person's ties.
+  assert.equal(await page.locator('#bookHome .bd-map .bd-node').count(), 3);
+  assert.equal(await page.locator('#bookHome .bd-rel').count(), 2);
+  await page.locator('#bookHome .bd-node', { hasText: 'Lucy' }).click();
+  assert.equal(await page.locator('#bookHome .bd-rel').count(), 1);
+  assert.match(await page.textContent('#bookHome .bd-who'), /Lucy — a six-year-old Antichrist/);
+  // A question opens up once a take is picked, and the take is kept.
+  const q1 = page.locator('#bookHome .bd-q').nth(0);
+  assert.equal(await q1.locator('.bd-deeper').count(), 0);
+  await q1.locator('.bd-opt').nth(0).click();
+  assert.match(await q1.locator('.bd-mine').textContent(), /The dinners change the village/);
+  assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_breakdowns')).b1.takes[0]), 0);
+  assert.equal(await page.evaluate(() => JSON.parse(gistPayload()).bd.b1.bd.turns.length), 2, 'it syncs');
+  // Reopening the book lands on the Breakdown.
+  await page.click('#bookHome .bh-back');
+  await page.evaluate(() => openBook('b1'));
+  assert.equal(await page.textContent('#bookHome .bh-tab.on'), 'Breakdown');
+  // A failed rewrite keeps the one that's there.
+  await page.click('#bdRedo');
+  assert.match(await page.textContent('#bdRedo'), /Tap again/);
+  await page.click('#bdRedo');
+  await page.locator('#bdStatus', { hasText: 'Couldn’t rewrite it' }).waitFor();
+  assert.equal(await page.locator('#bookHome .bd-turns li').count(), 2);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('"Argue it out" opens the book club on that question and the take picked', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await seedBreakdown(page);
+  await stubClaudeScript(page, [textReply('I’d push back: DICOMY is still standing at the end. Does that bother you?')]);
+  await page.evaluate(() => openBook('b1'));
+  const q1 = page.locator('#bookHome .bd-q').nth(0);
+  await q1.locator('.bd-opt').nth(0).click();
+  await q1.locator('.bd-talk').click();
+  assert.match(await page.textContent('#clubLog'), /You went with “Yes — kindness is resistance”\. Nothing structural changes\. So what makes you hold it anyway\?/, 'the opening costs nothing');
+  await page.fill('#clubInput', 'Because the village does change.');
+  await page.click('#clubSend');
+  await page.locator('#clubLog .club-msg.them', { hasText: 'DICOMY is still standing' }).waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.match(req.system, /book club debate about "The House in the Cerulean Sea"/);
+  assert.match(req.messages[0].content, /Is gentleness a politics\?[\s\S]*My take: Yes/);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a Breakdown shipped with the app lands on its finished book', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.route('**/breakdowns.json', r => r.fulfill({ contentType: 'application/json',
+    body: JSON.stringify({ v: 1, items: [{ title: 'The House in the Cerulean Sea', author: 'TJ Klune', at: 5000, bd: BREAKDOWN }] }) }));
+  await page.evaluate(() => loadShippedBreakdowns());
+  await page.waitForFunction(() => breakdownDB.b1);
+  assert.equal(await page.evaluate(() => breakdownDB.b1.from), 'shipped');
+  await page.evaluate(() => openBook('b1'));
+  assert.match(await page.textContent('#bookHome .bd-hook'), /choosing your family/);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -3569,7 +3688,7 @@ test('“Your notes” says so when there’s nothing yet', async () => {
 
 // ── Book home ────────────────────────────────────────────────────────────
 
-test('a finished book opens its home page: header, and Map / Companion / Your notes / Review tabs', async () => {
+test('a finished book opens its home page: header, and Breakdown / Map / Your notes / Review tabs', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await seedFinished(page);
   await page.evaluate(raw => {
@@ -3588,10 +3707,11 @@ test('a finished book opens its home page: header, and Map / Companion / Your no
   assert.match(head, /★★★★☆/);
   assert.match(head, /Finished Sat, Jun 20/);
   assert.match(head, /Lovely and kind\./, 'the review sits in the header');
-  assert.deepEqual(await page.locator('#bookHome .bh-tab').allTextContents(), ['Map', 'Companion', 'Your notes', 'Review']);
-  assert.match(await page.textContent('#bookHome .bh-thesis'), /\S/);
-  await page.click('#bookHome .bh-tab:text-is("Companion")');
-  assert.match(await page.textContent('#bookHome .bh-body'), /Central moments[\s\S]*Lucy’s records/);
+  assert.deepEqual(await page.locator('#bookHome .bh-tab').allTextContents(), ['Breakdown', 'Map', 'Your notes', 'Review']);
+  assert.match(await page.textContent('#bookHome .bh-thesis'), /\S/, 'with no Breakdown yet, it opens on the map');
+  await page.click('#bookHome .bh-tab:text-is("Breakdown")');
+  assert.equal(await page.isVisible('#bdCreate'), true, 'a Breakdown can be written');
+  assert.match(await page.textContent('#bookHome .bh-body'), /THE EARLIER COMPANION[\s\S]*Central moments[\s\S]*Lucy’s records/, 'and the Companion it already has is still there');
   await page.click('#bookHome .bh-tab:text-is("Your notes")');
   assert.match(await page.textContent('#bookHome .bh-body'), /Lucy danced to another record/);
   assert.doesNotMatch(await page.textContent('#bookHome .bh-body'), /YOUR REVIEW/, 'the review isn’t repeated');

@@ -19,10 +19,10 @@ const books = [
   { id: 'u', title: 'Unread', status: 'unread' }, { id: 'n', title: 'No map', status: 'read' }];
 const maps = { c: { map: cerulean, seen: [] }, t: { map: tiny, seen: [] }, u: { map: tiny, seen: [] } };
 
-test('Sundays are for thinking; other days alternate recall and chronology', () => {
+test('Sundays are for thinking; other days alternate recall and debate', () => {
   assert.equal(D.ddTypeFor('2026-10-25'), 'think', 'a Sunday');
   const week = ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29'].map(D.ddTypeFor);
-  assert.ok(week.every(t => t === 'who' || t === 'order'));
+  assert.ok(week.every(t => t === 'who' || t === 'debate'));
   assert.notEqual(week[0], week[1]);
   assert.equal(week[0], week[2]);
 });
@@ -51,19 +51,38 @@ test('a "who" question offers the answer and two others from the same book', () 
   assert.ok(q.options.every(id => branchOf(id) === branchOf(q.nodeId)), 'distractors come from the same branch when it has enough');
 });
 
-test('a chronology question takes three beats in order and shows them shuffled', () => {
-  let q; for (let i = 0; !(q && q.type === 'order'); i++) q = D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[0]], maps, {});
-  assert.equal(q.beats.length, 3);
-  assert.deepEqual(q.beats, q.beats.slice().sort((a, b) => a - b));
-  assert.deepEqual(q.shown.slice().sort((a, b) => a - b), q.beats);
-  assert.ok(q.beats.every(i => cerulean.timeline[i]));
+test('chronology ("what came first?") questions are gone', () => {
+  for (let i = 0; i < 28; i++) {
+    const q = D.deepDivePick(D.ddAddDays('2026-10-26', i), books, maps, {});
+    assert.notEqual(q.type, 'order');
+    assert.notEqual(q.type, 'debate', 'and without a Breakdown there is nothing to debate');
+  }
 });
 
-test('a book without a chronology still gets a question of another kind', () => {
+const bdRec = (takes = {}) => ({ takes, bd: { questions: [0, 1, 2].map(i => ({ q: 'Q' + i, deeper: '', options: [{ label: 'a' }, { label: 'b' }, { label: 'c' }] })) } });
+
+test('a book with a Breakdown gets debate questions — even with no mind map', () => {
+  const lone = [{ id: 'n', title: 'No map', status: 'read' }];
+  const kinds = new Set();
   for (let i = 0; i < 14; i++) {
-    const q = D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[1]], maps, {});
-    assert.notEqual(q.type, 'order');
+    const q = D.deepDivePick(D.ddAddDays('2026-10-26', i), lone, {}, {}, { n: bdRec() });
+    assert.equal(q.type, 'debate', 'the only kind a map-less book can have');
+    assert.ok(q.qi >= 0 && q.qi < 3);
+    kinds.add(q.qi);
   }
+  assert.ok(kinds.size > 1, 'different questions on different days');
+  const mixed = new Set();
+  for (let i = 0; i < 28; i++) mixed.add(D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[0]], maps, {}, { c: bdRec() }).type);
+  assert.ok(mixed.has('debate') && mixed.has('who') && mixed.has('think'), 'debates join the map’s own questions');
+});
+
+test('debate questions not yet answered come first', () => {
+  for (let i = 0; i < 14; i++) {
+    const q = D.deepDivePick(D.ddAddDays('2026-10-26', i), [{ id: 'n', title: 'N', status: 'read' }], {}, {}, { n: bdRec({ 0: 1, 2: 0 }) });
+    assert.equal(q.qi, 1);
+  }
+  const all = D.deepDivePick('2026-10-27', [{ id: 'n', title: 'N', status: 'read' }], {}, {}, { n: bdRec({ 0: 1, 1: 1, 2: 0 }) });
+  assert.equal(all.type, 'debate', 'once all are answered they come round again');
 });
 
 test('books not seen lately come first, and unexplored bubbles before explored ones', () => {
@@ -111,6 +130,6 @@ test('books with a companion also get "remember this moment" questions', () => {
     if (q.type === 'moment') assert.ok(withCp.companion.moments[q.moment], 'points at a real moment');
   }
   assert.ok(kinds.has('moment'), 'moments come round');
-  assert.ok(kinds.has('who') && kinds.has('order') && kinds.has('think'), 'and the map’s own questions still do');
+  assert.ok(kinds.has('who') && kinds.has('think'), 'and the map’s own questions still do');
   for (let i = 0; i < 14; i++) assert.notEqual(D.deepDivePick(D.ddAddDays('2026-10-26', i), [books[0]], maps, {}).type, 'moment', 'no companion, no moment');
 });
