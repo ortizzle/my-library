@@ -5332,7 +5332,7 @@ function recordUsage(feature,u){
   const orig=window.fetch.bind(window);
   const wrapped=function(url,opts){
     const p=orig(url,opts);
-    if(typeof url==='string'&&url.startsWith('https://api.anthropic.com/v1/messages')){
+    if(typeof url==='string'&&url.startsWith('https://api.anthropic.com/v1/messages')&&!/"stream":true/.test(String(opts&&opts.body||''))){
       const lim=Error.stackTraceLimit;Error.stackTraceLimit=40;
       const feature=usageFeature(new Error().stack);Error.stackTraceLimit=lim;
       p.then(r=>{if(r&&r.ok)r.clone().json().then(d=>recordUsage(feature,d&&d.usage)).catch(()=>{});}).catch(()=>{});
@@ -8442,7 +8442,7 @@ ${COMPANION_SHAPE}`;
 }
 
 async function requestCompanion(b,map){
-  const {text,stop,sources}=await askClaude(companionPrompt(b,map),16000);
+  const {text,stop,sources}=await askClaude(companionPrompt(b,map),16000,{stream:true});
   const c=normalizeCompanion(parseMindmapReply(text));
   if(!c)throw Object.assign(new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Companion'),{status:0});
   if(sources.length)c.sources=sources;
@@ -8581,8 +8581,8 @@ ${BREAKDOWN_SHAPE}`;
 }
 
 // One request to Claude for a book's Breakdown. Throws with .status on an API error.
-async function requestBreakdown(b){
-  const {text,stop,sources}=await askClaude(breakdownPrompt(b),12000);
+async function requestBreakdown(b,onProgress){
+  const {text,stop,sources}=await askClaude(breakdownPrompt(b),12000,{stream:true,onProgress});
   const bd=normalizeBreakdown(parseMindmapReply(text));
   if(!bd)throw Object.assign(new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Breakdown'),{status:0});
   if(sources.length)bd.sources=sources;
@@ -8599,16 +8599,17 @@ async function generateBreakdown(bookId){
   const b=mmBook(bookId);if(!b)return;
   if(!localStorage.getItem(SK.api)){toast('Add your Anthropic API key in Settings first.','err');return;}
   if(_bdBusy.get(bookId)?.started)return;
-  _bdBusy.set(bookId,{started:Date.now()});
+  const st0={started:Date.now(),searches:0,words:0};
+  _bdBusy.set(bookId,st0);
   const repaint=()=>{if(bookHomeOpen()&&_bh.bookId===bookId&&_bh.tab==='breakdown')renderBookHome();};
-  const tick=()=>{const s=document.getElementById('bdStatus'),st=_bdBusy.get(bookId);if(s&&st&&st.started)s.textContent=bdBusyText(st.started);};
+  const tick=()=>{const s=document.getElementById('bdStatus'),st=_bdBusy.get(bookId);if(s&&st&&st.started)s.textContent=bdBusyText(st);};
   repaint();
   const timer=setInterval(tick,1000);
   // A request this long dies if the phone sleeps mid-way; keep the screen on for it.
   let lock=null;
   try{lock=await navigator.wakeLock?.request('screen');}catch{}
   try{
-    const bd=await requestBreakdown(b);
+    const bd=await requestBreakdown(b,p=>{st0.searches=p.searches;st0.words=p.words;});
     storeBreakdown(bookId,bd);
     _bdBusy.delete(bookId);
     toast(`Breakdown ready for ${ddShort(b.title)} 📖`,'ok');
@@ -8621,8 +8622,10 @@ async function generateBreakdown(bookId){
     repaint();
   }
 }
-function bdBusyText(started){
-  return `Writing the Breakdown… ${Math.round((Date.now()-started)/1000)}s — usually one to two minutes. Keep this screen open.`;
+function bdBusyText(st){
+  const secs=Math.round((Date.now()-st.started)/1000);
+  const what=st.words>0?`Writing… about ${Math.round(st.words/10)*10} words so far`:st.searches>0?`Looking up reviews and summaries (${plural(st.searches,'search')})…`:'Starting…';
+  return `${what} · ${secs}s. A book Claude has to look up can take 3–4 minutes. Keep this screen open.`;
 }
 function bdSetTake(bookId,qi,oi){
   const rec=breakdownDB[bookId];if(!rec)return;
@@ -8735,7 +8738,7 @@ function breakdownKids(b){
     const out=[];
     const go=bhButton(label,'bdCreate',()=>generateBreakdown(b.id),primary);
     go.disabled=!!(busy&&busy.started);
-    const st=vEl('p','mm-status',busy&&busy.started?bdBusyText(busy.started):busy&&busy.error?`Couldn’t write it (${busy.error}). Try again.`:'');st.id='bdStatus';
+    const st=vEl('p','mm-status',busy&&busy.started?bdBusyText(busy):busy&&busy.error?`Couldn’t write it (${busy.error}). Try again.`:'');st.id='bdStatus';
     out.push(go,st);return out;
   };
   if(!rec){
@@ -8800,7 +8803,7 @@ function breakdownKids(b){
       if(!redo.classList.contains('armed')){redo.classList.add('armed');redo.textContent='Tap again to rewrite — this one is replaced';return;}
       generateBreakdown(b.id);
     });
-    const st=vEl('p',null,busy&&busy.started?bdBusyText(busy.started):busy&&busy.error?`Couldn’t rewrite it (${busy.error}). This one is still here.`:'');st.id='bdStatus';
+    const st=vEl('p',null,busy&&busy.started?bdBusyText(busy):busy&&busy.error?`Couldn’t rewrite it (${busy.error}). This one is still here.`:'');st.id='bdStatus';
     foot.append(redo,st);out.push(foot);
   }
   return out;
@@ -8947,31 +8950,110 @@ Reply with JSON only, no code fence, in exactly this shape:
 Rules: 4 or 5 branches. The first branch may have up to 6 nodes; the others up to 4. Fiction: branches like the main characters, supporting characters, themes, places; nonfiction: the core ideas or framework, key stories, people, how to apply it. The timeline is 5–8 beats in order, including the ending (the reader has finished the book). Only state what you are confident is in the book; if you still don't know it well after searching, keep the map short rather than inventing details or filling it with what reviewers said, and add "unsure":true.`;
 }
 
-// One request to Claude for maps and summaries, with web search on offer: the
-// prompt asks Claude to search only for books it doesn't know well, so most
-// books cost no searches. Returns the reply text and the sources it cited.
-// A long search can pause (stop_reason pause_turn); the turn is sent back to
-// resume it. If the account can't use web search, it's retried without.
+// Server-sent events → complete events. Returns the events found in `buf` and
+// whatever is left over (an event still arriving). Pure.
+function sseSplit(buf){
+  const events=[],parts=String(buf).split(/\r?\n\r?\n/),rest=parts.pop();
+  for(const part of parts){
+    const data=part.split(/\r?\n/).filter(l=>l.startsWith('data:')).map(l=>l.slice(5).replace(/^ /,'')).join('\n');
+    if(!data||data==='[DONE]')continue;
+    try{events.push(JSON.parse(data));}catch{}
+  }
+  return {events,rest};
+}
+// Folds one streamed event into the reply being built: {blocks, stop, usage}.
+// Text and cited sources build up block by block; a search's query arrives as
+// JSON in pieces. Pure.
+function sseApply(acc,ev){
+  if(!ev||typeof ev!=='object')return acc;
+  if(ev.type==='message_start'){acc.usage={...((ev.message&&ev.message.usage)||{})};}
+  else if(ev.type==='content_block_start'){
+    const b={...(ev.content_block||{})};
+    if(b.type==='text'){b.text=b.text||'';b.citations=b.citations||[];}
+    if(b.type==='server_tool_use'||b.type==='tool_use')b._json='';
+    acc.blocks[ev.index]=b;
+  }else if(ev.type==='content_block_delta'){
+    const b=acc.blocks[ev.index],d=ev.delta||{};
+    if(b){
+      if(d.type==='text_delta')b.text=(b.text||'')+(d.text||'');
+      else if(d.type==='input_json_delta')b._json=(b._json||'')+(d.partial_json||'');
+      else if(d.type==='citations_delta'&&d.citation)(b.citations=b.citations||[]).push(d.citation);
+    }
+  }else if(ev.type==='content_block_stop'){
+    const b=acc.blocks[ev.index];
+    if(b&&b._json!==undefined){try{b.input=JSON.parse(b._json||'{}');}catch{b.input={};}delete b._json;}
+  }else if(ev.type==='message_delta'){
+    if(ev.delta&&ev.delta.stop_reason)acc.stop=ev.delta.stop_reason;
+    if(ev.usage)Object.assign(acc.usage,ev.usage);
+  }else if(ev.type==='error'){
+    throw Object.assign(new Error((ev.error&&ev.error.message)||'the stream failed'),{status:0});
+  }
+  return acc;
+}
+// How far along a reply is, for the screen: searching, or writing N words.
+function claudeProgress(acc){
+  const blocks=acc.blocks.filter(Boolean);
+  const searches=blocks.filter(b=>b.type==='server_tool_use').length;
+  const words=blocks.filter(b=>b.type==='text').reduce((n,b)=>n+(b.text.match(/\S+/g)||[]).length,0);
+  return {searches,words};
+}
+
+// One request to Claude for maps, summaries and Breakdowns, with web search on
+// offer: the prompt asks Claude to search only for books it doesn't know well,
+// so most books cost no searches. Returns the reply text and the sources it
+// cited. A long search can pause (stop_reason pause_turn); the turn is sent back
+// to resume it. If the account can't use web search, it's retried without.
+//
+// opts.stream: read the reply as it is written. A long reply sent in one piece
+// leaves the connection silent for minutes, and a phone's network drops a
+// silent connection ("Failed to fetch"); streaming keeps bytes flowing, and
+// opts.onProgress({searches,words}) can show where it has got to.
 async function askClaude(prompt,maxTokens,opts={}){
   const key=localStorage.getItem(SK.api);
   if(!key)throw Object.assign(new Error('no API key'),{status:401});
+  const lim=Error.stackTraceLimit;Error.stackTraceLimit=40;
+  const feature=usageFeature(new Error().stack);Error.stackTraceLimit=lim; // read now: the stack is gone after an await
   const messages=[{role:'user',content:prompt}];
   let search=opts.search!==false,blocks=[],stop='';
   for(let turn=0;turn<4;turn++){
     const body={model:CLAUDE_MODEL,max_tokens:maxTokens,messages};
+    if(opts.stream)body.stream=true;
     if(search)body.tools=[{type:'web_search_20260209',name:'web_search',max_uses:4}];
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify(body)});
+    let res;
+    try{
+      res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify(body)});
+    }catch(e){throw Object.assign(new Error('couldn’t reach Claude — check the connection'),{status:0});}
     if(!res.ok){
       const e=await res.json().catch(()=>({}));const msg=(e.error&&e.error.message)||`HTTP ${res.status}`;
       if(search&&res.status===400&&/web.?search|tool/i.test(msg)){search=false;continue;}
       throw Object.assign(new Error(msg),{status:res.status});
     }
-    const data=await res.json();
-    blocks=blocks.concat(data.content||[]);stop=data.stop_reason;
+    let got;
+    if(opts.stream&&res.body&&/event-stream/i.test(res.headers.get('content-type')||'')){
+      const acc={blocks:[],stop:'',usage:{}},reader=res.body.getReader(),dec=new TextDecoder();
+      let buf='';
+      try{
+        for(;;){
+          const {done,value}=await reader.read();
+          if(done)break;
+          buf+=dec.decode(value,{stream:true});
+          const part=sseSplit(buf);buf=part.rest;
+          for(const ev of part.events)sseApply(acc,ev);
+          if(part.events.length&&opts.onProgress)opts.onProgress(claudeProgress(acc));
+        }
+      }catch(e){
+        if(e&&e.status===0)throw e;
+        throw Object.assign(new Error('the connection dropped part-way through — keep the screen on and try again'),{status:0});
+      }
+      if(!acc.stop)throw Object.assign(new Error('the connection dropped before the reply finished — try again'),{status:0});
+      recordUsage(feature,acc.usage);
+      got={content:acc.blocks.filter(Boolean),stop_reason:acc.stop};
+    }else got=await res.json();
+    blocks=blocks.concat(got.content||[]);stop=got.stop_reason;
     if(stop!=='pause_turn')break;
-    messages.push({role:'assistant',content:data.content||[]});
+    messages.push({role:'assistant',content:got.content||[]});
   }
   // Joined with nothing: citations can split one JSON string across text blocks.
   const text=blocks.filter(x=>x.type==='text').map(x=>x.text).join('');
@@ -8992,7 +9074,7 @@ function claudeSources(blocks){
 
 // One request to Claude for a book's map. Throws with .status on an API error.
 async function requestMindmap(b){
-  const {text,stop,sources}=await askClaude(mindmapPrompt(b),10000);
+  const {text,stop,sources}=await askClaude(mindmapPrompt(b),10000,{stream:true});
   const map=normalizeMindmap(parseMindmapReply(text));
   if(!map)throw Object.assign(new Error(stop==='max_tokens'?'the map came back cut off':'the reply wasn’t a usable map'),{status:0});
   if(map.summary&&sources.length)map.summary.sources=sources;

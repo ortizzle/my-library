@@ -2701,6 +2701,70 @@ test('the Breakdown is written on request from the book’s page, with no mind m
   await ctx.close();
 });
 
+// A reply as the API streams it: server-sent events, delivered in uneven pieces
+// (so one event can arrive split across two reads).
+async function stubClaudeStream(page, { text, drop = false, search = true }) {
+  await page.evaluate(([text, drop, search]) => {
+    window.__reqs = [];
+    window.fetch = async (url, opts) => {
+      window.__reqs.push(JSON.parse(opts.body));
+      const ev = (type, o) => `event: ${type}\ndata: ${JSON.stringify({ type, ...o })}\n\n`;
+      let out = ev('message_start', { message: { usage: { input_tokens: 1000, output_tokens: 1 } } });
+      let i = 0;
+      if (search) {
+        out += ev('content_block_start', { index: 0, content_block: { type: 'server_tool_use', id: 's1', name: 'web_search', input: {} } })
+          + ev('content_block_delta', { index: 0, delta: { type: 'input_json_delta', partial_json: '{"query":"a book"}' } })
+          + ev('content_block_stop', { index: 0 });
+        i = 1;
+      }
+      out += ev('content_block_start', { index: i, content_block: { type: 'text', text: '' } });
+      for (let k = 0; k < text.length; k += 400) out += ev('content_block_delta', { index: i, delta: { type: 'text_delta', text: text.slice(k, k + 400) } });
+      out += ev('content_block_stop', { index: i }) + ev('message_delta', { delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 4321 } }) + ev('message_stop', {});
+      const bytes = new TextEncoder().encode(drop ? out.slice(0, Math.floor(out.length * 0.6)) : out);
+      const stream = new ReadableStream({ async start(c) {
+        for (let p = 0; p < bytes.length; p += 997) { c.enqueue(bytes.slice(p, p + 997)); await new Promise(r => setTimeout(r, 5)); }
+        if (drop) c.error(new TypeError('network error')); else c.close();
+      } });
+      return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    };
+  }, [text, drop, search]);
+}
+
+test('a Breakdown is read as it streams in — progress shows, usage is counted, and nothing waits in silence', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeStream(page, { text: JSON.stringify(BREAKDOWN) });
+  await page.evaluate(() => openBook('b1'));
+  await page.click('#bookHome .bh-tab:text-is("Breakdown")');
+  await page.click('#bdCreate');
+  await page.locator('#bookHome .bd-hook').waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.equal(req.stream, true, 'the long reply is requested as a stream');
+  assert.equal((await page.evaluate(() => breakdownDB.b1.bd.turns.length)), 2);
+  const usage = await page.evaluate(() => JSON.parse(localStorage.getItem('trr_v1_usage')));
+  const month = Object.values(usage.months)[0];
+  assert.deepEqual(month.Breakdowns, { n: 1, in: 1000, out: 4321, s: 0 }, 'counted once, under its own name');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('a Breakdown whose connection drops part-way says so, keeps nothing half-made, and can be retried', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await stubClaudeStream(page, { text: JSON.stringify(BREAKDOWN), drop: true });
+  await page.evaluate(() => openBook('b1'));
+  await page.click('#bookHome .bh-tab:text-is("Breakdown")');
+  await page.click('#bdCreate');
+  await page.locator('#bdStatus', { hasText: 'connection dropped part-way' }).waitFor();
+  assert.equal(await page.evaluate(() => !!breakdownDB.b1), false, 'a half-written reply is never saved');
+  assert.equal(await page.isDisabled('#bdCreate'), false, 'and the button is back');
+  await stubClaudeStream(page, { text: JSON.stringify(BREAKDOWN) });
+  await page.click('#bdCreate');
+  await page.locator('#bookHome .bd-hook').waitFor();
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('"Argue it out" opens the book club on that question and the take picked', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await seedFinished(page);

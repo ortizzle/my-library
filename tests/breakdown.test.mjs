@@ -7,7 +7,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { loadFunctions } from './extract.mjs';
 
-const B = loadFunctions(['mmStr', 'mmSources', 'ddShort', 'normalizeBreakdown', 'mergeBreakdowns', 'bdMapLayout', 'bdKey', 'takeShippedBreakdowns']);
+const B = loadFunctions(['mmStr', 'mmSources', 'ddShort', 'normalizeBreakdown', 'mergeBreakdowns', 'bdMapLayout', 'bdKey', 'takeShippedBreakdowns',
+  'sseSplit', 'sseApply', 'claudeProgress']);
 
 const raw = {
   kind: 'fiction', hook: 'It is really about belonging.', intro: ['First.', 'Second.'],
@@ -99,4 +100,48 @@ test('breakdowns.json is valid and every shipped Breakdown is usable', () => {
     for (const q of bd.questions) assert.equal(q.options.length, 3);
     assert.equal(bd.links.length, it.bd.links.length, `${it.title}: every link names two listed people`);
   }
+});
+
+// ── Streaming: a long reply is read as it arrives, so the connection is never silent ──
+
+const sse = (type, obj) => `event: ${type}\ndata: ${JSON.stringify({ type, ...obj })}\n\n`;
+
+test('server-sent events are split on blank lines, and a half-arrived event waits', () => {
+  const whole = sse('ping', {}) + sse('content_block_delta', { index: 0, delta: { type: 'text_delta', text: 'Hi' } });
+  const a = B.sseSplit(whole.slice(0, whole.length - 10));
+  assert.equal(a.events.length, 1, 'only the complete event');
+  const b = B.sseSplit(a.rest + whole.slice(whole.length - 10));
+  assert.equal(b.events.length, 1);
+  assert.equal(b.events[0].delta.text, 'Hi');
+  assert.equal(b.rest, '');
+  assert.deepEqual(B.sseSplit('event: x\r\ndata: {"type":"a"}\r\n\r\n').events, [{ type: 'a' }], 'CRLF too');
+  assert.deepEqual(B.sseSplit('data: not json\n\ndata: [DONE]\n\n').events, [], 'junk is skipped');
+});
+
+test('a streamed reply is rebuilt: text, cited sources, a search, usage and the stop reason', () => {
+  const acc = { blocks: [], stop: '', usage: {} };
+  const feed = (...evs) => evs.forEach(e => B.sseApply(acc, e));
+  feed({ type: 'message_start', message: { usage: { input_tokens: 900, output_tokens: 1 } } },
+    { type: 'content_block_start', index: 0, content_block: { type: 'server_tool_use', id: 's1', name: 'web_search', input: {} } },
+    { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: '{"query":"john ' } },
+    { type: 'content_block_delta', index: 0, delta: { type: 'input_json_delta', partial_json: 'of john"}' } },
+    { type: 'content_block_stop', index: 0 },
+    { type: 'content_block_start', index: 1, content_block: { type: 'web_search_tool_result', tool_use_id: 's1', content: [{ type: 'web_search_result', url: 'https://example.org/r', title: 'R' }] } },
+    { type: 'content_block_stop', index: 1 },
+    { type: 'content_block_start', index: 2, content_block: { type: 'text', text: '' } });
+  assert.deepEqual(B.claudeProgress(acc), { searches: 1, words: 0 }, 'searching, nothing written yet');
+  feed({ type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: '{"hook":"A quiet' } },
+    { type: 'content_block_delta', index: 2, delta: { type: 'citations_delta', citation: { url: 'https://news.example.com/a', title: 'A' } } },
+    { type: 'content_block_delta', index: 2, delta: { type: 'text_delta', text: ' book"}' } },
+    { type: 'content_block_stop', index: 2 },
+    { type: 'message_delta', delta: { stop_reason: 'end_turn' }, usage: { output_tokens: 3200 } },
+    { type: 'message_stop' });
+  assert.equal(acc.blocks[0].input.query, 'john of john', 'the search query arrives in pieces');
+  assert.equal(acc.blocks[0]._json, undefined);
+  assert.equal(acc.blocks[2].text, '{"hook":"A quiet book"}');
+  assert.equal(acc.blocks[2].citations[0].url, 'https://news.example.com/a');
+  assert.equal(acc.stop, 'end_turn');
+  assert.deepEqual(acc.usage, { input_tokens: 900, output_tokens: 3200 }, 'the final output count replaces the opening one');
+  assert.deepEqual(B.claudeProgress(acc), { searches: 1, words: 3 });
+  assert.throws(() => B.sseApply(acc, { type: 'error', error: { message: 'Overloaded' } }), /Overloaded/);
 });
