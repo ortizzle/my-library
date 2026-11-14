@@ -2748,6 +2748,34 @@ test('a Breakdown is read as it streams in — progress shows, usage is counted,
   await ctx.close();
 });
 
+test('a Breakdown that hits its length limit says how far it got, keeps nothing, and asks for plenty of room', async () => {
+  const { ctx, page, errors } = await openApp(browser, base);
+  await seedFinished(page);
+  await page.evaluate(() => {
+    window.__reqs = [];
+    window.fetch = async (url, opts) => {
+      window.__reqs.push(JSON.parse(opts.body));
+      const ev = (type, o) => `event: ${type}\ndata: ${JSON.stringify({ type, ...o })}\n\n`;
+      const out = ev('message_start', { message: { usage: { input_tokens: 5, output_tokens: 1 } } })
+        + ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } })
+        + ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text: '{"hook":"One two three four five' } })
+        + ev('content_block_stop', { index: 0 })
+        + ev('message_delta', { delta: { stop_reason: 'max_tokens' }, usage: { output_tokens: 24000 } }) + ev('message_stop', {});
+      return new Response(out, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    };
+  });
+  await page.evaluate(() => openBook('b1'));
+  await page.click('#bookHome .bh-tab:text-is("Breakdown")');
+  await page.click('#bdCreate');
+  await page.locator('#bdStatus', { hasText: 'ran past its length limit — 5 words of the Breakdown written, 24000 tokens used' }).waitFor();
+  const req = (await page.evaluate(() => window.__reqs))[0];
+  assert.ok(req.max_tokens >= 20000, 'a Breakdown is allowed far more than it needs');
+  assert.match(req.messages[0].content, /Write nothing outside the JSON/);
+  assert.equal(await page.evaluate(() => !!breakdownDB.b1), false);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('a Breakdown whose connection drops part-way says so, keeps nothing half-made, and can be retried', async () => {
   const { ctx, page, errors } = await openApp(browser, base);
   await seedFinished(page);

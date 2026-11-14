@@ -8576,15 +8576,20 @@ What goes in:
 
 If you aren't confident you know this book well — especially anything published after 2023 — use web search before writing: a detailed plot or chapter summary first, then reviews in major outlets. If you know it well, don't search. Never invent scenes, quotes, names or critics. If a detail isn't established by what you know or found, say that it isn't rather than guessing.
 
+Length: about 2,000 words in all. Paragraphs of two to four sentences; sections of one to three paragraphs. Write nothing outside the JSON — no notes before it and no commentary between searches.
+
 Reply with JSON only, no code fence, in exactly this shape:
 ${BREAKDOWN_SHAPE}`;
 }
 
 // One request to Claude for a book's Breakdown. Throws with .status on an API error.
 async function requestBreakdown(b,onProgress){
-  const {text,stop,sources}=await askClaude(breakdownPrompt(b),12000,{stream:true,onProgress});
+  const {text,stop,sources,outTokens}=await askClaude(breakdownPrompt(b),24000,{stream:true,onProgress});
   const bd=normalizeBreakdown(parseMindmapReply(text));
-  if(!bd)throw Object.assign(new Error(stop==='max_tokens'?'it came back cut off':'the reply wasn’t a usable Breakdown'),{status:0});
+  if(!bd){
+    const words=(text.match(/\S+/g)||[]).length;
+    throw Object.assign(new Error(stop==='max_tokens'?`it ran past its length limit — ${words} words of the Breakdown written, ${outTokens} tokens used`:'the reply wasn’t a usable Breakdown'),{status:0});
+  }
   if(sources.length)bd.sources=sources;
   return bd;
 }
@@ -9014,7 +9019,7 @@ async function askClaude(prompt,maxTokens,opts={}){
   const lim=Error.stackTraceLimit;Error.stackTraceLimit=40;
   const feature=usageFeature(new Error().stack);Error.stackTraceLimit=lim; // read now: the stack is gone after an await
   const messages=[{role:'user',content:prompt}];
-  let search=opts.search!==false,blocks=[],stop='';
+  let search=opts.search!==false,blocks=[],stop='',outTokens=0;
   for(let turn=0;turn<4;turn++){
     const body={model:CLAUDE_MODEL,max_tokens:maxTokens,messages};
     if(opts.stream)body.stream=true;
@@ -9049,15 +9054,16 @@ async function askClaude(prompt,maxTokens,opts={}){
       }
       if(!acc.stop)throw Object.assign(new Error('the connection dropped before the reply finished — try again'),{status:0});
       recordUsage(feature,acc.usage);
-      got={content:acc.blocks.filter(Boolean),stop_reason:acc.stop};
+      got={content:acc.blocks.filter(Boolean),stop_reason:acc.stop,usage:acc.usage};
     }else got=await res.json();
+    outTokens+=(got.usage&&got.usage.output_tokens)||0;
     blocks=blocks.concat(got.content||[]);stop=got.stop_reason;
     if(stop!=='pause_turn')break;
     messages.push({role:'assistant',content:got.content||[]});
   }
   // Joined with nothing: citations can split one JSON string across text blocks.
   const text=blocks.filter(x=>x.type==='text').map(x=>x.text).join('');
-  return {text,stop,sources:claudeSources(blocks)};
+  return {text,stop,sources:claudeSources(blocks),outTokens};
 }
 
 // The pages Claude cited (or, failing that, the search results it read).
