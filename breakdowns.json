@@ -305,6 +305,292 @@
      }
     ]
    }
+  },
+  {
+   "title": "Kindred",
+   "author": "Octavia Butler",
+   "at": 1794744000000,
+   "bd": {
+    "kind": "fiction",
+    "hook": "I read Kindred as a book about how little it takes to get used to the unthinkable: Dana doesn't just visit slavery, it takes a piece of her, and Butler never lets survival look clean.",
+    "intro": [
+     "Dana Franklin is a writer in 1976 Los Angeles, newly married to Kevin, a white writer, when she is pulled back to a plantation in Maryland. It doesn't happen once. Each time, the same boy is in danger, and each time she has to decide how much of herself she will trade to stay alive.",
+     "The time travel is never explained, and I think that's the point. Butler isn't interested in how Dana gets there. She's interested in what it costs her to stay there, and in how fast a modern woman learns the rules of a place built to break her."
+    ],
+    "turns": [
+     {
+      "title": "Pulled back",
+      "text": "On her birthday in 1976, Dana is yanked from her new home to Maryland, where she saves a drowning boy, Rufus Weylin. She returns home when her own life is threatened."
+     },
+     {
+      "title": "Who Rufus is",
+      "text": "Rufus is the white son of the plantation owner, Tom Weylin, and her ancestor. Dana's family Bible shows a daughter, Hagar, born to Rufus and Alice Greenwood. If Rufus dies before Hagar exists, so does Dana."
+     },
+     {
+      "title": "Kevin comes too",
+      "text": "On a later trip Kevin is carried along. They have to pass as master and slave, and Kevin is left behind in the past for years when Dana is pulled home."
+     },
+     {
+      "title": "The Weylin plantation",
+      "text": "Dana's modern knowledge is little use. She is whipped, she works, she learns what keeps her alive, and she is punished for teaching others to read."
+     },
+     {
+      "title": "Alice is enslaved",
+      "text": "Alice, a free Black woman, tries to flee with her husband Isaac. They are caught. Isaac is punished and sent away, and Alice is dragged back into slavery, where Rufus forces himself on her."
+     },
+     {
+      "title": "Alice's death",
+      "text": "Rufus lies to Alice that her children have been sold, and she takes her own life. Dana, who has helped keep Rufus alive for this, is devastated."
+     },
+     {
+      "title": "The last trip",
+      "text": "Rufus tries to force Dana as he forced Alice. She stabs him, and his dying hand grips her arm as she is pulled home."
+     },
+     {
+      "title": "What comes back",
+      "text": "Her left arm is crushed into the wall of her house and has to be amputated. She and Kevin later travel to Maryland to find what is left of the plantation, and learn only scraps."
+     }
+    ],
+    "sections": [
+     {
+      "title": "The trap at the heart of it",
+      "paras": [
+       "The cruelest idea in the book is simple. Dana can only exist if Rufus lives long enough to father Hagar with Alice. So the person she most needs to protect is the person who will do the most harm to everyone around her, Alice above all.",
+       "Every rescue is therefore a double bind. Saving Rufus keeps Dana's family line alive, and it keeps a slaveholder alive. I don't think Butler wants us to resolve that. She wants us to feel how her own survival is tied to someone else's suffering."
+      ],
+      "points": [],
+      "pull": "The thing she needs to protect is the thing that will destroy the woman she most wants to save."
+     },
+     {
+      "title": "Alice is where it stops being abstract",
+      "paras": [
+       "Until Alice, the trap is a puzzle. After her, it's a debt. Alice begins as a free woman, someone with a husband and a home, and ends as someone Rufus owns. Dana watches each step and keeps going because Hagar has to be born.",
+       "When Alice dies, the book makes no argument that Dana was right. It just shows what it cost, and that the cost was never Dana's alone to pay."
+      ]
+     },
+     {
+      "title": "Why the ending takes her arm",
+      "paras": [
+       "When Dana finally kills Rufus, she can't walk away unchanged. His hand is on her as she travels, and when she lands in 1976 the arm he held is fused into the wall. She loses it.",
+       "I think the amputation is the book's refusal of a clean escape. The past doesn't let go of her; it leaves its mark on her body, a permanent one, and it comes home with her."
+      ]
+     },
+     {
+      "title": "What the title means",
+      "paras": [
+       "Kindred means kin, and the book keeps pushing the word somewhere uncomfortable."
+      ],
+      "points": [
+       {
+        "label": "Blood",
+        "text": "Dana is descended from Alice, an enslaved woman, and from Rufus, the man who owned her. She carries both."
+       },
+       {
+        "label": "Obligation",
+        "text": "Kin are people you owe things to, and Dana owes her existence to a crime."
+       },
+       {
+        "label": "Closeness",
+        "text": "She and Rufus are strangely intimate across a gap that can't be crossed. He relies on her, trusts her, and still owns her."
+       }
+      ]
+     },
+     {
+      "title": "Survival or complicity?",
+      "paras": [
+       "The question hanging over Dana's choices is whether she is surviving or collaborating. She obeys, stays quiet, keeps Rufus alive and sometimes tries to steer him toward being less cruel. She mostly fails at that last part.",
+       "What I admire is that the book doesn't convict her or excuse her. It shows how the same choice can be both. That is why I think it lingers."
+      ]
+     }
+    ],
+    "people": [
+     {
+      "name": "Dana",
+      "role": "a writer from 1976, pulled into slavery"
+     },
+     {
+      "name": "Kevin",
+      "role": "her white husband, stranded in the past"
+     },
+     {
+      "name": "Rufus",
+      "role": "the Weylin heir, and her ancestor"
+     },
+     {
+      "name": "Alice",
+      "role": "a free Black woman forced into slavery"
+     },
+     {
+      "name": "Tom Weylin",
+      "role": "Rufus's father, the plantation owner"
+     },
+     {
+      "name": "Isaac",
+      "role": "Alice's husband"
+     },
+     {
+      "name": "Hagar",
+      "role": "Alice and Rufus's daughter, Dana's ancestor"
+     }
+    ],
+    "links": [
+     {
+      "a": "Dana",
+      "b": "Rufus",
+      "text": "An ancestor she must protect and can't trust"
+     },
+     {
+      "a": "Dana",
+      "b": "Alice",
+      "text": "A kinswoman she can't save"
+     },
+     {
+      "a": "Rufus",
+      "b": "Alice",
+      "text": "Fixation that turns into ownership"
+     },
+     {
+      "a": "Dana",
+      "b": "Kevin",
+      "text": "A marriage tested by the past"
+     },
+     {
+      "a": "Tom Weylin",
+      "b": "Rufus",
+      "text": "The cruelty his son inherits"
+     },
+     {
+      "a": "Alice",
+      "b": "Isaac",
+      "text": "A marriage the plantation destroys"
+     },
+     {
+      "a": "Alice",
+      "b": "Hagar",
+      "text": "The line that carries Dana forward"
+     },
+     {
+      "a": "Dana",
+      "b": "Hagar",
+      "text": "The ancestor whose birth she secures"
+     },
+     {
+      "a": "Dana",
+      "b": "Tom Weylin",
+      "text": "The master who punishes her"
+     }
+    ],
+    "themes": [
+     {
+      "title": "Survival versus complicity",
+      "text": "Dana survives by compromising: she obeys, stays quiet, and keeps a slaveholder alive. The book refuses to call this either heroic or shameful, and that ambiguity is the core of it."
+     },
+     {
+      "title": "Kinship and inheritance",
+      "text": "Her bloodline runs through both the enslaved and the enslaver. Family here is something you inherit, not something you choose, and it comes with a debt."
+     },
+     {
+      "title": "How quickly the past becomes normal",
+      "text": "What frightens Dana most is how soon the plantation starts to feel ordinary. Her adaptation, and Kevin's, show how easily people settle into what they once found unthinkable."
+     },
+     {
+      "title": "Marriage across a divide",
+      "text": "Dana and Kevin's marriage is tested because the past makes their position unequal in a way 1976 never did, and Kevin's years there change him too."
+     }
+    ],
+    "praised": [
+     "Its first-person immediacy: the plantation is seen through a modern woman who can't look away.",
+     "It is widely taught and admired for treating slavery's moral compromises without easy heroes."
+    ],
+    "criticized": [
+     "Some readers want more of an explanation for the time travel, which the book never gives.",
+     "Critics have debated how far Dana's accommodation, and her protection of Rufus, can be read as survival rather than collaboration."
+    ],
+    "questions": [
+     {
+      "q": "Was Dana right to keep Rufus alive?",
+      "deeper": "Dana's existence depends on Rufus living until Hagar is born, but keeping him alive means helping a man who abuses everyone around him. She tries to shape the kind of man he becomes and mostly fails. I lean towards both: it was necessary, and it was still a moral compromise she can't wash off.",
+      "options": [
+       {
+        "label": "Yes. She had no real choice",
+        "holds": "If Rufus dies early, Hagar is never born and neither is Dana. She also knows the future in a way no one around her does, and she is acting under that pressure.",
+        "hard": "It treats Alice, who suffers most from Rufus staying alive, as a cost rather than a person."
+       },
+       {
+        "label": "No. She should have let him die",
+        "holds": "Rufus does terrible things that Dana helps make possible. A different future, with no Dana, could be better for Alice and for everyone else on that plantation.",
+        "hard": "It asks Dana to erase herself and her whole family line on a theory she can't test."
+       },
+       {
+        "label": "Both: it was necessary and still wrong",
+        "holds": "The book never lets either side win. Dana is trapped, her choices are forced, and they are still choices that cost someone else.",
+        "hard": "“Both” can be a way of not deciding how much of Alice's suffering Dana is responsible for."
+       }
+      ]
+     },
+     {
+      "q": "What does it mean that she loses her arm?",
+      "deeper": "It is her left arm, the one Rufus was holding when she was pulled home, and it is fused into the wall of her house. The book doesn't spell out what it means, which is why it gets read so many ways. I lean towards the last one: it's a refusal of a clean ending.",
+      "options": [
+       {
+        "label": "The past leaves a real, physical price",
+        "holds": "All through the book Dana's injuries are real and don't vanish when she returns. The arm is the one she can't heal, and it keeps the past from being a story she can put down.",
+        "hard": "It risks turning the price of slavery into a single dramatic wound, when most of the harm in the book is slow."
+       },
+       {
+        "label": "It marks her the way slavery marked others",
+        "holds": "Dana has been whipped and brutalised, and she carries it home. Losing the arm makes the damage visible to people who weren't there.",
+        "hard": "Comparing her injury to the lasting harm done to the enslaved risks understating how different those lives were."
+       },
+       {
+        "label": "It's the book refusing a clean ending",
+        "holds": "She kills Rufus and escapes, which should feel like a victory. The arm makes sure it doesn't, and that the book ends with something missing.",
+        "hard": "The ending can feel abrupt, and some readers want more of what happens next."
+       }
+      ]
+     },
+     {
+      "q": "Does Kevin ever really understand what Dana went through?",
+      "deeper": "Kevin lives in the past for years himself, and it changes him, so he's not an outsider the way most people would be. But he is a white man there, and he is treated very differently from Dana. I lean towards partly: he knows more than anyone else could, but not what it was to be her.",
+      "options": [
+       {
+        "label": "Yes. He lived it too",
+        "holds": "He spends years in the past, works there and risks himself there. No one else who hears Dana's story can say that.",
+        "hard": "His time there was shaped by being a white man, with protections Dana never had."
+       },
+       {
+        "label": "No. His experience was different",
+        "holds": "He is never in the same danger. The whip, the threat of rape and the loss of control over her own body were Dana's, not his.",
+        "hard": "It dismisses what Kevin does lose, including years of his own life and his place in the present."
+       },
+       {
+        "label": "Partly: he understands, but not from inside",
+        "holds": "He knows the place and the people, and he knows what it did to Dana. He can't know what it was to be her in it.",
+        "hard": "“Partly” is easy to say and hard to measure, and it lets the book leave Kevin's understanding unfinished."
+       }
+      ]
+     }
+    ],
+    "final": [
+     "To me this is a book about how a person can be changed by a place without ever agreeing to it. Dana goes back to protect her own existence, and in doing that she learns what the place takes, and what it asks of her.",
+     "The ending doesn't resolve that. She kills Rufus, and she is free of him, and she is still missing an arm. I think that's the most honest note Butler could end on.",
+     "What stays with me is that Dana's survival and her complicity are the same act. The book asks us to hold both, and doesn't let us look away."
+    ],
+    "sources": [
+     {
+      "url": "https://www.litcharts.com/lit/kindred/summary",
+      "title": "LitCharts: Kindred summary"
+     },
+     {
+      "url": "https://www.sparknotes.com/lit/kindred/section11/",
+      "title": "SparkNotes: Kindred"
+     },
+     {
+      "url": "https://www.encyclopedia.com/arts/educational-magazines/kindred",
+      "title": "Encyclopedia.com: Kindred"
+     }
+    ]
+   }
   }
  ]
 }
